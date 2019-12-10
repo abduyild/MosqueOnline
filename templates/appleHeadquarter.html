@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+         body {
+         font-family: Arial, Helvetica, sans-serif;
+         }
+         /* Full-width input fields */
+         input[type=text],
+         input[type=password] {
+         width: 100%;
+         padding: 12px 20px;
+         margin: 8px 0;
+         display: inline-block;
+         border: 1px solid #ccc;
+         box-sizing: border-box;
+         }
+         /* Set a style for all buttons */
+         button {
+         background-color: #4CAF50;
+         color: white;
+         padding: 14px 20px;
+         margin: 8px 0;
+         border: none;
+         cursor: pointer;
+         width: 100%;
+         }
+         button:hover {
+         opacity: 0.8;
+         }
+         th, td {
+         padding: 15px;
+         text-align: left;
+         border-bottom: 3px solid #ddd;
+         }
+      </style>
+   </head>
+   <body>
+    <h1>Welcome Mr. Jobs!</h1>
+	<h3>I have prepared a little summary of our Employees for you!</h3>
+      <table style="width:75%">
+         <tr>
+            <th>Group</th>
+            <th>Point</th>
+         </tr>
+         <tr>
+            <td>1</td>
+            <td>
+               <p>{{.Points1}}</p>
+            </td>
+         </tr>
+         <tr>
+            <td>2</td>
+            <td>
+               <p>{{.Points2}}</p>
+            </td>
+         </tr>
+         <tr>
+            <td>3</td>
+            <td>
+               <p>{{.Points3}}</p>
+            </td>
+         </tr>
+         <tr>
+            <td>4</td>
+            <td>
+               <p>{{.Points4}}</p>
+            </td>
+         </tr>
+         <tr>
+            <td>5</td>
+            <td>
+               <p>{{.Points5}}</p>
+            </td>
+         </tr>
+         <tr>
+            <td>6</td>
+            <td>
+               <p>{{.Points6}}</p>
+            </td>
+         </tr>
+      </table>
+   </body>
+</html>
+
+

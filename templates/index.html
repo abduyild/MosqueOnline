@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <script>
+         window.addEventListener("pageshow", function(event) {
+             var historyTraversal = event.persisted ||
+                 (typeof window.performance != "undefined" &&
+                     window.performance.navigation.type === 2);
+             if (historyTraversal) {
+                 // Handle page restore.
+                 window.location.reload();
+             }
+         });
+      </script>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <style>
+         body {
+         font-family: Arial, Helvetica, sans-serif;
+         }
+         /* Full-width input fields */
+         input[type=text],
+         input[type=password] {
+         width: 100%;
+         padding: 12px 20px;
+         margin: 8px 0;
+         display: inline-block;
+         border: 1px solid #ccc;
+         box-sizing: border-box;
+         }
+         /* Set a style for all buttons */
+         button {
+         background-color: #4CAF50;
+         color: white;
+         padding: 14px 20px;
+         margin: 8px 0;
+         border: none;
+         cursor: pointer;
+         width: 100%;
+         }
+         button:hover {
+         opacity: 0.8;
+         }
+         th, td {
+         padding: 15px;
+         text-align: left;
+         border-bottom: 3px solid #ddd;
+         }
+      </style>
+   </head>
+   <body>
+    <h3>Your Points: {{.Points}}</h3>
+      <table style="width:75%">
+         <tr>
+            <th>Machine ID</th>
+            <th>IP Address</th>
+            <th>Reset Machine</th>
+            <th>User and Root Flag</th>
+         </tr>
+         <tr>
+            <td>Machine 1</td>
+            <td>
+               <p>10.0.{{.SubNetwork}}.1</p>
+            </td>
+            <td>
+               <a href="/reset?machine=1">
+               <button>Reset Machine!</button>
+               </a>
+            </td>
+            <td>
+               <form method="post" action="/submit?machine=1">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+         </tr>
+         <tr>
+            <td>Machine 2</td>
+            <td>
+               <p>10.0.{{.SubNetwork}}.2</p>
+            </td>
+            <td>
+               <a href="/reset?machine=2">
+               <button>Reset Machine!</button>
+               </a>
+            </td>
+            <td>
+               <form method="post" action="/submit?machine=2">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+         </tr>
+         <tr>
+            <td>Machine 3</td>
+            <td>
+               <p>10.0.{{.SubNetwork}}.3</p>
+            </td>
+            <td>
+               <a href="/reset?machine=3">
+               <button>Reset Machine!</button>
+               </a>
+            </td>
+            <td>
+               <form method="post" action="/submit?machine=3">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+         </tr>
+         <tr>
+            <td>Machine 4</td>
+            <td>
+               <p>10.0.{{.SubNetwork}}.4</p>
+            </td>
+            <td>
+               <a href="/reset?machine=4">
+               <button>Reset Machine!</button>
+               </a>
+            </td>
+            <td>
+               <form method="post" action="/submit?machine=4">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+         </tr>
+         <tr>
+            <td>Machine 5</td>
+            <td>
+               <p>10.0.{{.SubNetwork}}.5</p>
+            </td>
+            <td>
+               <a href="/reset?machine=5">
+               <button>Reset Machine!</button>
+               </a>
+            </td>
+            <td>
+               <form method="post" action="/submit?machine=5">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+         </tr>
+         <tr>
+            <td>Machine 6</td>
+            <td>
+               <p>10.0.{{.SubNetwork}}.6</p>
+            </td>
+            <td>
+               <a href="/reset?machine=6">
+               <button>Reset Machine!</button>
+               </a>
+            </td>
+            <td>
+               <form method="post" action="/submit?machine=6">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+         </tr>
+      </table>
+      <button onclick="javascript:location.href='/logout'" style="width:auto;">Logout</button>
+   </body>
+</html>
+
+
