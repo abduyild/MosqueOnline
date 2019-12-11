@@ -22,7 +22,10 @@ func main() {
     router.HandleFunc("/logout", common.LogoutHandler)//.Methods("POST")
 	router.HandleFunc("/reset", common.ResetHandler)
 	router.HandleFunc("/submit", common.SubmitHandler)
+	
 	router.HandleFunc("/appleHeadquarter", common.SteveJobsHandler)
+	router.HandleFunc("/setFlag", common.SetFlag)
+	
 	
     http.Handle("/", router)
     
