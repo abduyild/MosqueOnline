@@ -11,21 +11,31 @@ import (
 	"../model"
 	"../repos"
     "github.com/gorilla/securecookie"
-    
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/crypto/bcrypt"
+	"strconv"   
 
 )
 
-// Mapping groups to an Integer which is storing the Points of the Group
-var groupPoints = map[string]int{
-    "1": 0,
-    "2": 0,
-    "3": 0,
-    "4": 0,
-    "5": 0,
-    "6": 0,
-}
+
+// Own Group Structure
+type groups struct{
+    // ID string, //enable for custom group names
+    points int
+    userSet [6]bool
+    rootSet [6]bool
+  }
+
+var initArray = [6]bool{false, false, false, false, false, false}
+
+// Initializing every group with ID and points set to zero and Setflags to false
+var groupSet = [6]groups{
+    groups{points: 0, userSet: initArray, rootSet: initArray,},
+    groups{points: 0, userSet: initArray, rootSet: initArray,},
+    groups{points: 0, userSet: initArray, rootSet: initArray,},
+    groups{points: 0, userSet: initArray, rootSet: initArray,},
+    groups{points: 0, userSet: initArray, rootSet: initArray,},
+    groups{points: 0, userSet: initArray, rootSet: initArray,}}
 
 // Type in your User Flags for the equivalent Virtual Machine instead of "user1" etc.
 var userFlags = map[string]string{
@@ -144,13 +154,15 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	user := GetUser(request)
 	userName := strings.Split(user, "?")[0]
-	group := strings.Split(user, "?")[1]
+	groups := strings.Split(user, "?")[1]
+	group1,_ := strconv.Atoi(groups)
+	group := group1 - 1
     if !helpers.IsEmpty(userName) {
     	type page struct {
     		Points int
-    		SubNetwork string
+    		SubNetwork int
     	}
-    	pageSet := page{Points: groupPoints[group], SubNetwork: group}
+    	pageSet := page{Points: groupSet[group].points, SubNetwork: group1}
     	
     	// Changes the {{.$subNetwork}} and {{.$points}} tags in the htmtl file to the according groupID and Points of Group from User.
 		//tpl := template.Must(template.ParseFiles("templates/index.html"))
@@ -199,16 +211,21 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
     rootFlag := request.FormValue("root")
     
     user := GetUser(request)
-    //userName := strings.Split(user, "?")[0]
-	group := strings.Split(user, "?")[1]
+	groups := strings.Split(user, "?")[1]
+	group1,_ := strconv.Atoi(groups)
+	group := group1 - 1
 	machine := request.URL.Query().Get("machine")
+	m,_ := strconv.Atoi(machine)
 	
 	// TODO prevent multiple Inputs, maybe boolean, but where?
-	if userFlag == userFlags[machine] {
-		groupPoints[group] += 500
+	// Boolean check, if user or root flag was already set 
+	if userFlag == userFlags[machine] &&  !groupSet[group].userSet[m-1] {
+		groupSet[group].points += 500
+		groupSet[group].userSet[m-1] = true
 	} 
-	if rootFlag == rootFlags[machine] {
-		groupPoints[group] += 1500
+	if rootFlag == rootFlags[machine]  &&  !groupSet[group].rootSet[m-1]{
+		groupSet[group].points += 1500
+		groupSet[group].rootSet[m-1] = true
 	}
 	http.Redirect(response, request, "/index", 302)
 }
@@ -223,14 +240,27 @@ func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
 			Points6 int
 		}
     	point := points{
-    		Points1: groupPoints["1"], 
-    		Points2: groupPoints["2"], 
-    		Points3: groupPoints["3"], 
-    		Points4: groupPoints["4"], 
-    		Points5: groupPoints["5"], 
-    		Points6: groupPoints["6"]}
+    		Points1: groupSet[0].points, 
+    		Points2: groupSet[1].points,
+    		Points3: groupSet[2].points, 
+    		Points4: groupSet[3].points, 
+    		Points5: groupSet[4].points, 
+    		Points6: groupSet[5].points}
+    	
 		tpl, _:= template.ParseFiles("templates/appleHeadquarter.html")
 		tpl.Execute(response, point)
+}
+
+func SetFlag(response http.ResponseWriter, request *http.Request) {
+    request.ParseForm()
+    userFlag := request.FormValue("user")
+    rootFlag := request.FormValue("root")
+    
+	machine := request.URL.Query().Get("machine")
+	
+	userFlags[machine] = userFlag
+	rootFlags[machine] = rootFlag
+	http.Redirect(response, request, "/appleHeadquarter", 302)
 }
  
 func ClearCookie(response http.ResponseWriter) {
@@ -244,7 +274,6 @@ func ClearCookie(response http.ResponseWriter) {
 }
  
 func GetUser(request *http.Request) (user string) {
-
     if cookie, err := request.Cookie("cookie"); err == nil {
         cookieValue := cookie.Value
             user = cookieValue
