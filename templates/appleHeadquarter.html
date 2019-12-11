@@ -2,6 +2,19 @@
 <html>
    <head>
       <meta name="viewport" content="width=device-width, initial-scale=1">
+      
+      <script>
+         window.addEventListener("pageshow", function(event) {
+             var historyTraversal = event.persisted ||
+                 (typeof window.performance != "undefined" &&
+                     window.performance.navigation.type === 2);
+             if (historyTraversal) {
+                 // Handle page restore.
+                 window.location.reload();
+             }
+         });
+      </script>
+      
       <style>
          body {
          font-family: Arial, Helvetica, sans-serif;
@@ -81,7 +94,69 @@
             </td>
          </tr>
       </table>
-   </body>
+
+
+    <h3>Set the User and Root flag of Machines</h3>
+	<table>
+	    <tr>
+	        <th>1</th>
+	        <th>2</th>
+	        <th>3</th>
+	        <th>4</th>
+	        <th>5</th>
+	        <th>6</th>
+	    </tr>
+            <td>
+               <form method="post" action="/setFlag?machine=1">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=2">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=3">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=4">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=5">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=6">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+	</table>
+    <button onclick="javascript:location.href='/logout'" style="width:auto;">Logout</button>
+</body>
 </html>
 
 
