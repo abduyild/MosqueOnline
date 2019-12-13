@@ -17,16 +17,16 @@ import (
 
 )
 
-
 // Own Group Structure
 type groups struct{
     // ID string, //enable for custom group names
     points int
     userSet [6]bool
     rootSet [6]bool
-  }
+}
 
 var initArray = [6]bool{false, false, false, false, false, false}
+
 
 // Initializing every group with ID and points set to zero and Setflags to false
 var groupSet = [6]groups{
@@ -69,6 +69,10 @@ var cookieHandler = securecookie.New(
     securecookie.GenerateRandomKey(32))
 
  
+func init(){
+    
+}
+
 // for GET
 func LoginPageHandler(response http.ResponseWriter, request *http.Request) {
     var body, _ = helpers.LoadFile("templates/login.html")
@@ -82,7 +86,7 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
     redirectTarget := "/"
     if !helpers.IsEmpty(name) && !helpers.IsEmpty(pass) {
         // Database check for user data
-        collection, err := repos.GetDBCollection()
+        collection, err := repos.GetDBCollection(0)
         if err != nil {
     		http.Redirect(response, request, "/register", 302)
 		}
@@ -119,7 +123,7 @@ func RegisterPageHandler(response http.ResponseWriter, request *http.Request) {
 
 // for POST
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	collection, err := repos.GetDBCollection()
+	collection, err := repos.GetDBCollection(0)
 	r.ParseForm()
  
     uName := r.FormValue("username")
@@ -238,24 +242,30 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 }
 
 func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
-		type points struct{
-			Points1 int
-			Points2 int
-			Points3 int
-			Points4 int
-			Points5 int
-			Points6 int
-		}
-    	point := points{
-    		Points1: groupSet[0].points, 
-    		Points2: groupSet[1].points,
-    		Points3: groupSet[2].points, 
-    		Points4: groupSet[3].points, 
-    		Points5: groupSet[4].points, 
-    		Points6: groupSet[5].points}
-    	
-		tpl, _:= template.ParseFiles("templates/appleHeadquarter.html")
-		tpl.Execute(response, point)
+    	const tmpl = `
+    	<tr>
+    	    {{ range $val := . }}
+    	        <th>{{$val}}</th>
+    	    {{ end }}
+    	</tr>
+    	{{ range $val := . }}
+    	    <td>
+               <form method="post" action="/setFlag?machine={{$val}}">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+    	{{ end
+    	`
+    	dataBase, _ := repos.GetDBCollection(2)
+    	t := template.Must(template.New("tmpl").Parse(tmpl))
+    	t.Execute(response, dataBase) // works with database or need to init to struct array?
+		/*tpl, _:= template.ParseFiles("templates/appleHeadquarter.html")
+		tpl.Execute(response, point)*/
+		
+		
 }
 
 func SetFlag(response http.ResponseWriter, request *http.Request) {

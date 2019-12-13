@@ -1,0 +1,62 @@
+{{ define "tableFlags" }}
+
+<table>
+	    <tr>
+	        <th>1</th>
+	        <th>2</th>
+	        <th>3</th>
+	        <th>4</th>
+	        <th>5</th>
+	        <th>6</th>
+	    </tr>
+            <td>
+               <form method="post" action="/setFlag?machine=1">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=2">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=3">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=4">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=5">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+            <td>
+               <form method="post" action="/setFlag?machine=6">
+                  Userflag: <input type="text" name="user">
+                  <br>
+                  Rootflag: <input type="text" name="root">
+                  <input type="submit" value="Submit">
+               </form>
+            </td>
+	</table>
+
+{{ end }}
