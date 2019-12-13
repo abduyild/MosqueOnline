@@ -37,6 +37,13 @@ var groupSet = [6]groups{
     groups{points: 0, userSet: initArray, rootSet: initArray,},
     groups{points: 0, userSet: initArray, rootSet: initArray,}}
 
+/* Problem with this type of structure for saving the flags:
+
+    'Hardcoded, but method for changing entries
+    'No DB, so if Server / Program crashes Points get reset
+
+*/
+
 // Type in your User Flags for the equivalent Virtual Machine instead of "user1" etc.
 var userFlags = map[string]string{
     "1": "user1",

@@ -9,7 +9,8 @@ import (
 )
  
 var router = mux.NewRouter()
- 
+
+// Functions for handling pagecalls like localhost:8080/login
 func main() {
     router.HandleFunc("/", common.LoginPageHandler) // GET
     router.HandleFunc("/login", common.LoginHandler).Methods("POST")
