@@ -143,9 +143,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				return
 			}
-			user.Username = string(uName)
-			user.Password = string(hash)
-			user.Group = string(group)
 			usr := model.User{uName, group, string(hash)}
 			collection.InsertOne(context.TODO(), usr)
    			http.Redirect(w, r, "/", 302)
