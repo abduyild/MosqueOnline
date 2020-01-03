@@ -259,13 +259,19 @@ func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
             </td>
     	{{ end
     	`
+	type group struct{
+		ID int
+		Points int
+	}
     	dataBase, _ := repos.GetDBCollection(2)
+	for i, v := range dataBase{
+		groups := group{ID: iter.groups, Points: iter.points}
+	}
+
+    	pageSet := page{Points: groupSet[group].points, SubNetwork: group1}
+
     	t := template.Must(template.New("tmpl").Parse(tmpl))
     	t.Execute(response, dataBase) // works with database or need to init to struct array?
-		/*tpl, _:= template.ParseFiles("templates/appleHeadquarter.html")
-		tpl.Execute(response, point)*/
-		
-		
 }
 
 func SetFlag(response http.ResponseWriter, request *http.Request) {

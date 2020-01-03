@@ -18,11 +18,16 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	if err != nil {
 	    return nil, err
 	}
+	// Get the 
 	if i == 0 {
 	    collection = client.Database("PPT").Collection("users")
-	} else if i == 1 {
+	} 
+	// Get The Groups with their points and Users
+	else if i == 1 {
 	    collection = client.Database("PPT").Collection("groups")
-	} else if i == 2 {
+	} 
+	// Get the Machine IDs that are currently deployed	
+	else if i == 2 {
 	    collection = client.Database("PPT").Collection("machines")
 	}
     return collection, nil
