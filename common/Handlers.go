@@ -5,9 +5,10 @@ import (
     "fmt"
     "strings"
     "net/http"
+	"errors"
     "html/template"
     helpers "../helpers"
-    //"os/exec"
+    "os/exec"
 	"../model"
 	"../repos"
     "github.com/gorilla/securecookie"
@@ -16,7 +17,18 @@ import (
 	"strconv"   
 
 )
-
+type Machine struct {
+	ID_Machine int
+	SolvedUser bool
+	SolvedRoot bool
+	UserFlag string
+	RootFlag string
+}
+type Group struct {
+	ID int
+	Points int
+	Machines []Machine
+}
 // Own Group Structure
 type groups struct{
     // ID string, //enable for custom group names
@@ -25,53 +37,9 @@ type groups struct{
     rootSet [6]bool
 }
 
-var initArray = [6]bool{false, false, false, false, false, false}
-
-
-// Initializing every group with ID and points set to zero and Setflags to false
-var groupSet = [6]groups{
-    groups{points: 0, userSet: initArray, rootSet: initArray,},
-    groups{points: 0, userSet: initArray, rootSet: initArray,},
-    groups{points: 0, userSet: initArray, rootSet: initArray,},
-    groups{points: 0, userSet: initArray, rootSet: initArray,},
-    groups{points: 0, userSet: initArray, rootSet: initArray,},
-    groups{points: 0, userSet: initArray, rootSet: initArray,}}
-
-/* Problem with this type of structure for saving the flags:
-
-    'Hardcoded, but method for changing entries
-    'No DB, so if Server / Program crashes Points get reset
-
-*/
-
-// Type in your User Flags for the equivalent Virtual Machine instead of "user1" etc.
-var userFlags = map[string]string{
-    "1": "user1",
-    "2": "user2",
-    "3": "user3",
-    "4": "user4",
-    "5": "user5",
-    "6": "user6",
-}
-
-// Type in your Root Flags for the equivalent Virtual Machine "root1" etc.
-var rootFlags = map[string]string{
-    "1": "root1",
-    "2": "root2",
-    "3": "root3",
-    "4": "root4",
-    "5": "root5",
-    "6": "root6",
-}
-
 var cookieHandler = securecookie.New(
     securecookie.GenerateRandomKey(64),
     securecookie.GenerateRandomKey(32))
-
- 
-func init(){
-    
-}
 
 // for GET
 func LoginPageHandler(response http.ResponseWriter, request *http.Request) {
@@ -86,11 +54,10 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
     redirectTarget := "/"
     if !helpers.IsEmpty(name) && !helpers.IsEmpty(pass) {
         // Database check for user data
-        collection, err := repos.GetDBCollection(0)
+        collection, err:= repos.GetDBCollection(0)
         if err != nil {
     		http.Redirect(response, request, "/register", 302)
 		}
-		
 		var user model.User
 		// Checking if typed in Username exists, if not redirect to register page
         err = collection.FindOne(context.TODO(), bson.D{{"username", name}}).Decode(&user)
@@ -102,7 +69,8 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		if err != nil {
     		http.Redirect(response, request, "/register", 302)
 		}
-		userCredentials := name + "?" + user.Group
+		cookie, err := bcrypt.GenerateFromPassword([]byte(name+user.Group), 14) //TODO dont forget to check for correct hashed password
+		userCredentials := name + "?" + user.Group + "&" + string(cookie)
         SetCookie(userCredentials, response)
         
         if name == "steveJobs" {
@@ -163,22 +131,23 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
  
 // for GET
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
-	user := GetUser(request)
-	userName := strings.Split(user, "?")[0]
-	groups := strings.Split(user, "?")[1]
-	group1,_ := strconv.Atoi(groups)
-	group := group1 - 1
+	user, err := GetUser(request)
+	if err != nil {
+        	fmt.Fprintln(response, "There was an Error setting the Website up!")
+	}
+	userCredentials := strings.Split(user, "&")[0]
+	userName := strings.Split(userCredentials, "?")[0]
+	group := GetGroup(user)
     if !helpers.IsEmpty(userName) {
-    	type page struct {
-    		Points int
-    		SubNetwork int
-    	}
-    	pageSet := page{Points: groupSet[group].points, SubNetwork: group1}
-    	
-    	// Changes the {{.$subNetwork}} and {{.$points}} tags in the htmtl file to the according groupID and Points of Group from User.
-		//tpl := template.Must(template.ParseFiles("templates/index.html"))
+		var groupItem Group
+		collection, _ := repos.GetDBCollection(1) 
+		erro := collection.FindOne(context.TODO(), bson.D{{"ID", group}},).Decode(&groupItem)
+
+		if erro != nil {
+        	fmt.Fprintf(response, "There was an Error searching your Group!")
+		}
 		tpl, _:= template.ParseFiles("templates/index.html")
-		tpl.Execute(response, pageSet)
+		tpl.Execute(response, groupItem)
     } else {
         http.Redirect(response, request, "/", 302)
     }
@@ -192,18 +161,15 @@ func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 
 // Handling the Reset of a machine
 func ResetHandler(response http.ResponseWriter, request *http.Request) {
-	resp := GetUser(request)
+	resp, err := GetUser(request)
+	if err != nil {
+        	fmt.Fprintln(response, "There was an Error setting the Website up!")
+	}
 	group := strings.Split(resp, "?")[1]
 	machine := request.URL.Query().Get("machine")
-	
-	//For testing using fedora, but use the one below, currently not working though
-	/*
-	command := "qemu-system-i386 -machine fedora loadvm"
+	command := "qm reset 100" + group + "" + machine
 	cmd := exec.Command(command)
 	cmd.Run()
-	*/
-	command := "qemu-system-i386 -machine 10.0." + group + "." + machine + " loadvm"
-	fmt.Fprintln(response, command)
 }
  
 // Cookie
@@ -221,57 +187,101 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
     userFlag := request.FormValue("user")
     rootFlag := request.FormValue("root")
     
-    user := GetUser(request)
-	groups := strings.Split(user, "?")[1]
-	group1,_ := strconv.Atoi(groups)
-	group := group1 - 1
+    user, err := GetUser(request)
+	if err != nil {
+        	fmt.Fprintln(response, "There was an Error setting the Website up!")
+	}
+	group := GetGroup(user)
 	machine := request.URL.Query().Get("machine")
 	m,_ := strconv.Atoi(machine)
 	
-	// TODO prevent multiple Inputs, maybe boolean, but where?
-	// Boolean check, if user or root flag was already set 
-	if userFlag == userFlags[machine] &&  !groupSet[group].userSet[m-1] {
-		groupSet[group].points += 500
-		groupSet[group].userSet[m-1] = true
-	} 
-	if rootFlag == rootFlags[machine]  &&  !groupSet[group].rootSet[m-1]{
-		groupSet[group].points += 1500
-		groupSet[group].rootSet[m-1] = true
+	collection, err := repos.GetDBCollection(1)
+	var groupItem Group
+	var machines []Machine
+	
+	if userFlag != "" {
+		err := collection.FindOne(context.TODO(), 
+			bson.D{ 
+				{"ID", group},
+			},).Decode(&groupItem)
+		if err != nil {
+	        fmt.Fprintf(response, "Your Group couldn't be found")
+	        return
+		}
+		machines = groupItem.Machines
+		if machines[m].SolvedUser {
+	        fmt.Fprintf(response, "Flag already submitted")
+	        return
+		}
+		if machines[m].UserFlag != userFlag {
+	        fmt.Fprintf(response, "Wrong flag")
+	        return
+		}
+		collection.UpdateOne(context.TODO(), 
+			bson.D{ 
+				{"ID", group}, 
+			}, 
+			bson.D{
+				{"$set", bson.D{
+					{"Machines."+ machine+".SolvedUser", true},
+					{"Points", groupItem.Points + 500},
+			    }},
+		    },)
+	}
+	
+	if rootFlag != "" {
+		err := collection.FindOne(context.TODO(), 
+			bson.D{ 
+				{"ID", group},
+			},).Decode(&groupItem)
+		if err != nil {
+	        fmt.Fprintf(response, "Your Group could'nt be found")
+	        return
+		}
+		machines = groupItem.Machines
+		if machines[m].SolvedRoot {
+	        fmt.Fprintf(response, "Flag already submitted")
+	        return
+		}
+		if machines[m].RootFlag != rootFlag {
+	        fmt.Fprintf(response, "Wrong flag")
+	        return
+		}
+		collection.UpdateOne(context.TODO(), 
+			bson.D{ 
+				{"ID", group}, 
+			}, 
+			bson.D{
+				{"$set", bson.D{
+					{"Machines."+ machine+".SolvedRoot", true},
+					{"Points", groupItem.Points + 1500},
+				}},
+			},)
 	}
 	http.Redirect(response, request, "/index", 302)
 }
 
 func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
-    	const tmpl = `
-    	<tr>
-    	    {{ range $val := . }}
-    	        <th>{{$val}}</th>
-    	    {{ end }}
-    	</tr>
-    	{{ range $val := . }}
-    	    <td>
-               <form method="post" action="/setFlag?machine={{$val}}">
-                  Userflag: <input type="text" name="user">
-                  <br>
-                  Rootflag: <input type="text" name="root">
-                  <input type="submit" value="Submit">
-               </form>
-            </td>
-    	{{ end
-    	`
-	type group struct{
-		ID int
-		Points int
-	}
-    	dataBase, _ := repos.GetDBCollection(2)
-	for i, v := range dataBase{
-		groups := group{ID: iter.groups, Points: iter.points}
+	
+	var groups []Group
+    dataBase, err := repos.GetDBCollection(1)
+	if err != nil {
+		fmt.Println(response, "error")
 	}
 
-    	pageSet := page{Points: groupSet[group].points, SubNetwork: group1}
+	cur, _ := dataBase.Find(context.TODO(), bson.D{})
+	// Iterate through whole Collection and append the Array consisting of Groups
+	for cur.Next(context.TODO()) {
+	    var group Group
+	    cur.Decode(&group)
+	    groups = append(groups, group)
+	}
 
-    	t := template.Must(template.New("tmpl").Parse(tmpl))
-    	t.Execute(response, dataBase) // works with database or need to init to struct array?
+    	//pageSet := page{Points: groupSet[group].points, SubNetwork: group1}
+       // var body, _ = helpers.LoadFile("templates/appleHeadquarter.html")
+    	//t := template.Must(template.New("appleHeadquarter").ParseFiles("templates/appleHeadquarter.tmpl"))
+	t, _ := template.ParseFiles("templates/appleHeadquarter.gohtml")
+    	t.Execute(response, groups)
 }
 
 func SetFlag(response http.ResponseWriter, request *http.Request) {
@@ -279,13 +289,41 @@ func SetFlag(response http.ResponseWriter, request *http.Request) {
     userFlag := request.FormValue("user")
     rootFlag := request.FormValue("root")
     
-	machine := request.URL.Query().Get("machine")
+	machines := request.URL.Query().Get("machine")
 	
-	userFlags[machine] = userFlag
-	rootFlags[machine] = rootFlag
+	collection, err := repos.GetDBCollection(1)
+	if err != nil {
+		fmt.Println(response, "error")
+	}
+	user,_ := GetUser(request)
+	group := GetGroup(user)
+
+// Change to modifying database entry
+	if userFlag != "" {
+		collection.UpdateOne(context.TODO(), 
+			bson.D{ 
+				{"ID", group}, 
+			}, 
+			bson.D{
+				{"$set", bson.D{
+					{"Machines."+ machines+".UserFlag", userFlag},
+				}},
+			},)
+	}
+	if rootFlag != "" {
+		collection.UpdateOne(context.TODO(), 
+			bson.D{ 
+				{"ID", group}, 
+			}, 
+			bson.D{
+				{"$set", bson.D{
+					{"Machines."+ machines+".RootFlag", rootFlag},
+				}},
+			},)
+	}
 	http.Redirect(response, request, "/appleHeadquarter", 302)
 }
- 
+
 func ClearCookie(response http.ResponseWriter) {
     cookie := &http.Cookie{
         Name:   "cookie",
@@ -295,11 +333,27 @@ func ClearCookie(response http.ResponseWriter) {
     }
     http.SetCookie(response, cookie)
 }
+
+func GetGroup(user string) int{
+	groupA := strings.Split(user, "?")[1]
+	groupB := strings.Split(groupA, "&")[0]
+	group,_ := strconv.Atoi(groupB)
+
+	return group
+}
  
-func GetUser(request *http.Request) (user string) {
+func GetUser(request *http.Request) (string, error) {
+	user := ""
     if cookie, err := request.Cookie("cookie"); err == nil {
         cookieValue := cookie.Value
-            user = cookieValue
+    	cookieVal := strings.Split(cookieValue, "&")[0]
+    	values := strings.Split(cookieVal, "?")
+    	cookieHash := strings.Split(cookieValue, "&")[1]
+        err = bcrypt.CompareHashAndPassword([]byte(cookieHash), []byte(values[0] + values[1]))
+	    if err != nil {
+	    	return "", errors.New("wrong")
+	    }
+        user = cookieValue
     }
-    return user
+    return user, nil
 }

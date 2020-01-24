@@ -14,22 +14,17 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	}
     // Check the connection
 	err = client.Ping(context.TODO(), nil)
-	var collection *mongo.Collection
 	if err != nil {
 	    return nil, err
 	}
-	// Get the 
+	db := client.Database("PPT")
+	// Get the Users Table
 	if i == 0 {
-	    collection = client.Database("PPT").Collection("users")
-	} 
+	    return db.Collection("users"), nil
+	} else if i == 1 {
 	// Get The Groups with their points and Users
-	else if i == 1 {
-	    collection = client.Database("PPT").Collection("groups")
-	} 
-	// Get the Machine IDs that are currently deployed	
-	else if i == 2 {
-	    collection = client.Database("PPT").Collection("machines")
+	    return db.Collection("groups"), nil
 	}
-    return collection, nil
+	return nil,nil
 	
 }

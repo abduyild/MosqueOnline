@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      
       <script>
          window.addEventListener("pageshow", function(event) {
              var historyTraversal = event.persisted ||
@@ -12,7 +14,7 @@
              }
          });
       </script>
-      <meta name="viewport" content="width=device-width, initial-scale=1">
+      
       <style>
          body {
          font-family: Arial, Helvetica, sans-serif;
@@ -47,46 +49,41 @@
          }
       </style>
    </head>
-   <body>
-    <h3>Your Points: {{.Points}}</h3>
+   <body>	
+    <h1>Welcome Mr. Jobs!</h1>
+	<h3>I have prepared a little summary of our Employees for you!</h3>
+
+	{{ range . }}
       <table style="width:75%">
          <tr>
-            <th>Machine ID</th>
-            <th>IP Address</th>
-            <th>Reset Machine</th>
-            <th>User and Root Flag</th>
+            <th>ID</th>
+            <th>Value</th>
          </tr>
-	
-		{{ $Id := .ID }}
-		
-		{{range .Machines}}
-		
-		<tr>
-            <td>Machine {{.ID_Machine}}</td>
-            <td>
-               <p>10.0.{{$Id}}.{{.ID_Machine}}</p>
-            </td>
-            <td>
-               <a href="/reset?machine={{.ID_Machine}}">
-               <button>Reset Machine!</button>
-               </a>
-            </td>
-            <td>
-               <form method="post" action="/submit?machine={{.ID_Machine}}">
-                  Userflag: <input type="text" name="user">
-                  <br>
-                  Rootflag: <input type="text" name="root">
-                  <input type="submit" value="Submit">
-               </form>
-            </td>
-         </tr>
+
          <tr>
-
-		{{ end}}
-
+            <td>Group: {{ .ID }}</td>
+            <td>
+               <p>Points: {{ .Points }}</p>
+            </td>
+		{{ range .Machines}}
+		<tr>
+        	<td>Machine: {{ .ID_Machine }}</td>
+        	<td>
+		<p>Change Flags for Machine with ID: {{ .ID_Machine }}</p>
+                <form method="post" action="/setFlag?machine={{ .ID_Machine }}">
+                Userflag: <input type="text" name="user">
+                <br>
+                Rootflag: <input type="text" name="root">
+           	    <input type="submit" value="Submit">
+           	    </form>
+           	</td>
+    		{{ end }}
+         </tr>
       </table>
-      <button onclick="javascript:location.href='/logout'" style="width:auto;">Logout</button>
-   </body>
+	</br></br></br></br></br>
+      	{{ end }}
+    <button onclick="javascript:location.href='/logout'" style="width:auto;">Logout</button>
+</body>
 </html>
 
 
