@@ -421,6 +421,45 @@ func SetAllFlagsForOne(response http.ResponseWriter, request *http.Request) {
 	}
 	http.Redirect(response, request, "/appleHeadquarter", 302)
 }
+
+// Function for adding a VM to the Table
+func AddVm(response http.ResponseWriter, request *http.Request) {
+    request.ParseForm()
+    machines := request.FormValue("machine")
+    userFlag := request.FormValue("user")
+    rootFlag := request.FormValue("root")
+    
+	collection, err := repos.GetDBCollection(1)
+	if err != nil {
+		fmt.Println(response, "error")
+		return
+	}
+	if userFlag == "" {
+	    userFlag = "user"
+	}
+	if rootFlag == "" {
+	    rootFlag = "root"
+	}
+	if machines != "" {
+	    // Update the Userflag of one groups machine with given machineID to given userFlag
+	    machineID, _ := strconv.Atoi(machines)
+		collection.UpdateMany(context.TODO(), 
+			bson.D{}, 
+			bson.D{
+				{"$push", bson.M{"Machines":  
+					    bson.M {
+					        "ID_Machine": machineID,
+					        "SolvedUser": false,
+					        "SolvedRoot": false,
+					        "UserFlag": userFlag,
+					        "RootFlag": rootFlag,
+					    },
+				    },
+				}},
+			)
+	}
+	http.Redirect(response, request, "/appleHeadquarter", 302)
+}
  
 // Function for setting the Cookie
 func SetCookie(user string, response http.ResponseWriter) {

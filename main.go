@@ -28,6 +28,7 @@ func main() {
 	router.HandleFunc("/setFlag", common.SetFlag)
 	router.HandleFunc("/setAllFlags", common.SetAllFlags)
 	router.HandleFunc("/setAllFlagsForOne", common.SetAllFlagsForOne)
+	router.HandleFunc("/addVm", common.AddVm)
     http.Handle("/", router)
     
 
