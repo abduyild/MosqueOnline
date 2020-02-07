@@ -124,7 +124,9 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			if err != nil {
 				return
 			}
-			// define a User model with typed username, group and hashed password
+			user.Username = string(uName)
+			user.Password = string(hash)
+			user.Group = string(group)
 			usr := model.User{uName, group, string(hash)}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
