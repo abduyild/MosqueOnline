@@ -26,8 +26,8 @@ func main() {
 	
 	router.HandleFunc("/appleHeadquarter", common.SteveJobsHandler)
 	router.HandleFunc("/setFlag", common.SetFlag)
-	
-	
+	router.HandleFunc("/setAllFlags", common.SetAllFlags)
+	router.HandleFunc("/setAllFlagsForOne", common.SetAllFlagsForOne)
     http.Handle("/", router)
     
 
