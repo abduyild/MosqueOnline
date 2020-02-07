@@ -1,7 +1,6 @@
 package handlers
  
 import (
-"bytes"
 	"context"
     "fmt"
     "strings"
@@ -124,9 +123,7 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			if err != nil {
 				return
 			}
-			user.Username = string(uName)
-			user.Password = string(hash)
-			user.Group = string(group)
+			// define a User model with typed username, group and hashed password
 			usr := model.User{uName, group, string(hash)}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
@@ -188,12 +185,10 @@ func ResetHandler(response http.ResponseWriter, request *http.Request) {
 	// Virsh Command for connecting to Console of Guest and resetting to snapshot
 	// Snapshots in form: id (in ex. above: id = 3.2)
 	//command := "virsh console " + id + "\n virsh snapshot-revert " + id + " " +id 
-	params := "snapshot-revert" + id + " " +id
+	params := "snapshot-revert" + id + " " + id
 	
 	// this works because first input needs to be command, everything after are for parameters
 	cmd := exec.Command("virsh", params)
-	var out bytes.Buffer
-	cmd.Stdout = &out
 	err = cmd.Run()
 	if err != nil {
 	    fmt.Println(err)
