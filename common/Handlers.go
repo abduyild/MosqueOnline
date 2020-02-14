@@ -198,7 +198,7 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	userFlag := request.FormValue("user")
 	rootFlag := request.FormValue("root")
-
+	
 	user, err := GetUser(request)
 	if err != nil {
 		fmt.Fprintln(response, err)
@@ -212,7 +212,7 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 	var groupItem Group
 	var machines []Machine
 
-	if userFlag != "" {
+	if userFlag != "" && CheckInput(userFlag) {
 		// Search for the group in the Table with the groupID equivalent to the users groupID and decode it
 		err := collection.FindOne(context.TODO(),
 			bson.D{
@@ -242,9 +242,11 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 					{"Points", groupItem.Points + 500},
 				}},
 			})
+	} else if userFlag!= "" && !CheckInput(userFlag) {
+		fmt.Fprintf(response, "Invalid Characters found")
 	}
 
-	if rootFlag != "" {
+	if rootFlag != ""  && CheckInput(rootFlag) {
 		err := collection.FindOne(context.TODO(),
 			bson.D{
 				{"ID", group},
@@ -272,6 +274,8 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 					{"Points", groupItem.Points + 1500},
 				}},
 			})
+	} else if rootFlag!= "" && !CheckInput(rootFlag) {
+		fmt.Fprintf(response, "Invalid Characters found")
 	}
 	http.Redirect(response, request, "/index", 302)
 }
@@ -302,9 +306,6 @@ func SetFlag(response http.ResponseWriter, request *http.Request) {
 	rootFlag := request.FormValue("root")
 	machines := request.FormValue("machine")
 	group, _ := strconv.Atoi(request.FormValue("group"))
-
-	//machines := request.URL.Query().Get("machine")
-	//group, _ := strconv.Atoi(request.URL.Query().Get("group"))
 	collection, err := repos.GetDBCollection(1)
 	if err != nil {
 		fmt.Println(response, "error")
@@ -420,7 +421,7 @@ func AddVm(response http.ResponseWriter, request *http.Request) {
 	machines := request.FormValue("machine")
 	userFlag := request.FormValue("user")
 	rootFlag := request.FormValue("root")
-
+	
 	collection, err := repos.GetDBCollection(1)
 	if err != nil {
 		fmt.Println(response, "error")
@@ -482,12 +483,19 @@ func GetGroup(user string) int {
 	return group
 }
 
+func CheckInput(input string) bool {
+	if match, _ := regexp.MatchString(`\w+`, input); match == true {
+		return true
+	}
+	return false
+}
+
 func GetUser(request *http.Request) (string, error) {
 	user := ""
 	// Check if there is an active Cookie
 	if cookie, err := request.Cookie("cookie"); err == nil {
 		// Check if the Cookie is in a valid format, valid format: userName?groupID&Hash, ex.: user0?1&"Hash"
-		// Usernames must be [a-zA-Z0-9:]
+		// Usernames must be [a-zA-Z0-9]
 		if match, _ := regexp.MatchString(`\w+\?\d&\S+`, cookie.Value); match == true {
 			cookieValue := cookie.Value
 			cookieVal := strings.Split(cookieValue, "&")[0]
