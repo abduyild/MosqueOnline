@@ -183,8 +183,7 @@ func ResetHandler(response http.ResponseWriter, request *http.Request) {
 	id := group + "." + machine // Forms a string of the form: groupID.MachineID f.ex group 3 and machine 2: 3.2
 	// Virsh Command for connecting to Console of Guest and resetting to snapshot
 	// Snapshots in form: id (in ex. above: id = 3.2)
-	//command := "virsh console " + id + "\n virsh snapshot-revert " + id + " " +id
-	params := "snapshot-revert" + id + " " + id
+	params := "snapshot-revert " + id + " " + id
 
 	// this works because first input needs to be command, everything after are for parameters
 	cmd := exec.Command("virsh", params)
@@ -192,11 +191,6 @@ func ResetHandler(response http.ResponseWriter, request *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	/* If above doesnt work use this and delete the second command beginning with \n from the string
-	   command2 := "virsh snapshot-revert " + id + " " +id
-	   cmd2 := exec.Command(command2)
-	   cmd2.Run()
-	*/
 }
 
 // Function for Handling the Submitforms
@@ -283,10 +277,6 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 }
 
 func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
-<<<<<<< HEAD
-=======
-
->>>>>>> 81a31ff736a38c51807974c39203cc754ae74309
 	var groups []Group
 	dataBase, err := repos.GetDBCollection(1)
 	if err != nil {
@@ -485,8 +475,8 @@ func ClearCookie(response http.ResponseWriter) {
 
 // Function for getting the groupID from the Cookie (cookievalue as String)
 func GetGroup(user string) int {
-	groupA := strings.Split(user, "?")[1]
-	groupB := strings.Split(groupA, "&")[0]
+	groupA := strings.Split(user, "?")[1] // String after "?"
+	groupB := strings.Split(groupA, "&")[0] // String before "&"
 	group, _ := strconv.Atoi(groupB)
 
 	return group
