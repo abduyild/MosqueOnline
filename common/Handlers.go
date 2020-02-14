@@ -284,9 +284,8 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 }
 
 func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
-	
 	var groups []Group
-    dataBase, err := repos.GetDBCollection(1)
+	dataBase, err := repos.GetDBCollection(1)
 	if err != nil {
 		fmt.Println(response, "error")
 		return
@@ -299,7 +298,6 @@ func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
 	    cur.Decode(&group)
 	    groups = append(groups, group)
 	}
-    //amount := len(groups[0].Machines) 
 	t, _ := template.ParseFiles("templates/appleHeadquarter.gohtml")
     	t.Execute(response, groups)
 }

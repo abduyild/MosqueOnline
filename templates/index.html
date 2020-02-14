@@ -58,7 +58,7 @@
          </tr>
 	
 		{{ $Id := .ID }}
-		
+		<!-- Range over the given Machines Array -->
 		{{range .Machines}}
 		
 		<tr>
@@ -72,6 +72,7 @@
                </a>
             </td>
             <td>
+		<!-- Replace the .ID_Machine here with corresponding field -->
                <form method="post" action="/submit?machine={{.ID_Machine}}">
                   Userflag: <input type="text" name="user">
                   <br>
@@ -81,7 +82,7 @@
             </td>
          </tr>
          <tr>
-
+		<!-- End of the Range over Machines -->
 		{{ end}}
 
       </table>
