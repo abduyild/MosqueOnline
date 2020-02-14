@@ -301,10 +301,7 @@ func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
 		cur.Decode(&group)
 		groups = append(groups, group)
 	}
-<<<<<<< HEAD
-=======
-	//amount := len(groups[0].Machines)
->>>>>>> 81a31ff736a38c51807974c39203cc754ae74309
+
 	t, _ := template.ParseFiles("templates/appleHeadquarter.gohtml")
 	t.Execute(response, groups)
 }

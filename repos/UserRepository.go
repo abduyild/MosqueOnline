@@ -15,11 +15,9 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-<<<<<<< HEAD
+
     // Check if connection could be established to running DB
-=======
-	// Check the connection
->>>>>>> 81a31ff736a38c51807974c39203cc754ae74309
+
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
 		return nil, err
