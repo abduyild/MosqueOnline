@@ -9,7 +9,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"html/template"
 	"net/http"
-	"os/exec"
 	"pi-software/helpers"
 	"pi-software/model"
 	"pi-software/repos"
@@ -18,21 +17,20 @@ import (
 	"strings"
 )
 
-// Machine struct for using it for initializing variables for Database operations
-type Machine struct {
-	ID_Machine int
-	SolvedUser bool
-	SolvedRoot bool
-	UserFlag   string
-	RootFlag   string
+type Mosque struct {
+	Name string
+	Capacity int
+	PLZ  int
+	Street string
+	City string
+	Users []model.User
 }
 
-// Group struct for using it for initializing variables for Database operations
-type Group struct {
-	ID       int
-	Points   int
-	Machines []Machine
+type Mosques struct {
+	Mosques []Mosque
 }
+
+var choosenMosque Mosque
 
 var cookieHandler = securecookie.New(
 	securecookie.GenerateRandomKey(64),
@@ -46,11 +44,11 @@ func LoginPageHandler(response http.ResponseWriter, request *http.Request) {
 
 // Handler for Login Page used with POST by submitting Loginform
 func LoginHandler(response http.ResponseWriter, request *http.Request) {
-	name := request.FormValue("name")
-	pass := request.FormValue("password")
+email := request.FormValue("email")
+phone := request.FormValue("phone")
 	// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
 	redirectTarget := "/"
-	if !helpers.IsEmpty(name) && !helpers.IsEmpty(pass) {
+	if !helpers.IsEmpty(email) && !helpers.IsEmpty(phone) {
 		// Returns Table
 		collection, err := repos.GetDBCollection(0)
 		// if there was no error getting the table, te program does these operations
@@ -59,22 +57,29 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		}
 		var user model.User
 		// Checking if typed in Username exists, if not redirect to register page
-		err = collection.FindOne(context.TODO(), bson.D{{"username", name}}).Decode(&user)
+		err = collection.FindOne(context.TODO(), bson.D{{"phone", phone}}).Decode(&user)
 		// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
 		if err != nil {
 			http.Redirect(response, request, "/register", 302)
 		}
 		// Checking if typed in password is equivalent to the password typed in registry process, if not redirect to faultpage
-		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass))
+		/* Use encryption if you want
+		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass
+
 		if err != nil {
 			http.Redirect(response, request, "/register", 302)
 		}
+		*/
 
-		userCredentials, err := bcrypt.GenerateFromPassword([]byte(name+user.Group), 14)
-		cookie := name + "?" + user.Group + "&" + string(userCredentials)
+		if user.Email != email {
+			http.Redirect(response, request, "/register", 302)
+		}
+
+		userCredentials, err := bcrypt.GenerateFromPassword([]byte(email+phone), 14)
+		cookie := email + "?" + phone + "&" + string(userCredentials)
 		SetCookie(cookie, response)
 		// If the admin tries to login, change the redirect to the Adminpage
-		if name == "steveJobs" {
+		if email == "steveJobs@apple.de" {
 			redirectTarget = "/appleHeadquarter"
 			// Else redirect to the normal indexpage
 		} else {
@@ -101,29 +106,37 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 
 	// Get data the User typen into the fields
-	uName := request.FormValue("username")
-	group := request.FormValue("group")
-	pwd := request.FormValue("password")
+	firstName := request.FormValue("firstname")
+	lastName := request.FormValue("lastname")
+	email := request.FormValue("email")
+	phone := request.FormValue("phone")
 
 	// initializing as false for not filled
-	_uName, _group, _pwd := false, false, false
-	_uName = !helpers.IsEmpty(uName)
-	_group = !helpers.IsEmpty(group)
-	_pwd = !helpers.IsEmpty(pwd)
+	_firstName, _lastName, _email, _phone := false, false, false, false
+	_firstName = !helpers.IsEmpty(firstName)
+	_lastName = !helpers.IsEmpty(lastName)
+	_email = !helpers.IsEmpty(email)
+	_phone = !helpers.IsEmpty(phone)
 	// Check if fields are not empty
-	if _uName && _group && _pwd {
+	if _firstName && _lastName && _email && _phone {
 		// Look if the entered Username is already used
-		user := collection.FindOne(context.TODO(), bson.D{{"username", uName}})
+		user := collection.FindOne(context.TODO(), bson.D{{"phone", phone}})
 		// If not found (throws exception/error) then we can proceed
 		if user.Err() != nil {
 			// Generate the hashed password with 14 as salt
-			hash, err := bcrypt.GenerateFromPassword([]byte(pwd), 14)
+
+			//use hash if you want
+			//hash, err := bcrypt.GenerateFromPassword([]byte(phone), 14)
+
 			// If there was an error generating the hash dont proceed
 			if err != nil {
 				return
 			}
-			// define a User model with typed username, group and hashed password
-			usr := model.User{uName, group, string(hash)}
+			// define a User model with typed first and last name, email and phone
+
+			//usr := model.User{firstName, email, string(hash)}
+
+			usr := model.User{firstName, lastName, email, phone}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage
@@ -143,23 +156,22 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 		fmt.Fprintln(response, err)
 		return
 	}
-	userCredentials := strings.Split(user, "&")[0]
-	userName := strings.Split(userCredentials, "?")[0]
-	group := GetGroup(user)
-	if !helpers.IsEmpty(userName) {
-		var groupItem Group
+
+	phone := GetPhone(user)
+	if !helpers.IsEmpty(phone) {
+		var mosqueItem model.Mosque
 		collection, _ := repos.GetDBCollection(1)
 		// Search for group with given ID as group and decode, if not possibe to decode erro != nil
-		erro := collection.FindOne(context.TODO(), bson.D{{"ID", group}}).Decode(&groupItem)
+		erro := collection.FindOne(context.TODO(), bson.D{{"Name", choosenMosque.Name}}).Decode(&mosqueItem)
 		// If there was an error decoding the item with the Databasequery, throw an error
 		if erro != nil {
-			fmt.Fprintf(response, "There was an Error searching your Group!")
+			fmt.Fprintf(response, "There was an Error getting your Mosque!")
 			return
 		}
 		// Parse the templatefile, changes all Placeholders {{ }} with appropiate Values
 		tpl, _ := template.ParseFiles("templates/index.html")
 		// Inserts the groups to the Template as we are using the ID and points of the group
-		tpl.Execute(response, groupItem)
+		tpl.Execute(response, mosqueItem)
 	} else {
 		http.Redirect(response, request, "/", 302)
 	}
@@ -171,40 +183,95 @@ func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 	http.Redirect(response, request, "/", 302)
 }
 
-// Handling the Reset of a machine
-func ResetHandler(response http.ResponseWriter, request *http.Request) {
-	resp, err := GetUser(request)
+func Choosen(response http.ResponseWriter, request *http.Request) {
+	mosque := request.URL.Query().Get("mosque")
+collection,_ := repos.GetDBCollection(1)
+	err := collection.FindOne(context.TODO(),
+		bson.D{
+			{"Name", mosque},
+		}).Decode(&choosenMosque)
 	if err != nil {
-		fmt.Fprintln(response, err)
+		fmt.Fprintf(response, "Your Mosque couldn't be found: " + err.Error())
 		return
 	}
-	group := strconv.Itoa(GetGroup(resp))
-	machine := request.URL.Query().Get("machine")
-	id := group + "." + machine // Forms a string of the form: groupID.MachineID f.ex group 3 and machine 2: 3.2
-	// Virsh Command for connecting to Console of Guest and resetting to snapshot
-	// Snapshots in form: id (in ex. above: id = 3.2)
-	params := "snapshot-revert " + id + " " + id
+	http.Redirect(response, request, "/index", 302)
+}
 
-	// this works because first input needs to be command, everything after are for parameters
-	cmd := exec.Command("virsh", params)
-	err = cmd.Run()
+func ChooseMosque(response http.ResponseWriter, request *http.Request) {
+	var mosq Mosques
+	dataBase, err := repos.GetDBCollection(1)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(response, "error")
+		return
+	}
+	cur, _ := dataBase.Find(context.TODO(), bson.D{})
+	// Iterate through whole Collection and append the Array consisting of Groups
+	for cur.Next(context.TODO()) {
+		var mosque Mosque
+		cur.Decode(&mosque)
+		mosq.Mosques = append(mosq.Mosques, mosque)
+	}
+	t, _ := template.ParseFiles("templates/chooseMosque.gohtml")
+	t.Execute(response, mosq)
+}
+
+
+func SubmitHandler(response http.ResponseWriter, request *http.Request) {
+	request.ParseForm()
+	date := request.FormValue("date")
+	prayer := request.FormValue("prayer")
+	user := GetUserAsUser(request)
+
+	collection, err := repos.GetDBCollection(1)
+	if err != nil {
+		fmt.Fprintf(response, "Error trying to connect to DB")
+		return
+	}
+	
+	var mosque Mosque
+	fmt.Fprintf(response, date + "  " + prayer)
+	if !helpers.IsEmpty(date) && !helpers.IsEmpty(prayer) {
+		// Search for the group in the Table with the groupID equivalent to the users groupID and decode it
+		err := collection.FindOne(context.TODO(),
+			bson.D{
+				{"Name", choosenMosque.Name},
+			}).Decode(&mosque)
+		if err != nil {
+			fmt.Fprintf(response, "Your Mosque couldn't be found")
+			return
+		}
+
+
+		collection.UpdateOne(context.TODO(),
+			bson.D{
+				{"Name", choosenMosque.Name},
+			},
+			bson.D{
+				{"$set", bson.D{
+					{"Capacity", choosenMosque.Capacity -1},
+				}},
+			})
+			collection.UpdateOne(context.TODO(), bson.D{}, bson.D{{"$push", bson.M{"Users": user,},}},)
+			http.Redirect(response, request, "/index", 302)
+	} else {
+		fmt.Fprintln(response, "Date and prayer selection may not be empty")
+		return
 	}
 }
 
+/*
 // Function for Handling the Submitforms
 func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	userFlag := request.FormValue("user")
 	rootFlag := request.FormValue("root")
-	
+
 	user, err := GetUser(request)
 	if err != nil {
 		fmt.Fprintln(response, err)
 		return
 	}
-	group := GetGroup(user)
+	group := GetPhone(user)
 	machine := request.URL.Query().Get("machine")
 	m, _ := strconv.Atoi(machine)
 
@@ -299,7 +366,7 @@ func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
 	t, _ := template.ParseFiles("templates/appleHeadquarter.gohtml")
 	t.Execute(response, groups)
 }
-
+*/
 func SetFlag(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	userFlag := request.FormValue("user")
@@ -421,7 +488,7 @@ func AddVm(response http.ResponseWriter, request *http.Request) {
 	machines := request.FormValue("machine")
 	userFlag := request.FormValue("user")
 	rootFlag := request.FormValue("root")
-	
+
 	collection, err := repos.GetDBCollection(1)
 	if err != nil {
 		fmt.Println(response, "error")
@@ -475,12 +542,11 @@ func ClearCookie(response http.ResponseWriter) {
 }
 
 // Function for getting the groupID from the Cookie (cookievalue as String)
-func GetGroup(user string) int {
+func GetPhone(user string) string {
 	groupA := strings.Split(user, "?")[1] // String after "?"
-	groupB := strings.Split(groupA, "&")[0] // String before "&"
-	group, _ := strconv.Atoi(groupB)
+	phone := strings.Split(groupA, "&")[0] // String before "&"
 
-	return group
+	return phone
 }
 
 func CheckInput(input string) bool {
@@ -494,9 +560,6 @@ func GetUser(request *http.Request) (string, error) {
 	user := ""
 	// Check if there is an active Cookie
 	if cookie, err := request.Cookie("cookie"); err == nil {
-		// Check if the Cookie is in a valid format, valid format: userName?groupID&Hash, ex.: user0?1&"Hash"
-		// Usernames must be [a-zA-Z0-9]
-		if match, _ := regexp.MatchString(`\w+\?\d&\S+`, cookie.Value); match == true {
 			cookieValue := cookie.Value
 			cookieVal := strings.Split(cookieValue, "&")[0]
 			values := strings.Split(cookieVal, "?")
@@ -506,10 +569,14 @@ func GetUser(request *http.Request) (string, error) {
 				return "", errors.New("Wrong or Modified Cookie")
 			}
 			user = cookieValue
-		} else {
-			return "", errors.New("Wrong or Modified Cookie")
-		}
-
 	}
 	return user, nil
+}
+
+func GetUserAsUser(request *http.Request) (model.User){
+	var user model.User
+	phone,_ := GetUser(request)
+	collection,_ := repos.GetDBCollection(0)
+	collection.FindOne(context.TODO(), bson.D{{"phone", phone}}).Decode(&user)
+	return user
 }
