@@ -1,32 +1,38 @@
 <style>
-#firstname, #lastname, #email, #phone{
-  padding: 12px 20px;
-  margin: 20px 20;
-  border: none;
-  border-bottom: 2px solid red;
-}
+  #firstname,
+  #lastname,
+  #email,
+  #phone {
+    padding: 12px 20px;
+    margin: 20px 20;
+    border: none;
+    border-bottom: 2px solid red;
+  }
 
-#email:focus, #firstname:focus, #lastname:focus, #phone:focus {
-  border-bottom: 2px solid #555;
-}
+  #email:focus,
+  #firstname:focus,
+  #lastname:focus,
+  #phone:focus {
+    border-bottom: 2px solid #555;
+  }
 </style>
 
 <div class="container">
-	<h1>Kayit ol | Registrieren</h1>
-	<form method="post" action="/register">
+  <h1>Kayit ol | Registrieren</h1>
+  <form method="post" action="/register">
 
-		<label for="firstname">Isim | Vorname</label> <br>
-		<input type="text" id="firstname" name="firstname"> <br><br><br>
+    <label for="firstname">Isim | Vorname</label> <br>
+    <input type="text" id="firstname" name="firstname"> <br><br><br>
 
-		<label for="lastname">Soy Isim | Nachname</label> <br>
-		<input type="text" id="lastname" name="lastname"> <br><br><br>
+    <label for="lastname">Soy Isim | Nachname</label> <br>
+    <input type="text" id="lastname" name="lastname"> <br><br><br>
 
-		<label for="email">E-Mail Adresi | E-Mail Adresse</label> <br>
-		<input type="email" id="email" name="email"> <br><br><br>
-		
-		<label for="phone">Telefon Numarasi | Telefon Nummer</label> <br>
-		<input type="text" id="phone" name="phone"> <br><br><br>
-		
-		<button type="submit">Kayit ol | Registrieren</button>
-	</form>
+    <label for="email">E-Mail Adresi | E-Mail Adresse</label> <br>
+    <input type="email" id="email" name="email"> <br><br><br>
+
+    <label for="phone">Telefon Numarasi | Telefon Nummer</label> <br>
+    <input type="text" id="phone" name="phone"> <br><br><br>
+
+    <button type="submit">Kayit ol | Registrieren</button>
+  </form>
 </div>

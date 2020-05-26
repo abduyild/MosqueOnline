@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js" integrity="sha256-+C0A5Ilqmu4QcSPxrlGpaZxJ04VjsRjKu+G82kl5UJk=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha256-ze/OEYGcFbPRmvCnrSeKbRTtjG4vGLHXgOqsyLFTRjg=" crossorigin="anonymous" />
+
+  <script type="text/javascript" src="selectize.js"></script>
+  <link rel="stylesheet" type="text/css" href="selectize.css" />
+  <script>
+    $(document).ready(function() {
+      var $select = $("#select-mosque").selectize({
+        sortField: 'text',
+        onItemAdd: function(value) {
+          window.location.href = '/chooseMosque?mosque=' + value;
+        }
+      });
+      $("#btnClear").on("click", function() {
+        var selectize = $select[0].selectize;
+        selectize.clear();
+      });
+      var $select2 = $("#prayer").selectize({
+        onItemAdd: function(value) {
+          window.location.href = window.location.href + "&prayer=" + value;
+        }
+      });
+    });
+  </script>
+  <script>
+    window.addEventListener("pageshow", function(event) {
+      var historyTraversal = event.persisted ||
+        (typeof window.performance != "undefined" &&
+          window.performance.navigation.type === 2);
+      if (historyTraversal) {
+        // Handle page restore.
+        window.location.reload();
+      }
+      var today = new Date();
+      var dd = today.getDate();
+      var mm = today.getMonth() + 1; //January is 0!
+      var yyyy = today.getFullYear();
+      if (dd < 10) {
+        dd = '0' + dd
+      }
+      if (mm < 10) {
+        mm = '0' + mm
+      }
+      today = yyyy + '-' + mm + '-' + dd;
+      document.getElementById("date").setAttribute("min", today);
+    });
+  </script>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Full-width input fields */
+    input[type=password],
+    input[type=text] {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      display: inline-block;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    /* Set a style for all buttons */
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 14px 20px;
+      margin: 8px 0;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    td,
+    th {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 3px solid #ddd;
+    }
+  </style>
+</head>
+
+{{if .SetMosque}}
+
+<h3>Secdiginiz Camii | Ausgewählte Moschee {{.Name}}</h3>
+
+{{else}}
+  <body>
+  <select id="select-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+    <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+    {{ range .Mosques}}
+    <option value="{{.Name}}">{{.Name}}, Ort: {{.City}}</option>
+    {{ end }}
+  </select>
+  <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+
+  {{end}}
+
+  {{if and .SetMosque not .SetDate}}
+hi
+  <form method="post" onsubmit=''>
+    Date:
+    <input id="date" type="date" min='1899-01-01'></input>
+    <input type="submit" value="Submit">
+  </form>
+
+  {{end}}
+
+  {{if and .SetMosque .SetDate not .SetPrayer}}
+  <label for="prayer">Vakit secin / Wähle Gebetszeit / Choose prayer:</label>
+  <select name="prayer" id="prayer">
+    <option value=1>Sabah / Fajr, Platz: {{(index .Prayer 0).Capacity}}</option>
+    <option value=2>Ögle / Dhuhr, Platz: {{(index .Prayer 1).Capacity}}</option>
+    <option value=3>Ikindi / Asr, Platz: {{(index .Prayer 2).Capacity}}</option>
+    <option value=4>Aksam / Maghrib, Platz: {{(index .Prayer 3).Capacity}}</option>
+    <option value=5>Yatsi / Ishaa, Platz: {{(index .Prayer 4).Capacity}}</option>
+    <!-- .Cuma Make Placeholder work with bool and string generator-->
+  </select>
+  <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+  {{end}}
+  </body>

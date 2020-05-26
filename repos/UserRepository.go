@@ -2,6 +2,7 @@ package repos
 
 import (
 	"context"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -16,7 +17,7 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 		return nil, err
 	}
 
-    // Check if connection could be established to running DB
+	// Check if connection could be established to running DB
 
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
@@ -31,6 +32,9 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	} else if i == 1 {
 		// Get The Mosques Table with the entries of the Mosques
 		return db.Collection("mosques"), nil
+	} else if i == 2 {
+		// Get The Mosques Table with the entries of the Mosques
+		return db.Collection("days"), nil
 	}
 	return nil, nil
 

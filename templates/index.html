@@ -1,99 +1,79 @@
 <!DOCTYPE html>
 <html>
-   <head>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js" integrity="sha256-+C0A5Ilqmu4QcSPxrlGpaZxJ04VjsRjKu+G82kl5UJk=" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha256-ze/OEYGcFbPRmvCnrSeKbRTtjG4vGLHXgOqsyLFTRjg=" crossorigin="anonymous" />
-<script type="text/javascript" src="selectize.js"></script>
-<link rel="stylesheet" type="text/css" href="selectize.css" />
-<script>
-      <script>
-         window.addEventListener("pageshow", function(event) {
-             var historyTraversal = event.persisted ||
-                 (typeof window.performance != "undefined" &&
-                     window.performance.navigation.type === 2);
-             if (historyTraversal) {
-                 // Handle page restore.
-                 window.location.reload();
-             }
-						 var today = new Date();
-						 var dd = today.getDate();
-						 var mm = today.getMonth()+1; //January is 0!
-						 var yyyy = today.getFullYear();
-						 if(dd<10){
-							 dd='0'+dd
-						 }
-						 if(mm<10){
-							 mm='0'+mm
-						 }
-						 today = yyyy+'-'+mm+'-'+dd;
-						 document.getElementById("date").setAttribute("min", today);
-         });
-      </script>
-      <script>
-$(document).ready(function () {
-	 var $select = $("#select-prayer").selectize({
-		 sortField: 'text',
-		 onChange: function(value){
-			 window.location.href = '/submit?mosque=' + value;
-		 }
-	 });
-});
-</script>
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <style>
-         body {
-         font-family: Arial, Helvetica, sans-serif;
-         }
-         /* Full-width input fields */
-         input[type=text],
-         input[type=password] {
-         width: 100%;
-         padding: 12px 20px;
-         margin: 8px 0;
-         display: inline-block;
-         border: 1px solid #ccc;
-         box-sizing: border-box;
-         }
-         /* Set a style for all buttons */
-         button {
-         background-color: #4CAF50;
-         color: white;
-         padding: 14px 20px;
-         margin: 8px 0;
-         border: none;
-         cursor: pointer;
-         width: 100%;
-         }
-         button:hover {
-         opacity: 0.8;
-         }76
-         th, td {
-         padding: 15px;
-         text-align: left;
-         border-bottom: 3px solid #ddd;
-         }
-      </style>
-   </head>
-   <body>
-<h1>{{.Name}}</h1>
-		<!-- Replace the .ID_Machine here with corresponding field -->
-               <form method="post" action="/submit?mosque={{.Name}}">
-									Date:
-									<input id="date" type='date' min='1899-01-01'></input>
+<head>
 
-									<label for="prayer">Vakit secin / Wähle Gebetszeit / Choose prayer:</label>
-									<select name="prayer" id="prayer">
-										<option value="sabah">Sabah / Fajr</option>
-										<option value="ögle">Ögle / Dhuhr</option>
-										<option value="ikindi">Ikindi / Asr</option>
-										<option value="aksam">Aksam / Maghrib</option>
-										<option value="yatsi">Yatsi / Ishaa</option>
-									</select>
-                  <input type="submit" value="Submit">
-               </form>
-		<!-- End of the Range over Machines -->
-      <button onclick="javascript:location.href='/logout'" style="width:auto;">Logout</button>
-   </body>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js" integrity="sha256-+C0A5Ilqmu4QcSPxrlGpaZxJ04VjsRjKu+G82kl5UJk=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha256-ze/OEYGcFbPRmvCnrSeKbRTtjG4vGLHXgOqsyLFTRjg=" crossorigin="anonymous" />
+  <script type="text/javascript" src="selectize.js"></script>
+  <link rel="stylesheet" type="text/css" href="selectize.css" />
+  <script>
+    $(document).ready(function() {
+      var $select = $("#prayer").selectize({
+        onItemAdd: function (value) {
+          window.location.href = '/submit?mosque=' + value;
+        }
+      });
+      $("#btnClear").on("click", function () {
+       var selectize = $select[0].selectize;
+       selectize.clear();
+   });
+    });
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    /* Full-width input fields */
+    input[type=text],
+    input[type=password] {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      display: inline-block;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    /* Set a style for all buttons */
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 14px 20px;
+      margin: 8px 0;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    76 th,
+    td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 3px solid #ddd;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>{{.Name}}</h1>
+  <!-- Replace the .ID_Machine here with corresponding field -->
+  <label for="prayer">Vakit secin / Wähle Gebetszeit / Choose prayer:</label>
+  <select name="prayer" id="prayer">
+    <option value="sabah">Sabah / Fajr, Platz: {{.Capacity}}</option>
+    <option value="ögle">Ögle / Dhuhr</option>
+    <option value="ikindi">Ikindi / Asr</option>
+    <option value="aksam">Aksam / Maghrib</option>
+    <option value="yatsi">Yatsi / Ishaa</option>
+  </select>
+  <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+</body>
+
 </html>

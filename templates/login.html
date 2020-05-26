@@ -1,24 +1,30 @@
 <style>
-#firstname, #lastname, #email, #phone{
-  padding: 12px 20px;
-  margin: 20px 20;
-  border: none;
-  border-bottom: 2px solid red;
-}
+  #firstname,
+  #lastname,
+  #email,
+  #phone {
+    padding: 12px 20px;
+    margin: 20px 20;
+    border: none;
+    border-bottom: 2px solid red;
+  }
 
-#email:focus, #firstname:focus, #lastname:focus, #phone:focus {
-  border-bottom: 2px solid #555;
-}
+  #email:focus,
+  #firstname:focus,
+  #lastname:focus,
+  #phone:focus {
+    border-bottom: 2px solid #555;
+  }
 </style>
-<div class ="log-form">
-	<h1>Login</h1>
-	<form method="post" action="/login">
-		<label for="email">E-Mail Adresi | E-Mail Adresse</label> <br>
-		<input type="email" id="email" name="email"> <br><br><br>
-		
-		<label for="phone">Telefon Numarasi | Telefon Nummer</label> <br>
-		<input type="text" id="phone" name="phone"> <br><br><br>
-		
-		<button type="submit">Giris Yap | Anmelden</button>
-	</form>
+<div class="log-form">
+  <h1>Login</h1>
+  <form method="post" action="/login">
+    <label for="email">E-Mail Adresi | E-Mail Adresse</label> <br>
+    <input type="email" id="email" name="email"> <br><br><br>
+
+    <label for="phone">Telefon Numarasi | Telefon Nummer</label> <br>
+    <input type="text" id="phone" name="phone"> <br><br><br>
+
+    <button type="submit">Giris Yap | Anmelden</button>
+  </form>
 </div>
