@@ -16,7 +16,6 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -32,7 +31,7 @@ type Mosques struct {
 	Mosques []Mosque
 }
 
-var choosenMosque Mosque
+var choosenMosque model.Mosque
 
 var cookieHandler = securecookie.New(
 	securecookie.GenerateRandomKey(64),
@@ -203,44 +202,26 @@ func Choosen(response http.ResponseWriter, request *http.Request) {
 	//http.Redirect(response, request, "/chooseDate", 302)
 }
 
-func ChooseDate(response http.ResponseWriter, request *http.Request) {
-	var date model.Date
-	dateInput := request.FormValue("date")
-	date.Date, _ = time.Parse("USLayout", dateInput)
-	dataBase, err := repos.GetDBCollection(2)
-	if err != nil {
-		fmt.Println(response, "error")
-		return
-	}
-	erro := dataBase.FindOne(context.TODO(), bson.D{primitive.E{Key: "Date", Value: date}}).Decode(&date)
-	if erro != nil {
-
-	}
-}
-
 type choose struct {
-	Name      string
-	City      string
-	SetMosque bool
-	SetDate   bool
-	SetPrayer bool
-	Mosques   []model.Mosque
-	Date      model.Date
-	Prayer    []model.Prayer
+	Name       string
+	City       string
+	SetMosque  bool
+	SetDate    bool
+	SetPrayer  bool
+	Mosques    []model.Mosque
+	Date       model.Date
+	DateString string
+	Prayer     []model.Prayer
+	PrayerName string
 }
+
+var choo choose
 
 func Choose(response http.ResponseWriter, request *http.Request) {
 	mosque := request.URL.Query().Get("mosque")
-	date := request.URL.Query().Get("date")
-	prayer := 0
-	prayer, _ = strconv.Atoi(request.URL.Query().Get("prayer"))
-	var choose choose
-	choose.SetDate = !helpers.IsEmpty(date)
-	choose.SetMosque = !helpers.IsEmpty(mosque)
-	if prayer != 0 {
-		choose.SetPrayer = true
-	}
-	if mosque == "" {
+
+	if !choo.SetMosque {
+		fmt.Println("OOH")
 		dataBase, err := repos.GetDBCollection(1)
 		if err != nil {
 			fmt.Println(response, "error")
@@ -250,39 +231,123 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 		// Iterate through whole Collection and append the Array consisting of Groups
 		for cur.Next(context.TODO()) {
 			var mosque model.Mosque
-			cur.Decode(&mosque)
-			choose.Mosques = append(choose.Mosques, mosque)
-			fmt.Println(mosque.Date)
-		}
-		t, _ := template.ParseFiles("templates/choose.html")
-		t.Execute(response, choose)
-		choose.SetMosque = true
-	} else if date == "" && mosque != "" {
-		var dateF model.Date
-		dateF.Date, _ = time.Parse("USLayout", date)
-		fmt.Println(choosenMosque.Date)
-		for _, dates := range choosenMosque.Date {
-			fmt.Println("mosque_for")
-			if dateF.Date == dates.Date {
-				dateF = dates
-				fmt.Println("mosque_for_if")
-				break
+			erro := cur.Decode(&mosque)
+			if erro != nil {
+				fmt.Println(erro.Error())
 			}
+			choo.Mosques = append(choo.Mosques, mosque)
 		}
-		fmt.Println("mosque2")
 		t, _ := template.ParseFiles("templates/choose.html")
-		choose.SetMosque = true
-		t.Execute(response, choose)
-		http.Redirect(response, request, request.URL.Path+"&date="+dateF.Date.String(), 302)
-		choose.SetDate = true
-	} else if prayer == 0 && mosque != "" && date != "" {
-		for _, prayers := range choose.Prayer {
-			if int(prayers.Name) == prayer {
-				http.Redirect(response, request, request.URL.Path+"&prayer="+strconv.Itoa(prayer), 302)
-				choose.SetPrayer = true
+		t.Execute(response, choo)
+		choo.SetMosque = true
+	} else {
+		fmt.Println(mosque)
+		for _, mosq := range choo.Mosques {
+			if mosq.Name == mosque {
+				choosenMosque = mosq
+				t, _ := template.ParseFiles("templates/choose.html")
+				t.Execute(response, choo)
 			}
 		}
 	}
+}
+
+func ChooseDate(response http.ResponseWriter, request *http.Request) {
+	request.ParseForm()
+	date := request.Form.Get("date")
+	fmt.Println("input date: " + date)
+	var dateF model.Date
+	index := 0
+	dateF.Date, _ = time.Parse(time.RFC3339, date)
+	for i, dates := range choosenMosque.Date {
+		if dateF.Date == dates.Date {
+			dateF = dates
+			index = i
+			choo.Date = dateF
+			break
+		}
+	}
+	for _, prayer := range choosenMosque.Date[index].Prayer {
+		choo.Prayer = append(choo.Prayer, prayer)
+	}
+	t, _ := template.ParseFiles("templates/choosePrayer.html")
+	t.Execute(response, choo)
+	choo.SetDate = true
+}
+
+func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
+	prayer, _ := strconv.Atoi(request.URL.Query().Get("prayer"))
+	choo.SetPrayer = prayer != 0
+	for _, prayers := range choo.Prayer {
+		if int(prayers.Name) == prayer {
+			choo.SetPrayer = true
+		}
+	}
+	if choo.SetPrayer {
+		switch prayer {
+		case 1:
+			choo.PrayerName = "Sabah"
+		case 2:
+			choo.PrayerName = "Ögle"
+		case 3:
+			choo.PrayerName = "Ikindi"
+		case 4:
+			choo.PrayerName = "Aksam"
+		case 5:
+			choo.PrayerName = "Yatsi"
+		case 6:
+			choo.PrayerName = "Cuma"
+		case 7:
+			choo.PrayerName = "Bayram"
+		}
+	}
+	choo.DateString = choo.Date.Date.Format(time.RFC3339)
+	fmt.Println("Name: " + choo.Name)
+	fmt.Println("date: " + choo.Date.Date.String())
+	fmt.Println("PrayerName: " + choo.PrayerName)
+	t, _ := template.ParseFiles("templates/confirm.html")
+	t.Execute(response, choo)
+}
+
+func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
+	pray, _ := strconv.Atoi(request.URL.Query().Get("prayer"))
+	collection, err := repos.GetDBCollection(1)
+	if err != nil {
+		fmt.Fprintf(response, "Error trying to connect to DB")
+		return
+	}
+	var mosque model.Mosque
+	//var date model.Date
+	//var prayer model.Prayer
+	// Search for the group in the Table with the groupID equivalent to the users groupID and decode it
+	err = collection.FindOne(context.TODO(),
+		bson.D{
+			{"Name", choosenMosque.Name},
+		}).Decode(&mosque)
+	if err != nil {
+		fmt.Fprintf(response, "Your Mosque couldn't be found")
+		return
+	}
+	index := 0
+	for i, dates := range choosenMosque.Date {
+		if choo.Date.Date == dates.Date {
+			index = i
+			break
+		}
+	}
+	collection.UpdateOne(context.TODO(),
+		bson.D{
+			{"Name", choosenMosque.Name},
+		},
+		bson.D{
+			{"$set", bson.D{
+				{"Capacity", choosenMosque.Date[index].Prayer[pray].Capacity - 1},
+			}},
+		})
+	choosenMosque.Date[index].Prayer[pray].Capacity--
+	// TODO: check if works
+	// TODO reset choosenMosque
+	http.Redirect(response, request, "/index", 302)
 }
 
 func ChooseMosque(response http.ResponseWriter, request *http.Request) Mosques {
@@ -342,7 +407,7 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 		})*/
 		collection.UpdateOne(context.TODO(), bson.D{}, bson.D{{"$push", bson.M{"Users": user}}})
 		// TODO: check if works
-		choosenMosque = *new(Mosque)
+		// TODO reset choosenMosque
 		http.Redirect(response, request, "/index", 302)
 	} else {
 		fmt.Fprintln(response, "Date and prayer selection may not be empty")
