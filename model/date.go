@@ -21,7 +21,8 @@ type Date struct {
 
 type Prayer struct {
 	Name prayerName
-	//TODO capacity to men and women seperately, simpy make array, [0] for men, [1] women
+	// TODO: capacity to men and women seperately, simpy make array, [0] for men, [1] women
+	// TODO: Even better - custom type with 2 int field
 	Capacity int
 	Users    []User
 }

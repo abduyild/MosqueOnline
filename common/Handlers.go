@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -334,7 +335,6 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			fmt.Fprintf(response, "Your Mosque couldn't be found")
 			return
 		}
-		registered.ID = mosque.ID
 		registered.PrayerName = choo.PrayerName
 		registered.PrayerIndex = prayer
 		registered.MosqueName = mosque.Name
@@ -347,19 +347,19 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 				break
 			}
 		}
-		fmt.Println("Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity")
+
 		registered.DateIndex = index
 		_, error := collection.UpdateOne(context.TODO(),
-			bson.M{"_id": mosque.ID},
-			bson.D{{Key: "$inc", Value: bson.D{
-				{Key: "Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity", Value: -1},
+			bson.M{"Name": mosque.Name},
+			bson.D{{"$inc", bson.D{
+				{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity", -1},
 			},
 			}})
 		if error != nil {
 			http.Redirect(response, request, "/404", 302)
 		}
 		collection.UpdateOne(context.TODO(),
-			bson.M{"_id": mosque.ID}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": user}})
+			bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": user}})
 		user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
 
 		collection, _ = repos.GetDBCollection(0)
@@ -671,38 +671,64 @@ func SetAllFlagsForOne(response http.ResponseWriter, request *http.Request) {
 // Function for adding a VM to the Table
 func AddMosque(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
-	machines := request.FormValue("machine")
-	userFlag := request.FormValue("user")
-	rootFlag := request.FormValue("root")
+	name := request.FormValue("name")
+	plz, _ := strconv.Atoi(request.FormValue("plz"))
+	street := request.FormValue("street")
+	city := request.FormValue("city")
+	cap_m := request.FormValue("cap-m")
+	cap_w := request.FormValue("cap-w")
 
 	collection, err := repos.GetDBCollection(1)
 	if err != nil {
 		fmt.Println(response, "error getting DataBase")
 		return
 	}
-	if userFlag == "" {
-		userFlag = "user"
+	var buffer bytes.Buffer
+	date := ""
+	currentDate := time.Now().Format(time.RFC3339)
+	format :=
+		`
+		[{
+		        "Date": ` + currentDate + `,
+		        "Prayer": [{
+		            "Name": 1,
+		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
+		            "Users": [{}]
+		        }, {
+		            "Name": 2,
+		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
+		            "Users": [{}]
+		        }, {
+		            "Name": 3,
+		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
+		            "Users": [{}]
+		        }, {
+		            "Name": 4,
+		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
+		            "Users": [{}]
+		        }, {
+		            "Name": 5,
+		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
+		            "Users": [{}]
+		        }]
+		    }]
+	`
+	for i := 0; i < 100; i++ {
+		currentDate = time.Now().AddDate(0, 0, i).Format(time.RFC)
+		buffer.WriteString(format)
 	}
-	if rootFlag == "" {
-		rootFlag = "root"
-	}
-	if machines != "" {
-		// Update the Userflag of one groups machine with given machineID to given userFlag
-		machineID, _ := strconv.Atoi(machines)
-		collection.UpdateMany(context.TODO(),
-			bson.D{},
-			bson.D{
-				{"$push", bson.M{"Machines": bson.M{
-					"ID_Machine": machineID,
-					"SolvedUser": false,
-					"SolvedRoot": false,
-					"UserFlag":   userFlag,
-					"RootFlag":   rootFlag,
-				},
-				},
-				}},
-		)
-	}
+	collection.InsertOne(context.TODO(),
+		bson.D{
+			{"$push", bson.M{
+				"Name":   name,
+				"PLZ":    plz,
+				"Street": street,
+				"City":   city,
+				"Date":   date,
+			},
+			}},
+	)
+
 	http.Redirect(response, request, "/appleHeadquarter", 302)
 }
 

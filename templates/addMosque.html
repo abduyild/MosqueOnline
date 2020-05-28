@@ -1,0 +1,38 @@
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('.submit').attr('disabled', true);
+    $('#message').keyup(function() {
+      if ($(this).val().length != 0)
+        $('.submit').attr('disabled', false);
+      else
+        $('.submit').attr('disabled', true);
+    })
+  });
+</script>
+<style>
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+</style>
+
+<form method="post" action="/addVm">
+  Name: <input type="text" name="name" required="required">
+  <br>
+  PLZ: <input type="number" name="plz" required="required">
+  <br>
+  Straße: <input type="text" name="street" required="required">
+  <br>
+  Stadt: <input type="text" name="city" required="required">
+  <br>
+  Kapazität Männer: <input type="number" name="cap-m" required="required">
+  <br>
+  Kapazität Frauen: <input type="number" name="cap-w">
+  <br> <br> <br>
+  <input id="submit" type="submit" value="Eintragen">
+</form></br></br></br></br></br>

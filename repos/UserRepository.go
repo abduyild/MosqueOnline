@@ -32,9 +32,6 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	} else if i == 1 {
 		// Get The Mosques Table with the entries of the Mosques
 		return db.Collection("mosques"), nil
-	} else if i == 2 {
-		// Get The Mosques Table with the entries of the Mosques
-		return db.Collection("days"), nil
 	}
 	return nil, nil
 
