@@ -20,7 +20,8 @@ type Date struct {
 }
 
 type Prayer struct {
-	Name     prayerName
+	Name prayerName
+	//TODO capacity to men and women seperately, simpy make array, [0] for men, [1] women
 	Capacity int
 	Users    []User
 }

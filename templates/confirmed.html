@@ -1,0 +1,18 @@
+<div class="person">
+    <p>{{.FirstName}} {{.LastName}}</p>
+    <p>{{.Email}}</p>
+    <p>{{.Phone}}</p><br>
+</div>
+
+  <h2>Kayitli Namazlar | Angemeldete Gebete</h2>
+
+  {{range .RegisteredPrayers}}
+  <div class="prayer">
+    <p>{{.MosqueName}}</p>
+    <p>{{.MosqueAddress}}</p>
+    <p>{{.Date}}</p>
+    <p>Secilen Namaz | Ausgewähltes Gebet: {{.PrayerName}}</p>
+    <br>
+  </div>
+
+  {{end}}

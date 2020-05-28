@@ -19,13 +19,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Mosque struct {
-	Name   string
-	PLZ    int
-	Street string
-	City   string
-	Date   []model.Date
-}
+type Mosque model.Mosque
 
 type Mosques struct {
 	Mosques []Mosque
@@ -138,7 +132,7 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 
 			//usr := model.User{firstName, email, string(hash)}
 
-			usr := model.User{firstName, lastName, email, phone, false}
+			usr := model.User{firstName, lastName, email, phone, false, []model.RegisteredPrayer{}}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage
@@ -241,11 +235,11 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 		t.Execute(response, choo)
 		choo.SetMosque = true
 	} else {
-		fmt.Println(mosque)
+		choo.Name = mosque
 		for _, mosq := range choo.Mosques {
 			if mosq.Name == mosque {
 				choosenMosque = mosq
-				t, _ := template.ParseFiles("templates/choose.html")
+				t, _ := template.ParseFiles("templates/chooseDate.html")
 				t.Execute(response, choo)
 			}
 		}
@@ -253,17 +247,16 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 }
 
 func ChooseDate(response http.ResponseWriter, request *http.Request) {
-	request.ParseForm()
-	date := request.Form.Get("date")
+	date := request.PostFormValue("date")
 	fmt.Println("input date: " + date)
-	var dateF model.Date
 	index := 0
-	dateF.Date, _ = time.Parse(time.RFC3339, date)
 	for i, dates := range choosenMosque.Date {
-		if dateF.Date == dates.Date {
-			dateF = dates
+		fmt.Println("for!")
+		fmt.Println(date + " ---- " + strings.Split(dates.Date.String(), " ")[0])
+		if date == strings.Split(dates.Date.String(), " ")[0] {
+			fmt.Println("Success!")
 			index = i
-			choo.Date = dateF
+			choo.Date.Date = dates.Date
 			break
 		}
 	}
@@ -304,50 +297,88 @@ func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
 	choo.DateString = choo.Date.Date.Format(time.RFC3339)
 	fmt.Println("Name: " + choo.Name)
 	fmt.Println("date: " + choo.Date.Date.String())
+	fmt.Println("dateString: " + choo.DateString)
 	fmt.Println("PrayerName: " + choo.PrayerName)
 	t, _ := template.ParseFiles("templates/confirm.html")
 	t.Execute(response, choo)
 }
 
 func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
-	pray, _ := strconv.Atoi(request.URL.Query().Get("prayer"))
-	collection, err := repos.GetDBCollection(1)
-	if err != nil {
-		fmt.Fprintf(response, "Error trying to connect to DB")
-		return
-	}
-	var mosque model.Mosque
-	//var date model.Date
-	//var prayer model.Prayer
-	// Search for the group in the Table with the groupID equivalent to the users groupID and decode it
-	err = collection.FindOne(context.TODO(),
-		bson.D{
-			{"Name", choosenMosque.Name},
-		}).Decode(&mosque)
-	if err != nil {
-		fmt.Fprintf(response, "Your Mosque couldn't be found")
-		return
-	}
-	index := 0
-	for i, dates := range choosenMosque.Date {
-		if choo.Date.Date == dates.Date {
-			index = i
-			break
+	if request.URL.Query().Get("confirm") == "yes" {
+		collection, _ := repos.GetDBCollection(1)
+		prayer := 0
+		switch choo.PrayerName {
+		case "Sabah":
+			prayer = 1
+		case "Ögle":
+			prayer = 2
+		case "Ikindi":
+			prayer = 3
+		case "Aksam":
+			prayer = 4
+		case "Yatsi":
+			prayer = 5
+		case "Cuma":
+			prayer = 6
+		case "Bayram":
+			prayer = 7
 		}
+		user := GetUserAsUser(request)
+		registered := model.RegisteredPrayer{}
+		var mosque model.Mosque
+		err := collection.FindOne(context.TODO(),
+			bson.D{
+				{"Name", choosenMosque.Name},
+			}).Decode(&mosque)
+		if err != nil {
+			fmt.Fprintf(response, "Your Mosque couldn't be found")
+			return
+		}
+		registered.ID = mosque.ID
+		registered.PrayerName = choo.PrayerName
+		registered.PrayerIndex = prayer
+		registered.MosqueName = mosque.Name
+		registered.MosqueAddress = strconv.Itoa(mosque.PLZ) + " " + mosque.City + ", " + mosque.Street
+		index := 0
+		for i, dates := range choosenMosque.Date {
+			if choo.Date.Date == dates.Date {
+				registered.Date = strconv.Itoa(dates.Date.Day()) + "." + strconv.Itoa(int(dates.Date.Month())) + "." + strconv.Itoa(dates.Date.Year())
+				index = i
+				break
+			}
+		}
+		fmt.Println("Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity")
+		registered.DateIndex = index
+		_, error := collection.UpdateOne(context.TODO(),
+			bson.M{"_id": mosque.ID},
+			bson.D{{Key: "$inc", Value: bson.D{
+				{Key: "Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity", Value: -1},
+			},
+			}})
+		if error != nil {
+			http.Redirect(response, request, "/404", 302)
+		}
+		collection.UpdateOne(context.TODO(),
+			bson.M{"_id": mosque.ID}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": user}})
+		user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
+
+		collection, _ = repos.GetDBCollection(0)
+		collection.UpdateOne(context.TODO(),
+			bson.M{"Phone": GetPhoneFromCookie(request)}, bson.M{
+				"$push": bson.M{"RegisteredPrayers": registered}})
+		choo = *new(choose)
+		http.Redirect(response, request, "/confirmed", 302)
+	} else {
+		//TODO delete all temp files method
+		http.Redirect(response, request, "/index", 302)
 	}
-	collection.UpdateOne(context.TODO(),
-		bson.D{
-			{"Name", choosenMosque.Name},
-		},
-		bson.D{
-			{"$set", bson.D{
-				{"Capacity", choosenMosque.Date[index].Prayer[pray].Capacity - 1},
-			}},
-		})
-	choosenMosque.Date[index].Prayer[pray].Capacity--
-	// TODO: check if works
-	// TODO reset choosenMosque
-	http.Redirect(response, request, "/index", 302)
+}
+
+func Confirmed(response http.ResponseWriter, request *http.Request) {
+	user := GetUserAsUser(request)
+	t, _ := template.ParseFiles("templates/confirmed.html")
+	t.Execute(response, user)
+	//doSomething
 }
 
 func ChooseMosque(response http.ResponseWriter, request *http.Request) Mosques {
@@ -364,13 +395,12 @@ func ChooseMosque(response http.ResponseWriter, request *http.Request) Mosques {
 	}
 	return mosq
 }
-
 func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	prayer := request.FormValue("prayer")
 	date := request.URL.Query().Get("date")
 	fmt.Println(date)
-	user := GetUserAsUser(request)
+	//user := GetUserAsUser(request)
 
 	collection, err := repos.GetDBCollection(1)
 	if err != nil {
@@ -405,7 +435,7 @@ func SubmitHandler(response http.ResponseWriter, request *http.Request) {
 				{"Capacity", choosenMosque.Capacity - 1},
 			}},
 		})*/
-		collection.UpdateOne(context.TODO(), bson.D{}, bson.D{{"$push", bson.M{"Users": user}}})
+		//collection.UpdateOne(context.TODO(), bson.D{}, bson.D{{"$push", bson.D{"Users": user}}})
 		// TODO: check if works
 		// TODO reset choosenMosque
 		http.Redirect(response, request, "/index", 302)
@@ -645,7 +675,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 	userFlag := request.FormValue("user")
 	rootFlag := request.FormValue("root")
 
-	collection, err := repos.GetDBCollection(2)
+	collection, err := repos.GetDBCollection(1)
 	if err != nil {
 		fmt.Println(response, "error getting DataBase")
 		return
@@ -729,10 +759,21 @@ func GetUser(request *http.Request) (string, error) {
 	return user, nil
 }
 
+func GetPhoneFromCookie(request *http.Request) string {
+	phone := ""
+	// Check if there is an active Cookie
+	if cookie, err := request.Cookie("cookie"); err == nil {
+		cookieValue := cookie.Value
+		cookieVal := strings.Split(cookieValue, "&")[0]
+		phone = strings.Split(cookieVal, "?")[1]
+	}
+	return phone
+}
+
 func GetUserAsUser(request *http.Request) model.User {
 	var user model.User
-	phone, _ := GetUser(request)
+	phone := GetPhoneFromCookie(request)
 	collection, _ := repos.GetDBCollection(0)
-	collection.FindOne(context.TODO(), bson.D{{"Phone", phone}}).Decode(&user)
+	collection.FindOne(context.TODO(), bson.M{"Phone": phone}).Decode(&user)
 	return user
 }

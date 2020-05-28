@@ -21,7 +21,8 @@ func main() {
 
 	router.HandleFunc("/logout", common.LogoutHandler)
 	//router.HandleFunc("/reset", common.ResetHandler)
-	router.HandleFunc("/submit", common.SubmitHandler)
+	router.HandleFunc("/submit", common.SubmitPrayer)
+	router.HandleFunc("/confirmed", common.Confirmed)
 
 	router.HandleFunc("/chooseMosque", common.Choose) // normally ChooseMosque
 	router.HandleFunc("/choose", common.Choosen)

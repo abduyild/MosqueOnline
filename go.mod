@@ -27,6 +27,7 @@ require (
 	go.mongodb.org/mongo-driver v1.3.0
 	golang.org/x/crypto v0.0.0-20200208060501-ecb85df21340
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
+	labix.org/v2/mgo v0.0.0-20140701140051-000000000287
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20200501210554-b37ab49443f7 // indirect

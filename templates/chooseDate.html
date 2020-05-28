@@ -8,20 +8,6 @@
   <script type="text/javascript" src="selectize.js"></script>
   <link rel="stylesheet" type="text/css" href="selectize.css" />
   <script>
-    $(document).ready(function() {
-      var $select = $("#select-mosque").selectize({
-        sortField: 'text',
-        onItemAdd: function(value) {
-          window.location.href = '/chooseMosque?mosque=' + value;
-        }
-      });
-      $("#btnClear").on("click", function() {
-        var selectize = $select[0].selectize;
-        selectize.clear();
-      });
-    });
-  </script>
-  <script>
     window.addEventListener("pageshow", function(event) {
       var historyTraversal = event.persisted ||
         (typeof window.performance != "undefined" &&
@@ -84,10 +70,9 @@
   </style>
 </head>
 
-
-<h3>Secdiginiz Camii | Ausgewählte Moschee {{.Name}}</h3>
+<h3>Secdiginiz Camii | Ausgewählte Moschee <br>{{.Name}}</h3>
 <form method="post" action="/chooseDate">
   Date:
-  <input type="date" id="date" min='1899-01-01'></input>
+  <input type="date" id="date" name="date" min='1899-01-01'></input>
   <input type="submit" value="submit">
 </form>

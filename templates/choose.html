@@ -83,17 +83,6 @@
     }
   </style>
 </head>
-
-{{if and (.SetMosque) (not .SetDate)}}
-
-<h3>Secdiginiz Camii | Ausgewählte Moschee {{.Name}}</h3>
-<form method="post" action="/chooseDate">
-  Date:
-  <input type="date" id="date" min='1899-01-01'></input>
-  <input type="submit" value="submit">
-</form>
-
-{{else}}
   <body>
   <select id="select-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
     <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
@@ -103,6 +92,5 @@
   </select>
   <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
 
-{{end}}
 
   </body>
