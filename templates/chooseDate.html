@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 
 <head>
+  <link rel="stylesheet" href="styles.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js" integrity="sha256-+C0A5Ilqmu4QcSPxrlGpaZxJ04VjsRjKu+G82kl5UJk=" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha256-ze/OEYGcFbPRmvCnrSeKbRTtjG4vGLHXgOqsyLFTRjg=" crossorigin="anonymous" />
@@ -27,52 +28,27 @@
         mm = '0' + mm
       }
       today = yyyy + '-' + mm + '-' + dd;
+      var d = new Date();
+      d.setDate(d.getDate() + 30);
+      var y = d.getFullYear();
+      var m = d.getMonth() + 1;
+      var da = d.getDate();
+      if (da < 10) {
+        da = '0' + da
+      }
+      if (m < 10) {
+        m = '0' + m
+      }
+      d = y + '-' + m + '-' + da;
       document.getElementById("date").setAttribute("min", today);
+      document.getElementById("date").setAttribute("max", d);
     });
   </script>
-  <style>
-    body {
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    /* Full-width input fields */
-    input[type=password],
-    input[type=text] {
-      width: 100%;
-      padding: 12px 20px;
-      margin: 8px 0;
-      display: inline-block;
-      border: 1px solid #ccc;
-      box-sizing: border-box;
-    }
-
-    /* Set a style for all buttons */
-    button {
-      background-color: #4CAF50;
-      color: white;
-      padding: 14px 20px;
-      margin: 8px 0;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    button:hover {
-      opacity: 0.8;
-    }
-
-    td,
-    th {
-      padding: 15px;
-      text-align: left;
-      border-bottom: 3px solid #ddd;
-    }
-  </style>
 </head>
 
 <h3>Secdiginiz Camii | Ausgewählte Moschee <br>{{.Name}}</h3>
 <form method="post" action="/chooseDate">
   Date:
-  <input type="date" id="date" name="date" min='1899-01-01'></input>
+  <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input>
   <input type="submit" value="submit">
 </form>

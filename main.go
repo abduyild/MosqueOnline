@@ -22,7 +22,6 @@ func main() {
 	router.HandleFunc("/logout", common.LogoutHandler)
 	//router.HandleFunc("/reset", common.ResetHandler)
 	router.HandleFunc("/submit", common.SubmitPrayer)
-	router.HandleFunc("/confirmed", common.Confirmed)
 
 	router.HandleFunc("/chooseMosque", common.Choose) // normally ChooseMosque
 	router.HandleFunc("/choose", common.Choosen)
@@ -32,7 +31,6 @@ func main() {
 	router.HandleFunc("/addMosque", common.AddMosque)
 
 	//router.HandleFunc("/appleHeadquarter", common.SteveJobsHandler)
-	router.HandleFunc("/setAllFlags", common.SetAllFlags)
 	router.HandleFunc("/addMosque", common.AddMosque)
 	router.HandleFunc("/signOut", common.SignOutPrayer)
 	http.Handle("/", router)

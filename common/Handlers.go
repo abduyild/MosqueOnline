@@ -99,7 +99,7 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 			redirectTarget = "/appleHeadquarter"
 			// Else redirect to the normal indexpage
 		} else {
-			redirectTarget = "/chooseMosque"
+			redirectTarget = "/index"
 		}
 	}
 	// function for redirecting
@@ -168,31 +168,9 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 
 // Function for Handling the Pagecall of the Indexpage
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
-	user, err := GetUser(request)
-	if err != nil {
-		fmt.Fprintln(response, err)
-		return
-	}
-
-	phone := GetPhone(user)
-	if !helpers.IsEmpty(phone) {
-		var mosqueItem model.Mosque
-		collection, _ := repos.GetDBCollection(1)
-		// Search for group with given ID as group and decode, if not possibe to decode erro != nil
-		erro := collection.FindOne(context.TODO(), bson.D{{"Name", choosenMosque.Name}}).Decode(&mosqueItem)
-		// If there was an error decoding the item with the Databasequery, throw an error
-		if erro != nil {
-			fmt.Fprintf(response, "There was an Error getting your Mosque!")
-			return
-		}
-		// Parse the templatefile, changes all Placeholders {{ }} with appropiate Values
-		tpl, _ := template.ParseFiles("templates/index.html")
-		// Inserts the groups to the Template as we are using the ID and points of the group
-		tpl.Execute(response, mosqueItem)
-
-	} else {
-		http.Redirect(response, request, "/", 302)
-	}
+	user := GetUserAsUser(request)
+	t, _ := template.ParseFiles("templates/index.html")
+	t.Execute(response, user)
 }
 
 // Function for handling the call to logout, simply deletes the cookie associated with the session and redirects to loginpage
@@ -355,30 +333,38 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 				break
 			}
 		}
-
-		registered.DateIndex = index
-		_, error := collection.UpdateOne(context.TODO(),
-			bson.M{"Name": mosque.Name},
-			bson.D{{"$inc", bson.D{
-				{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity" + user.Sex, -1},
-			},
-			}})
-		if error != nil {
-			http.Redirect(response, request, "/404", 302)
-		}
-		registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
-
-		tempUser := user
-		tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
-		collection.UpdateOne(context.TODO(),
-			bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
-		user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
 		collection, _ = repos.GetDBCollection(0)
-		collection.UpdateOne(context.TODO(),
-			bson.M{"Phone": GetPhoneFromCookie(request)}, bson.M{
-				"$push": bson.M{"RegisteredPrayers": registered}})
-		choo = *new(choose)
-		http.Redirect(response, request, "/confirmed", 302)
+		registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
+		err1 := collection.FindOne(context.TODO(), bson.D{
+			{"Phone", user.Phone},
+			{"RegisteredPrayers.RpId", registered.RpId}})
+		if err1.Err() != nil {
+			collection, _ = repos.GetDBCollection(1)
+			registered.DateIndex = index
+			_, error := collection.UpdateOne(context.TODO(),
+				bson.M{"Name": mosque.Name},
+				bson.D{{"$inc", bson.D{
+					{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity" + user.Sex, -1},
+				},
+				}})
+			if error != nil {
+				http.Redirect(response, request, "/404", 302)
+			}
+
+			tempUser := user
+			tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
+			user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
+			collection, _ = repos.GetDBCollection(0)
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Phone": GetPhoneFromCookie(request)}, bson.M{
+					"$push": bson.M{"RegisteredPrayers": registered}})
+			choo = *new(choose)
+			http.Redirect(response, request, "/index", 302)
+		} else {
+			fmt.Fprintf(response, "You are already Signed in for this prayer")
+		}
 	} else {
 		//TODO delete all temp files method
 		http.Redirect(response, request, "/index", 302)
@@ -399,18 +385,18 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 	collection.UpdateOne(context.TODO(),
 		bson.M{"Name": name},
 		bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": phone}}})
+	collection.UpdateOne(context.TODO(),
+		bson.M{"Name": name},
+		bson.D{{"$inc", bson.D{
+			{"Date." + date + ".Prayer." + prayer1 + ".Capacity" + GetUserAsUser(request).Sex, 1},
+		},
+		}})
 	collection, _ = repos.GetDBCollection(0)
 	rpid := name + ":" + date + ":" + prayer
 	filter := bson.D{{Key: "Phone", Value: phone}}
 	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
 	collection.UpdateOne(context.TODO(), filter, update)
-}
-
-func Confirmed(response http.ResponseWriter, request *http.Request) {
-	user := GetUserAsUser(request)
-	t, _ := template.ParseFiles("templates/confirmed.html")
-	t.Execute(response, user)
-	//doSomething
+	http.Redirect(response, request, "/index", 302)
 }
 
 func ChooseMosque(response http.ResponseWriter, request *http.Request) Mosques {
@@ -535,44 +521,6 @@ func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
 	t, _ := template.ParseFiles("templates/appleHeadquarter.gohtml")
 	t.Execute(response, groups)
 }*/
-
-// Function for changing  the Flags for all Machines
-func SetAllFlags(response http.ResponseWriter, request *http.Request) {
-	userFlag := request.FormValue("user")
-	rootFlag := request.FormValue("root")
-
-	collection, err := repos.GetDBCollection(1)
-	if err != nil {
-		fmt.Println(response, "Error getting the DB")
-	}
-
-	if userFlag != "" {
-		// Update all Machines for all Groups
-		_, err := collection.UpdateMany(context.TODO(),
-			bson.D{},
-			bson.D{
-				{"$set", bson.D{
-					{"Machines.$[].UserFlag", userFlag},
-				}},
-			})
-		if err != nil {
-			fmt.Fprintf(response, "Error")
-		}
-	}
-	if rootFlag != "" {
-		_, err := collection.UpdateMany(context.TODO(),
-			bson.D{},
-			bson.D{
-				{"$set", bson.D{
-					{"Machines.$[].RootFlag", rootFlag},
-				}},
-			})
-		if err != nil {
-			fmt.Fprintf(response, "Error")
-		}
-	}
-	http.Redirect(response, request, "/appleHeadquarter", 302)
-}
 
 func Add(response http.ResponseWriter, request *http.Request) {
 	t, err := template.ParseFiles("templates/addMosque.html")
