@@ -2,10 +2,10 @@ package model
 
 import "time"
 
-type prayerName int
+type PrayerName int
 
 const (
-	Sabah  prayerName = iota //1
+	Sabah  PrayerName = iota //1
 	Ögle                     //2
 	Ikindi                   //3
 	Aksam                    //4
@@ -15,14 +15,13 @@ const (
 )
 
 type Date struct {
-	Date   time.Time
-	Prayer []Prayer
+	Date   time.Time `bson:"Date"`
+	Prayer []Prayer  `bson:"Prayer"`
 }
 
 type Prayer struct {
-	Name prayerName
-	// TODO: capacity to men and women seperately, simpy make array, [0] for men, [1] women
-	// TODO: Even better - custom type with 2 int field
-	Capacity int
-	Users    []User
+	Name          PrayerName `bson:"Name"`
+	CapacityMen   int        `bson:"CapacityMen"`
+	CapacityWomen int        `bson:"CapacityWomen"`
+	Users         []User     `bson:"Users"`
 }

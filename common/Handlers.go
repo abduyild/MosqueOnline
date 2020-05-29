@@ -1,7 +1,6 @@
 package common
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -25,6 +24,26 @@ type Mosque model.Mosque
 type Mosques struct {
 	Mosques []Mosque
 }
+
+type choose struct {
+	Name       string
+	City       string
+	SetMosque  bool
+	SetDate    bool
+	SetPrayer  bool
+	Mosques    []model.Mosque
+	Date       model.Date
+	DateString string
+	Prayer     []TempPrayer
+	PrayerName string
+}
+
+type TempPrayer struct {
+	Name     model.PrayerName
+	Capacity int
+}
+
+var choo choose
 
 var choosenMosque model.Mosque
 
@@ -107,6 +126,7 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	lastName := request.FormValue("lastname")
 	email := request.FormValue("email")
 	phone := request.FormValue("phone")
+	sex := request.FormValue("sex")
 
 	// initializing as false for not filled
 	_firstName, _lastName, _email, _phone := false, false, false, false
@@ -133,7 +153,7 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 
 			//usr := model.User{firstName, email, string(hash)}
 
-			usr := model.User{firstName, lastName, email, phone, false, []model.RegisteredPrayer{}}
+			usr := model.User{sex, firstName, lastName, email, phone, false, []model.RegisteredPrayer{}}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage
@@ -197,38 +217,20 @@ func Choosen(response http.ResponseWriter, request *http.Request) {
 	//http.Redirect(response, request, "/chooseDate", 302)
 }
 
-type choose struct {
-	Name       string
-	City       string
-	SetMosque  bool
-	SetDate    bool
-	SetPrayer  bool
-	Mosques    []model.Mosque
-	Date       model.Date
-	DateString string
-	Prayer     []model.Prayer
-	PrayerName string
-}
-
-var choo choose
-
 func Choose(response http.ResponseWriter, request *http.Request) {
 	mosque := request.URL.Query().Get("mosque")
-
 	if !choo.SetMosque {
-		fmt.Println("OOH")
 		dataBase, err := repos.GetDBCollection(1)
 		if err != nil {
 			fmt.Println(response, "error")
 			return
 		}
 		cur, _ := dataBase.Find(context.TODO(), bson.D{})
-		// Iterate through whole Collection and append the Array consisting of Groups
 		for cur.Next(context.TODO()) {
 			var mosque model.Mosque
 			erro := cur.Decode(&mosque)
 			if erro != nil {
-				fmt.Println(erro.Error())
+				fmt.Println("Error:", erro.Error())
 			}
 			choo.Mosques = append(choo.Mosques, mosque)
 		}
@@ -249,20 +251,30 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 
 func ChooseDate(response http.ResponseWriter, request *http.Request) {
 	date := request.PostFormValue("date")
-	fmt.Println("input date: " + date)
 	index := 0
 	for i, dates := range choosenMosque.Date {
-		fmt.Println("for!")
-		fmt.Println(date + " ---- " + strings.Split(dates.Date.String(), " ")[0])
 		if date == strings.Split(dates.Date.String(), " ")[0] {
-			fmt.Println("Success!")
 			index = i
 			choo.Date.Date = dates.Date
 			break
 		}
 	}
+	cap := 0
+	male := true
+	if GetUserAsUser(request).Sex == "Women" {
+		male = false
+	}
+
 	for _, prayer := range choosenMosque.Date[index].Prayer {
-		choo.Prayer = append(choo.Prayer, prayer)
+		if male {
+			cap = prayer.CapacityMen
+		} else {
+			cap = prayer.CapacityWomen
+		}
+		pray := *new(TempPrayer)
+		pray.Name = prayer.Name
+		pray.Capacity = cap
+		choo.Prayer = append(choo.Prayer, pray)
 	}
 	t, _ := template.ParseFiles("templates/choosePrayer.html")
 	t.Execute(response, choo)
@@ -296,10 +308,6 @@ func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
 		}
 	}
 	choo.DateString = choo.Date.Date.Format(time.RFC3339)
-	fmt.Println("Name: " + choo.Name)
-	fmt.Println("date: " + choo.Date.Date.String())
-	fmt.Println("dateString: " + choo.DateString)
-	fmt.Println("PrayerName: " + choo.PrayerName)
 	t, _ := template.ParseFiles("templates/confirm.html")
 	t.Execute(response, choo)
 }
@@ -352,14 +360,16 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 		_, error := collection.UpdateOne(context.TODO(),
 			bson.M{"Name": mosque.Name},
 			bson.D{{"$inc", bson.D{
-				{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity", -1},
+				{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity" + user.Sex, -1},
 			},
 			}})
 		if error != nil {
 			http.Redirect(response, request, "/404", 302)
 		}
+		tempUser := user
+		tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
 		collection.UpdateOne(context.TODO(),
-			bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": user}})
+			bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
 		user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
 
 		collection, _ = repos.GetDBCollection(0)
@@ -394,55 +404,6 @@ func ChooseMosque(response http.ResponseWriter, request *http.Request) Mosques {
 		mosq.Mosques = append(mosq.Mosques, mosque)
 	}
 	return mosq
-}
-func SubmitHandler(response http.ResponseWriter, request *http.Request) {
-	request.ParseForm()
-	prayer := request.FormValue("prayer")
-	date := request.URL.Query().Get("date")
-	fmt.Println(date)
-	//user := GetUserAsUser(request)
-
-	collection, err := repos.GetDBCollection(1)
-	if err != nil {
-		fmt.Fprintf(response, "Error trying to connect to DB")
-		return
-	}
-	var prayerModel model.Prayer
-	prayerModel.Name = model.Sabah
-	var mosque Mosque
-	if helpers.IsEmpty(prayer) {
-		// Search for the group in the Table with the groupID equivalent to the users groupID and decode it
-		err := collection.FindOne(context.TODO(),
-			bson.D{
-				{"Name", choosenMosque.Name},
-			}).Decode(&mosque)
-		if err != nil {
-			fmt.Fprintf(response, "Your Mosque couldn't be found")
-			return
-		}
-		for dates := range mosque.Date {
-			if dates == dates {
-
-				break
-			}
-		}
-		/*collection.UpdateOne(context.TODO(),
-		bson.D{
-			{"Name", choosenMosque.Name},
-		},
-		bson.D{
-			{"$set", bson.D{
-				{"Capacity", choosenMosque.Capacity - 1},
-			}},
-		})*/
-		//collection.UpdateOne(context.TODO(), bson.D{}, bson.D{{"$push", bson.D{"Users": user}}})
-		// TODO: check if works
-		// TODO reset choosenMosque
-		http.Redirect(response, request, "/index", 302)
-	} else {
-		fmt.Fprintln(response, "Date and prayer selection may not be empty")
-		return
-	}
 }
 
 /*
@@ -667,6 +628,10 @@ func SetAllFlagsForOne(response http.ResponseWriter, request *http.Request) {
 	}
 	http.Redirect(response, request, "/appleHeadquarter", 302)
 }
+func Add(response http.ResponseWriter, request *http.Request) {
+	t, _ := template.ParseFiles("templates/addMosque.html")
+	t.Execute(response, nil)
+}
 
 // Function for adding a VM to the Table
 func AddMosque(response http.ResponseWriter, request *http.Request) {
@@ -675,61 +640,42 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 	plz, _ := strconv.Atoi(request.FormValue("plz"))
 	street := request.FormValue("street")
 	city := request.FormValue("city")
-	cap_m := request.FormValue("cap-m")
-	cap_w := request.FormValue("cap-w")
+	cap_m, _ := strconv.Atoi(request.FormValue("cap-m"))
+	cap_w, _ := strconv.Atoi(request.FormValue("cap-w"))
 
 	collection, err := repos.GetDBCollection(1)
 	if err != nil {
 		fmt.Println(response, "error getting DataBase")
 		return
 	}
-	var buffer bytes.Buffer
-	date := ""
-	currentDate := time.Now().Format(time.RFC3339)
-	format :=
-		`
-		[{
-		        "Date": ` + currentDate + `,
-		        "Prayer": [{
-		            "Name": 1,
-		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
-		            "Users": [{}]
-		        }, {
-		            "Name": 2,
-		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
-		            "Users": [{}]
-		        }, {
-		            "Name": 3,
-		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
-		            "Users": [{}]
-		        }, {
-		            "Name": 4,
-		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
-		            "Users": [{}]
-		        }, {
-		            "Name": 5,
-		            "Capacity": [{` + cap_m + `},{` + cap_w + `}],
-		            "Users": [{}]
-		        }]
-		    }]
-	`
-	for i := 0; i < 100; i++ {
-		currentDate = time.Now().AddDate(0, 0, i).Format(time.RFC)
-		buffer.WriteString(format)
+	var date model.Date
+	var dates []model.Date
+	var prayer model.Prayer
+	var prayers []model.Prayer
+	prayer.CapacityMen = cap_m
+	prayer.CapacityWomen = cap_w
+	prayer.Users = []model.User{}
+	for i := 1; i < 6; i++ {
+		prayer.Name = model.PrayerName(i)
+		prayers = append(prayers, prayer)
 	}
-	collection.InsertOne(context.TODO(),
-		bson.D{
-			{"$push", bson.M{
-				"Name":   name,
-				"PLZ":    plz,
-				"Street": street,
-				"City":   city,
-				"Date":   date,
-			},
-			}},
-	)
+	// TODO: statt 10 einfach 100 nemhen oder so
+	for i := 0; i < 10; i++ {
+		currentDate := time.Now().AddDate(0, 0, i).Format(time.RFC3339)
+		date.Date, _ = time.Parse(time.RFC3339, currentDate)
+		date.Prayer = prayers
+		dates = append(dates, date)
+	}
+	mosque := *new(Mosque)
+	mosque.Name = name
+	mosque.PLZ = plz
+	mosque.Street = street
+	mosque.City = city
+	mosque.Date = dates
 
-	http.Redirect(response, request, "/appleHeadquarter", 302)
+	collection.InsertOne(context.TODO(), mosque)
+
+	//http.Redirect(response, request, "/", 302) // redirect back to Adminpage
 }
 
 // Function for setting the Cookie

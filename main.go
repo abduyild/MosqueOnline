@@ -28,6 +28,8 @@ func main() {
 	router.HandleFunc("/choose", common.Choosen)
 	router.HandleFunc("/chooseDate", common.ChooseDate)
 	router.HandleFunc("/choosePrayer", common.ChoosePrayer)
+	router.HandleFunc("/add", common.Add)
+	router.HandleFunc("/addMosque", common.AddMosque)
 
 	//router.HandleFunc("/appleHeadquarter", common.SteveJobsHandler)
 	router.HandleFunc("/setFlag", common.SetFlag)
