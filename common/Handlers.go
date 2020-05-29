@@ -366,12 +366,13 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 		if error != nil {
 			http.Redirect(response, request, "/404", 302)
 		}
+		registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
+
 		tempUser := user
 		tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
 		collection.UpdateOne(context.TODO(),
 			bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
 		user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
-
 		collection, _ = repos.GetDBCollection(0)
 		collection.UpdateOne(context.TODO(),
 			bson.M{"Phone": GetPhoneFromCookie(request)}, bson.M{
@@ -382,6 +383,27 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 		//TODO delete all temp files method
 		http.Redirect(response, request, "/index", 302)
 	}
+}
+
+func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
+	name := request.FormValue("name")
+	date := request.FormValue("date")
+	prayer := request.FormValue("prayer")
+	phone := request.FormValue("phone")
+	prayerN, err := strconv.Atoi(prayer)
+	if err != nil {
+		fmt.Fprintf(response, err.Error())
+	}
+	prayer1 := strconv.Itoa(prayerN - 1)
+	collection, _ := repos.GetDBCollection(1)
+	collection.UpdateOne(context.TODO(),
+		bson.M{"Name": name},
+		bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": phone}}})
+	collection, _ = repos.GetDBCollection(0)
+	rpid := name + ":" + date + ":" + prayer
+	filter := bson.D{{Key: "Phone", Value: phone}}
+	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
+	collection.UpdateOne(context.TODO(), filter, update)
 }
 
 func Confirmed(response http.ResponseWriter, request *http.Request) {
@@ -512,45 +534,7 @@ func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
 
 	t, _ := template.ParseFiles("templates/appleHeadquarter.gohtml")
 	t.Execute(response, groups)
-}
-*/
-func SetFlag(response http.ResponseWriter, request *http.Request) {
-	request.ParseForm()
-	userFlag := request.FormValue("user")
-	rootFlag := request.FormValue("root")
-	machines := request.FormValue("machine")
-	group, _ := strconv.Atoi(request.FormValue("group"))
-	collection, err := repos.GetDBCollection(1)
-	if err != nil {
-		fmt.Println(response, "error")
-		return
-	}
-
-	if userFlag != "" {
-		// Update the Userflag of one groups machine with given machineID to given userFlag
-		collection.UpdateOne(context.TODO(),
-			bson.D{
-				{"ID", group},
-			},
-			bson.D{
-				{"$set", bson.D{
-					{"Machines." + machines + ".UserFlag", userFlag},
-				}},
-			})
-	}
-	if rootFlag != "" {
-		collection.UpdateOne(context.TODO(),
-			bson.D{
-				{"ID", group},
-			},
-			bson.D{
-				{"$set", bson.D{
-					{"Machines." + machines + ".RootFlag", rootFlag},
-				}},
-			})
-	}
-	http.Redirect(response, request, "/appleHeadquarter", 302)
-}
+}*/
 
 // Function for changing  the Flags for all Machines
 func SetAllFlags(response http.ResponseWriter, request *http.Request) {
@@ -590,46 +574,11 @@ func SetAllFlags(response http.ResponseWriter, request *http.Request) {
 	http.Redirect(response, request, "/appleHeadquarter", 302)
 }
 
-// Function for changing  the Flags for one Machine for all Groups
-func SetAllFlagsForOne(response http.ResponseWriter, request *http.Request) {
-	userFlag := request.FormValue("user")
-	rootFlag := request.FormValue("root")
-	machines := request.FormValue("machine")
-
-	collection, err := repos.GetDBCollection(1)
-	if err != nil {
-		fmt.Println(response, "Error getting the DB")
-	}
-
-	if userFlag != "" {
-		// Update one particlular Machine for all Groups
-		_, err := collection.UpdateMany(context.TODO(),
-			bson.D{},
-			bson.D{
-				{"$set", bson.D{
-					{"Machines." + machines + ".UserFlag", userFlag},
-				}},
-			})
-		if err != nil {
-			fmt.Fprintf(response, "Error")
-		}
-	}
-	if rootFlag != "" {
-		_, err := collection.UpdateMany(context.TODO(),
-			bson.D{},
-			bson.D{
-				{"$set", bson.D{
-					{"Machines." + machines + ".RootFlag", rootFlag},
-				}},
-			})
-		if err != nil {
-			fmt.Fprintf(response, "Error")
-		}
-	}
-	http.Redirect(response, request, "/appleHeadquarter", 302)
-}
 func Add(response http.ResponseWriter, request *http.Request) {
-	t, _ := template.ParseFiles("templates/addMosque.html")
+	t, err := template.ParseFiles("templates/addMosque.html")
+	if err != nil {
+		fmt.Println(err)
+	}
 	t.Execute(response, nil)
 }
 

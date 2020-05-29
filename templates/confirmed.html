@@ -1,3 +1,4 @@
+
 <div class="person">
   <p>{{.FirstName}} {{.LastName}}</p>
   <p>{{.Email}}</p>
@@ -6,13 +7,17 @@
 
 <h2>Kayitli Namazlar | Angemeldete Gebete</h2>
 
+{{$phone := .Phone}}
 {{range .RegisteredPrayers}}
 <div class="prayer">
   <p>{{.MosqueName}}</p>
   <p>{{.MosqueAddress}}</p>
   <p>{{.Date}}</p>
   <p>Secilen Namaz | Ausgewähltes Gebet: {{.PrayerName}}</p>
-  <br>
+  <form method="post" id="deleteForm" onsubmit="return confirm('Silmeyi onayliyormusunuz? | Bestätigen Sie die Abmeldung?');" action="/signOut?name={{.MosqueName}}&date={{.DateIndex}}&prayer={{.PrayerIndex}}&phone={{$phone}}">
+    <input type="submit" class="button" value="Sil | Abmelden"></input>
+    <br>
+  </form>
 </div>
 
 {{end}}

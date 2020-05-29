@@ -32,10 +32,9 @@ func main() {
 	router.HandleFunc("/addMosque", common.AddMosque)
 
 	//router.HandleFunc("/appleHeadquarter", common.SteveJobsHandler)
-	router.HandleFunc("/setFlag", common.SetFlag)
 	router.HandleFunc("/setAllFlags", common.SetAllFlags)
-	router.HandleFunc("/setAllFlagsForOne", common.SetAllFlagsForOne)
 	router.HandleFunc("/addMosque", common.AddMosque)
+	router.HandleFunc("/signOut", common.SignOutPrayer)
 	http.Handle("/", router)
 
 	http.ListenAndServe(":8080", nil)

@@ -16,6 +16,7 @@ type RegisteredPrayer struct {
 	MosqueAddress string `bson:"MosqueAddress"`
 	Date          string `bson:"Date"`
 	PrayerName    string `bson:"PrayerName"`
+	RpId          string `bson:"RpId"`
 	DateIndex     int    `bson:"DateIndex"`
 	PrayerIndex   int    `bson:"PrayerIndex"`
 }
