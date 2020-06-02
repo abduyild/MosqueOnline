@@ -38,6 +38,7 @@ type choose struct {
 	PrayerName string
 }
 
+// Struct for easy handling the htm,l template generation on the index page
 type TempPrayer struct {
 	Name     model.PrayerName
 	Capacity int
@@ -51,61 +52,6 @@ var cookieHandler = securecookie.New(
 	securecookie.GenerateRandomKey(64),
 	securecookie.GenerateRandomKey(32))
 
-// Handler for Login Page used with GET, shows login page
-func LoginPageHandler(response http.ResponseWriter, request *http.Request) {
-	var body, _ = helpers.LoadFile("templates/login.html")
-	fmt.Fprintf(response, body)
-}
-
-// Handler for Login Page used with POST by submitting Loginform
-func LoginHandler(response http.ResponseWriter, request *http.Request) {
-	email := request.FormValue("email")
-	phone := request.FormValue("phone")
-	// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
-	redirectTarget := "/"
-	if !helpers.IsEmpty(email) && !helpers.IsEmpty(phone) {
-		// Returns Table
-		collection, err := repos.GetDBCollection(0)
-
-		// if there was no error getting the table, te program does these operations
-		if err != nil {
-			http.Redirect(response, request, "/register", 302)
-		}
-		var user model.User
-		// Checking if typed in Username exists, if not redirect to register page
-		err = collection.FindOne(context.TODO(), bson.D{{"Phone", phone}}).Decode(&user)
-		// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
-		if err != nil {
-			http.Redirect(response, request, "/register", 302)
-		}
-		// Checking if typed in password is equivalent to the password typed in registry process, if not redirect to faultpage
-		/* Use encryption if you want
-		err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass
-
-		if err != nil {
-			http.Redirect(response, request, "/register", 302)
-		}
-		*/
-
-		if user.Email != email {
-			http.Redirect(response, request, "/register", 302)
-		}
-
-		userCredentials, err := bcrypt.GenerateFromPassword([]byte(email+phone), 14)
-		cookie := email + "?" + phone + "&" + string(userCredentials)
-		SetCookie(cookie, response)
-		// If the admin tries to login, change the redirect to the Adminpage
-		if email == "steveJobs@apple.de" {
-			redirectTarget = "/appleHeadquarter"
-			// Else redirect to the normal indexpage
-		} else {
-			redirectTarget = "/index"
-		}
-	}
-	// function for redirecting
-	http.Redirect(response, request, redirectTarget, 302)
-}
-
 // Function for handling the Webpage call with GET
 func RegisterPageHandler(response http.ResponseWriter, request *http.Request) {
 	var body, _ = helpers.LoadFile("templates/register.html")
@@ -115,10 +61,7 @@ func RegisterPageHandler(response http.ResponseWriter, request *http.Request) {
 // Function for handling the register action submitted by user
 func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	collection, err := repos.GetDBCollection(0)
-	if err != nil {
-		fmt.Fprintf(response, "There was an error")
-		return
-	}
+	check(response, request, err)
 	request.ParseForm()
 
 	// Get data the User typen into the fields
@@ -137,18 +80,16 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	// Check if fields are not empty
 	if _firstName && _lastName && _email && _phone {
 		// Look if the entered Username is already used
-		user := collection.FindOne(context.TODO(), bson.D{{"Phone", phone}})
+		err := collection.FindOne(context.TODO(), bson.D{{"Phone", phone}})
 		// If not found (throws exception/error) then we can proceed
-		if user.Err() != nil {
+		if err != nil {
 			// Generate the hashed password with 14 as salt
 
 			//use hash if you want
 			//hash, err := bcrypt.GenerateFromPassword([]byte(phone), 14)
 
 			// If there was an error generating the hash dont proceed
-			if err != nil {
-				return
-			}
+
 			// define a User model with typed first and last name, email and phone
 
 			//usr := model.User{firstName, email, string(hash)}
@@ -166,11 +107,71 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+// Handler for Login Page used with POST by submitting Loginform
+func LoginHandler(response http.ResponseWriter, request *http.Request) {
+	request.ParseForm()
+	if len(request.PostForm) > 0 {
+		email := request.FormValue("email")
+		phone := request.FormValue("phone")
+		// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
+		redirectTarget := "/"
+		if len(email) != 0 && len(phone) != 0 {
+			// Returns Table
+			collection, err := repos.GetDBCollection(0)
+
+			// if there was no error getting the table, te program does these operations
+			if err != nil {
+				http.Redirect(response, request, "/register", 302)
+			}
+			var user model.User
+			// Checking if typed in Username exists, if not redirect to register page
+			err = collection.FindOne(context.TODO(), bson.D{{"Phone", phone}}).Decode(&user)
+			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
+			if err != nil {
+				http.Redirect(response, request, "/register", 302)
+			}
+			// Checking if typed in password is equivalent to the password typed in registry process, if not redirect to faultpage
+			/* Use encryption if you want
+			err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass
+
+			if check(err) {
+				http.Redirect(response, request, "/register", 302)
+			}
+			*/
+
+			if user.Email != email {
+				http.Redirect(response, request, "/register", 302)
+			}
+
+			userCredentials, err := bcrypt.GenerateFromPassword([]byte(email+phone), 14)
+			cookie := email + "?" + phone + "&" + string(userCredentials)
+			SetCookie(cookie, response)
+			// If the admin tries to login, change the redirect to the Adminpage
+			if email == "steveJobs@apple.de" {
+				redirectTarget = "/appleHeadquarter"
+				// Else redirect to the normal indexpage
+			} else {
+				redirectTarget = "/"
+			}
+		}
+		// function for redirecting
+		http.Redirect(response, request, redirectTarget, 302)
+	} else {
+		t, _ := template.ParseFiles("templates/login.html")
+		t.Execute(response, nil)
+	}
+}
+
 // Function for Handling the Pagecall of the Indexpage
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
-	user := GetUserAsUser(request)
-	t, _ := template.ParseFiles("templates/index.html")
-	t.Execute(response, user)
+	user, err := GetUserAsUser(response, request)
+	if err != nil {
+		http.Redirect(response, request, "/login", 302)
+		reset()
+	} else {
+		t, _ := template.ParseFiles("templates/index.html")
+		t.Execute(response, user)
+	}
 }
 
 // Function for handling the call to logout, simply deletes the cookie associated with the session and redirects to loginpage
@@ -186,10 +187,7 @@ func Choosen(response http.ResponseWriter, request *http.Request) {
 		bson.D{
 			{"Name", mosque},
 		}).Decode(&choosenMosque)
-	if err != nil {
-		fmt.Fprintf(response, "Your Mosque couldn't be found: "+err.Error())
-		return
-	}
+	check(response, request, err)
 	t, _ := template.ParseFiles("templates/chooseDate.html")
 	t.Execute(response, choosenMosque)
 	//http.Redirect(response, request, "/chooseDate", 302)
@@ -199,17 +197,12 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 	mosque := request.URL.Query().Get("mosque")
 	if !choo.SetMosque {
 		dataBase, err := repos.GetDBCollection(1)
-		if err != nil {
-			fmt.Println(response, "error")
-			return
-		}
+		check(response, request, err)
 		cur, _ := dataBase.Find(context.TODO(), bson.D{})
 		for cur.Next(context.TODO()) {
 			var mosque model.Mosque
-			erro := cur.Decode(&mosque)
-			if erro != nil {
-				fmt.Println("Error:", erro.Error())
-			}
+			err = cur.Decode(&mosque)
+			check(response, request, err)
 			choo.Mosques = append(choo.Mosques, mosque)
 		}
 		t, _ := template.ParseFiles("templates/choose.html")
@@ -217,12 +210,17 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 		choo.SetMosque = true
 	} else {
 		choo.Name = mosque
-		for _, mosq := range choo.Mosques {
-			if mosq.Name == mosque {
-				choosenMosque = mosq
-				t, _ := template.ParseFiles("templates/chooseDate.html")
-				t.Execute(response, choo)
+		if len(choo.Mosques) > 0 && choo.Name != "" {
+			for _, mosq := range choo.Mosques {
+				if mosq.Name == mosque {
+					choosenMosque = mosq
+					t, _ := template.ParseFiles("templates/chooseDate.html")
+					t.Execute(response, choo)
+				}
 			}
+		} else {
+			reset()
+			Choose(response, request)
 		}
 	}
 }
@@ -239,10 +237,14 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 	}
 	cap := 0
 	male := true
-	if GetUserAsUser(request).Sex == "Women" {
+	user, err := GetUserAsUser(response, request)
+	if err != nil {
+		http.Redirect(response, request, "/login", 302)
+		reset()
+	}
+	if user.Sex == "Women" {
 		male = false
 	}
-
 	for _, prayer := range choosenMosque.Date[index].Prayer {
 		if male {
 			cap = prayer.CapacityMen
@@ -259,6 +261,7 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 	choo.SetDate = true
 }
 
+// TODO: test invalid prayer as query
 func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
 	prayer, _ := strconv.Atoi(request.URL.Query().Get("prayer"))
 	choo.SetPrayer = prayer != 0
@@ -310,17 +313,18 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 		case "Bayram":
 			prayer = 7
 		}
-		user := GetUserAsUser(request)
+		user, err := GetUserAsUser(response, request)
+		if err != nil {
+			http.Redirect(response, request, "/login", 302)
+			return
+		}
 		registered := model.RegisteredPrayer{}
 		var mosque model.Mosque
-		err := collection.FindOne(context.TODO(),
+		err = collection.FindOne(context.TODO(),
 			bson.D{
 				{"Name", choosenMosque.Name},
 			}).Decode(&mosque)
-		if err != nil {
-			fmt.Fprintf(response, "Your Mosque couldn't be found")
-			return
-		}
+		check(response, request, err)
 		registered.PrayerName = choo.PrayerName
 		registered.PrayerIndex = prayer
 		registered.MosqueName = mosque.Name
@@ -357,17 +361,20 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 				bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
 			user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
 			collection, _ = repos.GetDBCollection(0)
+			phone, err := GetPhoneFromCookie(request)
+			check(response, request, err)
 			collection.UpdateOne(context.TODO(),
-				bson.M{"Phone": GetPhoneFromCookie(request)}, bson.M{
+				bson.M{"Phone": phone}, bson.M{
 					"$push": bson.M{"RegisteredPrayers": registered}})
 			choo = *new(choose)
-			http.Redirect(response, request, "/index", 302)
+			http.Redirect(response, request, "/", 302)
 		} else {
-			fmt.Fprintf(response, "You are already Signed in for this prayer")
+			PrintError(response, request, errors.New("You are already Signed in for this prayer"))
 		}
 	} else {
 		//TODO delete all temp files method
-		http.Redirect(response, request, "/index", 302)
+		reset()
+		http.Redirect(response, request, "/", 302)
 	}
 }
 
@@ -377,18 +384,21 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 	prayer := request.FormValue("prayer")
 	phone := request.FormValue("phone")
 	prayerN, err := strconv.Atoi(prayer)
-	if err != nil {
-		fmt.Fprintf(response, err.Error())
-	}
+	check(response, request, err)
 	prayer1 := strconv.Itoa(prayerN - 1)
 	collection, _ := repos.GetDBCollection(1)
 	collection.UpdateOne(context.TODO(),
 		bson.M{"Name": name},
 		bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": phone}}})
+	user, err := GetUserAsUser(response, request)
+	if err != nil {
+		http.Redirect(response, request, "/login", 302)
+		return
+	}
 	collection.UpdateOne(context.TODO(),
 		bson.M{"Name": name},
 		bson.D{{"$inc", bson.D{
-			{"Date." + date + ".Prayer." + prayer1 + ".Capacity" + GetUserAsUser(request).Sex, 1},
+			{"Date." + date + ".Prayer." + prayer1 + ".Capacity" + user.Sex, 1},
 		},
 		}})
 	collection, _ = repos.GetDBCollection(0)
@@ -396,137 +406,12 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 	filter := bson.D{{Key: "Phone", Value: phone}}
 	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
 	collection.UpdateOne(context.TODO(), filter, update)
-	http.Redirect(response, request, "/index", 302)
+	http.Redirect(response, request, "/", 302)
 }
-
-func ChooseMosque(response http.ResponseWriter, request *http.Request) Mosques {
-	var mosq Mosques
-	dataBase, err := repos.GetDBCollection(1)
-	if err != nil {
-		http.Redirect(response, request, "/404", 302)
-	}
-	cur, _ := dataBase.Find(context.TODO(), bson.D{})
-	for cur.Next(context.TODO()) {
-		var mosque Mosque
-		cur.Decode(&mosque)
-		mosq.Mosques = append(mosq.Mosques, mosque)
-	}
-	return mosq
-}
-
-/*
-// Function for Handling the Submitforms
-func SubmitHandler(response http.ResponseWriter, request *http.Request) {
-	request.ParseForm()
-	userFlag := request.FormValue("user")
-	rootFlag := request.FormValue("root")
-
-	user, err := GetUser(request)
-	if err != nil {
-		fmt.Fprintln(response, err)
-		return
-	}
-	group := GetPhone(user)
-	machine := request.URL.Query().Get("machine")
-	m, _ := strconv.Atoi(machine)
-
-	collection, err := repos.GetDBCollection(1)
-	var groupItem Group
-	var machines []Machine
-
-	if userFlag != "" && CheckInput(userFlag) {
-		// Search for the group in the Table with the groupID equivalent to the users groupID and decode it
-		err := collection.FindOne(context.TODO(),
-			bson.D{
-				{"ID", group},
-			}).Decode(&groupItem)
-		if err != nil {
-			fmt.Fprintf(response, "Your Group couldn't be found")
-			return
-		}
-		machines = groupItem.Machines
-		if machines[m].SolvedUser {
-			fmt.Fprintf(response, "UserFlag already submitted")
-			return
-		}
-		if machines[m].UserFlag != userFlag {
-			fmt.Fprintf(response, "Wrong flag")
-			return
-		}
-		// Update entry by changing the flag for a solved Userflag and add 500 Points to the groups points
-		collection.UpdateOne(context.TODO(),
-			bson.D{
-				{"ID", group},
-			},
-			bson.D{
-				{"$set", bson.D{
-					{"Machines." + machine + ".SolvedUser", true},
-					{"Points", groupItem.Points + 500},
-				}},
-			})
-	} else if userFlag!= "" && !CheckInput(userFlag) {
-		fmt.Fprintf(response, "Invalid Characters found")
-	}
-
-	if rootFlag != ""  && CheckInput(rootFlag) {
-		err := collection.FindOne(context.TODO(),
-			bson.D{
-				{"ID", group},
-			}).Decode(&groupItem)
-		if err != nil {
-			fmt.Fprintf(response, "Your Group couldn't be found")
-			return
-		}
-		machines = groupItem.Machines
-		if machines[m].SolvedRoot {
-			fmt.Fprintf(response, "RootFlag already submitted")
-			return
-		}
-		if machines[m].RootFlag != rootFlag {
-			fmt.Fprintf(response, "Wrong flag")
-			return
-		}
-		collection.UpdateOne(context.TODO(),
-			bson.D{
-				{"ID", group},
-			},
-			bson.D{
-				{"$set", bson.D{
-					{"Machines." + machine + ".SolvedRoot", true},
-					{"Points", groupItem.Points + 1500},
-				}},
-			})
-	} else if rootFlag!= "" && !CheckInput(rootFlag) {
-		fmt.Fprintf(response, "Invalid Characters found")
-	}
-	http.Redirect(response, request, "/index", 302)
-}
-
-func SteveJobsHandler(response http.ResponseWriter, request *http.Request) {
-	var groups []Group
-	dataBase, err := repos.GetDBCollection(1)
-	if err != nil {
-		fmt.Println(response, "error")
-		return
-	}
-
-	cur, _ := dataBase.Find(context.TODO(), bson.D{})
-	// Iterate through whole Collection and append the Array consisting of Groups
-	for cur.Next(context.TODO()) {
-		var group Group
-		cur.Decode(&group)
-		groups = append(groups, group)
-	}
-
-	t, _ := template.ParseFiles("templates/appleHeadquarter.gohtml")
-	t.Execute(response, groups)
-}*/
 
 func Add(response http.ResponseWriter, request *http.Request) {
 	t, err := template.ParseFiles("templates/addMosque.html")
-	if err != nil {
-		fmt.Println(err)
-	}
+	check(response, request, err)
 	t.Execute(response, nil)
 }
 
@@ -541,10 +426,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 	cap_w, _ := strconv.Atoi(request.FormValue("cap-w"))
 
 	collection, err := repos.GetDBCollection(1)
-	if err != nil {
-		fmt.Println(response, "error getting DataBase")
-		return
-	}
+	check(response, request, err)
 	var date model.Date
 	var dates []model.Date
 	var prayer model.Prayer
@@ -572,7 +454,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 
 	collection.InsertOne(context.TODO(), mosque)
 
-	//http.Redirect(response, request, "/", 302) // redirect back to Adminpage
+	http.Redirect(response, request, "/add", 302) // redirect back to Adminpage
 }
 
 // Function for setting the Cookie
@@ -596,14 +478,7 @@ func ClearCookie(response http.ResponseWriter) {
 	http.SetCookie(response, cookie)
 }
 
-// Function for getting the groupID from the Cookie (cookievalue as String)
-func GetPhone(user string) string {
-	groupA := strings.Split(user, "?")[1]  // String after "?"
-	phone := strings.Split(groupA, "&")[0] // String before "&"
-
-	return phone
-}
-
+// TODO: Filter braces, sql commands etc.
 func CheckInput(input string) bool {
 	if match, _ := regexp.MatchString(`\w+`, input); match == true {
 		return true
@@ -611,10 +486,12 @@ func CheckInput(input string) bool {
 	return false
 }
 
-func GetUser(request *http.Request) (string, error) {
-	user := ""
+func GetPhoneFromCookie(request *http.Request) (string, error) {
+	phone := ""
 	// Check if there is an active Cookie
-	if cookie, err := request.Cookie("cookie"); err == nil {
+	cookie, err := request.Cookie("cookie")
+	match, _ := regexp.MatchString("[^s]+?[^s]+&[^s]+", cookie.Value)
+	if err == nil && match {
 		cookieValue := cookie.Value
 		cookieVal := strings.Split(cookieValue, "&")[0]
 		values := strings.Split(cookieVal, "?")
@@ -623,26 +500,38 @@ func GetUser(request *http.Request) (string, error) {
 		if err != nil {
 			return "", errors.New("Wrong or Modified Cookie")
 		}
-		user = cookieValue
+		phone = values[1]
 	}
-	return user, nil
+	return phone, nil
 }
 
-func GetPhoneFromCookie(request *http.Request) string {
-	phone := ""
-	// Check if there is an active Cookie
-	if cookie, err := request.Cookie("cookie"); err == nil {
-		cookieValue := cookie.Value
-		cookieVal := strings.Split(cookieValue, "&")[0]
-		phone = strings.Split(cookieVal, "?")[1]
-	}
-	return phone
-}
-
-func GetUserAsUser(request *http.Request) model.User {
+func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.User, error) {
 	var user model.User
-	phone := GetPhoneFromCookie(request)
-	collection, _ := repos.GetDBCollection(0)
-	collection.FindOne(context.TODO(), bson.M{"Phone": phone}).Decode(&user)
-	return user
+	phone, err := GetPhoneFromCookie(request)
+	check(response, request, err)
+	collection, err := repos.GetDBCollection(0)
+	check(response, request, err)
+	err = collection.FindOne(context.TODO(), bson.M{"Phone": phone}).Decode(&user)
+	return user, err
+}
+
+func check(response http.ResponseWriter, request *http.Request, err error) {
+	if err != nil {
+		PrintError(response, request, err)
+	}
+}
+
+// TODO: switch with error messages because of mongo etc.
+func PrintError(response http.ResponseWriter, request *http.Request, err error) {
+	t, _ := template.ParseFiles("templates/errorpage.html")
+	if strings.Contains(err.Error(), "<") {
+		err = errors.New(strings.Split(err.Error(), "<")[0])
+	}
+	t.Execute(response, err)
+	reset()
+}
+
+func reset() {
+	choo = *new(choose)
+	choosenMosque = *new(model.Mosque)
 }

@@ -17,10 +17,10 @@
   </script>
 </head>
 
-<div class="person">
-  <p>{{.FirstName}} {{.LastName}}</p>
-  <p>{{.Email}}</p>
-  <p>{{.Phone}}</p><br>
+<div class="mosque">
+  <h1>{{Name}}</h1>
+  <p>{{.Street}}</p><br>
+  <p>{{.PLZ}}, {.City}}</p><br>
 </div>
 
 <button onclick="window.location.href = '/chooseMosque';">Namazlara Kayit ol</button>
@@ -29,13 +29,10 @@
 {{$phone := .Phone}}
 {{range .RegisteredPrayers}}
 <div class="prayer">
-  <p>{{.MosqueName}}</p>
-  <p>{{.MosqueAddress}}</p>
-  <p>{{.Date}}</p>
-  <p>Secilen Namaz | Ausgewähltes Gebet: {{.PrayerName}}</p>
-  <form method="post" id="deleteForm" onsubmit="return confirm('Silmeyi onayliyormusunuz? | Bestätigen Sie die Abmeldung?');" action="/signOut?name={{.MosqueName}}&date={{.DateIndex}}&prayer={{.PrayerIndex}}&phone={{$phone}}">
-    <input type="submit" class="button" value="Sil | Abmelden"></input>
-    <br>
+  <form method="post" action="/chooseDate">
+    Anmeldungen für ein Datum einsehen:
+    <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input>
+    <input type="submit" value="submit">
   </form>
 </div>
 
