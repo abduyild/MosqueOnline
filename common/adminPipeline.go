@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"html/template"
 	"net/http"
 	"pi-software/model"
@@ -20,14 +21,12 @@ type AdminPipeline struct {
 
 func AdminHandler(response http.ResponseWriter, request *http.Request) {
 	adminPipe := AdminPipeline{false, false, true, false, getMosques(response, request)}
-	//rpId := mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
 	t, _ := template.ParseFiles("templates/admin.html")
 	t.Execute(response, adminPipe)
 }
 
 func Add(response http.ResponseWriter, request *http.Request) {
-	t, err := template.ParseFiles("templates/addMosque.html")
-	check(response, request, err)
+	t, _ := template.ParseFiles("templates/addMosque.html")
 	t.Execute(response, nil)
 }
 
@@ -44,7 +43,11 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 		cap_w, _ := strconv.Atoi(request.FormValue("cap-w"))
 
 		collection, err := repos.GetDBCollection(1)
-		check(response, request, err)
+		t := check(response, request, err)
+		if t != nil {
+			t.Execute(response, errors.New(dbConnectionError))
+			return
+		}
 		var date model.Date
 		var dates []model.Date
 		var prayer model.Prayer
@@ -74,9 +77,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 
 		http.Redirect(response, request, "/add", 302) // redirect back to Adminpage
 	} else {
-
-		t, err := template.ParseFiles("templates/addMosque.html")
-		check(response, request, err)
+		t, _ := template.ParseFiles("templates/addMosque.html")
 		t.Execute(response, nil)
 	}
 }
