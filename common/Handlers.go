@@ -19,6 +19,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	dbConnectionError = "Error connecting to Database"
+)
+
 type Mosque model.Mosque
 
 type mosques []model.Mosque
@@ -61,7 +65,11 @@ func RegisterPageHandler(response http.ResponseWriter, request *http.Request) {
 // Function for handling the register action submitted by user
 func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	collection, err := repos.GetDBCollection(0)
-	check(response, request, err)
+	t := check(response, request, err)
+	if t != nil {
+		t.Execute(response, errors.New(dbConnectionError))
+		return
+	}
 	request.ParseForm()
 
 	// Get data the User typen into the fields
@@ -226,11 +234,19 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 func DeleteMosque(response http.ResponseWriter, request *http.Request) {
 	mosque := request.URL.Query().Get("mosque")
 	collection, err := repos.GetDBCollection(1)
-	check(response, request, err)
+	t := check(response, request, err)
+	if t != nil {
+		t.Execute(response, errors.New(dbConnectionError))
+		return
+	}
 	collection.DeleteOne(context.TODO(), bson.M{"Name": mosque})
 
 	collection, err = repos.GetDBCollection(0)
-	check(response, request, err)
+	t = check(response, request, err)
+	if t != nil {
+		t.Execute(response, errors.New(dbConnectionError))
+		return
+	}
 	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "MosqueName", Value: mosque}}}}}}
 	collection.UpdateMany(context.TODO(), bson.D{{}}, update)
 
@@ -241,7 +257,6 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 	t.Execute(response, nil)
 }
 
-// Function for Handling the Pagecall of the Indexpage
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		user, err := GetUserAsUser(response, request)
@@ -254,10 +269,10 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		http.Redirect(response, request, "/login", 401)
+		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
 
-// Function for handling the call to logout, simply deletes the cookie associated with the session and redirects to loginpage
 func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 	ClearCookie(response)
 	http.Redirect(response, request, "/", 302)
@@ -266,11 +281,10 @@ func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 func Choosen(response http.ResponseWriter, request *http.Request) {
 	mosque := request.URL.Query().Get("mosque")
 	collection, _ := repos.GetDBCollection(1)
-	err := collection.FindOne(context.TODO(),
+	collection.FindOne(context.TODO(),
 		bson.D{
 			{"Name", mosque},
 		}).Decode(&choosenMosque)
-	check(response, request, err)
 	t, _ := template.ParseFiles("templates/chooseDate.html")
 	t.Execute(response, choosenMosque)
 	//http.Redirect(response, request, "/chooseDate", 302)
@@ -281,15 +295,18 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 		mosque := request.URL.Query().Get("mosque")
 		if !choo.SetMosque {
 			dataBase, err := repos.GetDBCollection(1)
-			check(response, request, err)
+			t := check(response, request, err)
+			if t != nil {
+				t.Execute(response, errors.New(dbConnectionError))
+				return
+			}
 			cur, _ := dataBase.Find(context.TODO(), bson.D{})
 			for cur.Next(context.TODO()) {
 				var mosque model.Mosque
-				err = cur.Decode(&mosque)
-				check(response, request, err)
+				cur.Decode(&mosque)
 				choo.Mosques = append(choo.Mosques, mosque)
 			}
-			t, _ := template.ParseFiles("templates/choose.html")
+			t, _ = template.ParseFiles("templates/choose.html")
 			t.Execute(response, choo)
 			choo.SetMosque = true
 		} else {
@@ -300,6 +317,7 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 						choosenMosque = mosq
 						t, _ := template.ParseFiles("templates/chooseDate.html")
 						t.Execute(response, choo)
+						return
 					}
 				}
 			} else {
@@ -315,12 +333,15 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 func getMosques(response http.ResponseWriter, request *http.Request) mosques {
 	mosquess := []model.Mosque{}
 	dataBase, err := repos.GetDBCollection(1)
-	check(response, request, err)
+	t := check(response, request, err)
+	if t != nil {
+		t.Execute(response, errors.New(dbConnectionError))
+		return nil
+	}
 	cur, _ := dataBase.Find(context.TODO(), bson.D{})
 	for cur.Next(context.TODO()) {
 		var mosque model.Mosque
-		err = cur.Decode(&mosque)
-		check(response, request, err)
+		cur.Decode(&mosque)
 		mosquess = append(mosquess, mosque)
 	}
 	return mosquess
@@ -329,12 +350,15 @@ func getMosques(response http.ResponseWriter, request *http.Request) mosques {
 func getUsers(response http.ResponseWriter, request *http.Request) users {
 	users := []model.User{}
 	dataBase, err := repos.GetDBCollection(0)
-	check(response, request, err)
+	t := check(response, request, err)
+	if t != nil {
+		t.Execute(response, errors.New(dbConnectionError))
+		return nil
+	}
 	cur, _ := dataBase.Find(context.TODO(), bson.D{})
 	for cur.Next(context.TODO()) {
 		var user model.User
-		err = cur.Decode(&user)
-		check(response, request, err)
+		cur.Decode(&user)
 		users = append(users, user)
 	}
 	return users
@@ -444,11 +468,10 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			}
 			registered := model.RegisteredPrayer{}
 			var mosque model.Mosque
-			err = collection.FindOne(context.TODO(),
+			collection.FindOne(context.TODO(),
 				bson.D{
 					{"Name", choosenMosque.Name},
 				}).Decode(&mosque)
-			check(response, request, err)
 			registered.PrayerName = choo.PrayerName
 			registered.PrayerIndex = prayer
 			registered.MosqueName = mosque.Name
@@ -466,7 +489,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			err1 := collection.FindOne(context.TODO(), bson.D{
 				{"Phone", user.Phone},
 				{"RegisteredPrayers.RpId", registered.RpId}})
-			if err1.Err() != nil {
+			if err1 != nil {
 				collection, _ = repos.GetDBCollection(1)
 				registered.DateIndex = index
 				_, error := collection.UpdateOne(context.TODO(),
@@ -484,16 +507,27 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 				collection.UpdateOne(context.TODO(),
 					bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
 				user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
-				collection, _ = repos.GetDBCollection(0)
+				collection, err = repos.GetDBCollection(0)
+				t := check(response, request, err)
+				if t != nil {
+					t.Execute(response, errors.New(dbConnectionError))
+					return
+				}
 				phone, err := GetPhoneFromCookie(request)
-				check(response, request, err)
+				t = check(response, request, err)
+				if t != nil {
+					t.Execute(response, errors.New(err.Error()))
+					return
+				}
 				collection.UpdateOne(context.TODO(),
 					bson.M{"Phone": phone}, bson.M{
 						"$push": bson.M{"RegisteredPrayers": registered}})
 				choo = *new(choose)
 				http.Redirect(response, request, "/", 302)
 			} else {
-				PrintError(response, request, errors.New("You are already Signed in for this prayer"))
+				t, _ := template.ParseFiles("templates/errorpage.html")
+				err = errors.New("Bu namaz icin gecerli bir kayidiniz bulunmakta! Sie besitzen bereits eine gültige Anmeldung für dieses Gebet")
+				t.Execute(response, err)
 			}
 		} else {
 			//TODO delete all temp files method
@@ -512,7 +546,11 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		prayer := request.FormValue("prayer")
 		phone := request.FormValue("phone")
 		prayerN, err := strconv.Atoi(prayer)
-		check(response, request, err)
+		t := check(response, request, err)
+		if t != nil {
+			t.Execute(response, errors.New("Wrong Input format"))
+			return
+		}
 		prayer1 := strconv.Itoa(prayerN - 1)
 		collection, _ := repos.GetDBCollection(1)
 		collection.UpdateOne(context.TODO(),
@@ -596,34 +634,36 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.User, error) {
 	var user model.User
 	phone, err := GetPhoneFromCookie(request)
-	check(response, request, err)
+	t := check(response, request, err)
+	if t != nil {
+		return user, errors.New(err.Error())
+	}
 	collection, err := repos.GetDBCollection(0)
-	check(response, request, err)
+	t = check(response, request, err)
+	if t != nil {
+		return user, errors.New(dbConnectionError)
+	}
 	err = collection.FindOne(context.TODO(), bson.M{"Phone": phone}).Decode(&user)
 	return user, err
 }
 
-func check(response http.ResponseWriter, request *http.Request, err error) {
+func check(response http.ResponseWriter, request *http.Request, err error) *template.Template {
+	fmt.Println(err.Error())
 	if err != nil {
-		PrintError(response, request, err)
+		t, _ := template.ParseFiles("templates/errorpage.html")
+		reset()
+		return t
 	}
-}
-
-// TODO: switch with error messages because of mongo etc.
-func PrintError(response http.ResponseWriter, request *http.Request, err error) {
-	t, _ := template.ParseFiles("templates/errorpage.html")
-	if strings.Contains(err.Error(), "<") {
-		err = errors.New(strings.Split(err.Error(), "<")[0])
-	}
-	t.Execute(response, err)
-	reset()
+	return nil
 }
 
 // check every method with this
 func loggedin(response http.ResponseWriter, request *http.Request) bool {
 	if _, err := GetPhoneFromCookie(request); err != nil {
+		fmt.Println("oups")
 		return false
 	}
+	fmt.Println("yey")
 	return true
 }
 
