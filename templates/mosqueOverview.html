@@ -17,23 +17,13 @@
   </script>
 </head>
 
-<div class="mosque">
-  <h1>{{Name}}</h1>
-  <p>{{.Street}}</p><br>
-  <p>{{.PLZ}}, {.City}}</p><br>
-</div>
 
-<button onclick="window.location.href = '/chooseMosque';">Namazlara Kayit ol</button>
-<h2>Kayitli Namazlar | Angemeldete Gebete</h2>
-
-{{$phone := .Phone}}
-{{range .RegisteredPrayers}}
-<div class="prayer">
-  <form method="post" action="/chooseDate">
-    Anmeldungen für ein Datum einsehen:
-    <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input>
-    <input type="submit" value="submit">
-  </form>
-</div>
-
-{{end}}
+{{- if .EditPrayers -}}
+  {{- template "editprayers.gohtml" . -}}
+{{- else if .EditCapacity -}}
+  {{- template "editcapacity.gohtml" . -}}
+{{- else if .GetRegistrations -}}
+  {{- template "getregistrations.gohtml" . -}}
+{{- else if .GetDate -}}
+  {{- template "getdate.gohtml" . -}}
+{{- end -}}

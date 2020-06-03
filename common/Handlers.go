@@ -21,9 +21,9 @@ import (
 
 type Mosque model.Mosque
 
-type Mosques struct {
-	Mosques []Mosque
-}
+type mosques []model.Mosque
+
+type users []model.User
 
 type choose struct {
 	Name       string
@@ -111,6 +111,10 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 func LoginHandler(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	if len(request.PostForm) > 0 {
+		if request.FormValue("type") == "admin" {
+			adminLogin(response, request)
+			return
+		}
 		email := request.FormValue("email")
 		phone := request.FormValue("phone")
 		// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
@@ -162,15 +166,94 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func adminLogin(response http.ResponseWriter, request *http.Request) {
+	request.ParseForm()
+	if len(request.PostForm) > 0 {
+		email := request.FormValue("email")
+		password := request.FormValue("password")
+		// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
+		redirectTarget := "/"
+		if len(email) != 0 && len(password) != 0 {
+			// Returns Table
+			collection, err := repos.GetDBCollection(2)
+
+			// if there was no error getting the table, te program does these operations
+			if err != nil {
+				http.Redirect(response, request, "/register", 302)
+			}
+			var admin model.Admin
+			// Checking if typed in Username exists, if not redirect to register page
+			err = collection.FindOne(context.TODO(), bson.D{{Key: "Email", Value: email}}).Decode(&admin)
+			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
+			if err != nil {
+				http.Redirect(response, request, "/register", 302)
+			}
+
+			err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password))
+
+			if err != nil {
+				http.Redirect(response, request, "/register", 302)
+			}
+
+			if admin.Email != email {
+				http.Redirect(response, request, "/register", 302)
+			}
+			name := admin.Name
+			userCredentials, err := bcrypt.GenerateFromPassword([]byte(email+name), 14)
+			cookie := email + "?" + name + "&" + string(userCredentials)
+			SetCookie(cookie, response)
+			// If the admin tries to login, change the redirect to the Adminpage
+			if admin.Admin {
+				redirectTarget = "/admin"
+				// Else redirect to the normal indexpage
+			} else {
+				redirectTarget = "/mosqueoverview"
+			}
+			// function for redirecting
+			http.Redirect(response, request, redirectTarget, 302)
+		} else {
+			t, _ := template.ParseFiles("templates/login.html")
+			t.Execute(response, nil)
+		}
+		// function for redirecting
+		http.Redirect(response, request, redirectTarget, 302)
+	} else {
+		t, _ := template.ParseFiles("templates/login.html")
+		t.Execute(response, nil)
+	}
+}
+
+func DeleteMosque(response http.ResponseWriter, request *http.Request) {
+	mosque := request.URL.Query().Get("mosque")
+	collection, err := repos.GetDBCollection(1)
+	check(response, request, err)
+	collection.DeleteOne(context.TODO(), bson.M{"Name": mosque})
+
+	collection, err = repos.GetDBCollection(0)
+	check(response, request, err)
+	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "MosqueName", Value: mosque}}}}}}
+	collection.UpdateMany(context.TODO(), bson.D{{}}, update)
+
+}
+
+func MosqueHandler(response http.ResponseWriter, request *http.Request) {
+	t, _ := template.ParseFiles("templates/mosqueOverview.html")
+	t.Execute(response, nil)
+}
+
 // Function for Handling the Pagecall of the Indexpage
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
-	user, err := GetUserAsUser(response, request)
-	if err != nil {
-		http.Redirect(response, request, "/login", 302)
-		reset()
+	if loggedin(response, request) {
+		user, err := GetUserAsUser(response, request)
+		if err != nil {
+			http.Redirect(response, request, "/login", 302)
+			reset()
+		} else {
+			t, _ := template.ParseFiles("templates/index.html")
+			t.Execute(response, user)
+		}
 	} else {
-		t, _ := template.ParseFiles("templates/index.html")
-		t.Execute(response, user)
+		http.Redirect(response, request, "/login", 401)
 	}
 }
 
@@ -194,267 +277,267 @@ func Choosen(response http.ResponseWriter, request *http.Request) {
 }
 
 func Choose(response http.ResponseWriter, request *http.Request) {
-	mosque := request.URL.Query().Get("mosque")
-	if !choo.SetMosque {
-		dataBase, err := repos.GetDBCollection(1)
-		check(response, request, err)
-		cur, _ := dataBase.Find(context.TODO(), bson.D{})
-		for cur.Next(context.TODO()) {
-			var mosque model.Mosque
-			err = cur.Decode(&mosque)
+	if loggedin(response, request) {
+		mosque := request.URL.Query().Get("mosque")
+		if !choo.SetMosque {
+			dataBase, err := repos.GetDBCollection(1)
 			check(response, request, err)
-			choo.Mosques = append(choo.Mosques, mosque)
-		}
-		t, _ := template.ParseFiles("templates/choose.html")
-		t.Execute(response, choo)
-		choo.SetMosque = true
-	} else {
-		choo.Name = mosque
-		if len(choo.Mosques) > 0 && choo.Name != "" {
-			for _, mosq := range choo.Mosques {
-				if mosq.Name == mosque {
-					choosenMosque = mosq
-					t, _ := template.ParseFiles("templates/chooseDate.html")
-					t.Execute(response, choo)
-				}
+			cur, _ := dataBase.Find(context.TODO(), bson.D{})
+			for cur.Next(context.TODO()) {
+				var mosque model.Mosque
+				err = cur.Decode(&mosque)
+				check(response, request, err)
+				choo.Mosques = append(choo.Mosques, mosque)
 			}
+			t, _ := template.ParseFiles("templates/choose.html")
+			t.Execute(response, choo)
+			choo.SetMosque = true
 		} else {
-			reset()
-			Choose(response, request)
+			choo.Name = mosque
+			if len(choo.Mosques) > 0 && choo.Name != "" {
+				for _, mosq := range choo.Mosques {
+					if mosq.Name == mosque {
+						choosenMosque = mosq
+						t, _ := template.ParseFiles("templates/chooseDate.html")
+						t.Execute(response, choo)
+					}
+				}
+			} else {
+				reset()
+				Choose(response, request)
+			}
 		}
+	} else {
+		http.Redirect(response, request, "/login", 401)
 	}
 }
 
+func getMosques(response http.ResponseWriter, request *http.Request) mosques {
+	mosquess := []model.Mosque{}
+	dataBase, err := repos.GetDBCollection(1)
+	check(response, request, err)
+	cur, _ := dataBase.Find(context.TODO(), bson.D{})
+	for cur.Next(context.TODO()) {
+		var mosque model.Mosque
+		err = cur.Decode(&mosque)
+		check(response, request, err)
+		mosquess = append(mosquess, mosque)
+	}
+	return mosquess
+}
+
+func getUsers(response http.ResponseWriter, request *http.Request) users {
+	users := []model.User{}
+	dataBase, err := repos.GetDBCollection(0)
+	check(response, request, err)
+	cur, _ := dataBase.Find(context.TODO(), bson.D{})
+	for cur.Next(context.TODO()) {
+		var user model.User
+		err = cur.Decode(&user)
+		check(response, request, err)
+		users = append(users, user)
+	}
+	return users
+}
+
 func ChooseDate(response http.ResponseWriter, request *http.Request) {
-	date := request.PostFormValue("date")
-	index := 0
-	for i, dates := range choosenMosque.Date {
-		if date == strings.Split(dates.Date.String(), " ")[0] {
-			index = i
-			choo.Date.Date = dates.Date
-			break
+	if loggedin(response, request) {
+		date := request.PostFormValue("date")
+		index := 0
+		for i, dates := range choosenMosque.Date {
+			if date == strings.Split(dates.Date.String(), " ")[0] {
+				index = i
+				choo.Date.Date = dates.Date
+				break
+			}
 		}
-	}
-	cap := 0
-	male := true
-	user, err := GetUserAsUser(response, request)
-	if err != nil {
-		http.Redirect(response, request, "/login", 302)
-		reset()
-	}
-	if user.Sex == "Women" {
-		male = false
-	}
-	for _, prayer := range choosenMosque.Date[index].Prayer {
-		if male {
-			cap = prayer.CapacityMen
-		} else {
-			cap = prayer.CapacityWomen
+		cap := 0
+		male := true
+		user, err := GetUserAsUser(response, request)
+		if err != nil {
+			http.Redirect(response, request, "/login", 302)
+			reset()
 		}
-		pray := *new(TempPrayer)
-		pray.Name = prayer.Name
-		pray.Capacity = cap
-		choo.Prayer = append(choo.Prayer, pray)
+		if user.Sex == "Women" {
+			male = false
+		}
+		for _, prayer := range choosenMosque.Date[index].Prayer {
+			if male {
+				cap = prayer.CapacityMen
+			} else {
+				cap = prayer.CapacityWomen
+			}
+			pray := *new(TempPrayer)
+			pray.Name = prayer.Name
+			pray.Capacity = cap
+			choo.Prayer = append(choo.Prayer, pray)
+		}
+		t, _ := template.ParseFiles("templates/choosePrayer.html")
+		t.Execute(response, choo)
+		choo.SetDate = true
+	} else {
+		http.Redirect(response, request, "/login", 401)
 	}
-	t, _ := template.ParseFiles("templates/choosePrayer.html")
-	t.Execute(response, choo)
-	choo.SetDate = true
 }
 
 // TODO: test invalid prayer as query
 func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
-	prayer, _ := strconv.Atoi(request.URL.Query().Get("prayer"))
-	choo.SetPrayer = prayer != 0
-	for _, prayers := range choo.Prayer {
-		if int(prayers.Name) == prayer {
-			choo.SetPrayer = true
+	if loggedin(response, request) {
+		prayer, _ := strconv.Atoi(request.URL.Query().Get("prayer"))
+		choo.SetPrayer = prayer != 0
+		for _, prayers := range choo.Prayer {
+			if int(prayers.Name) == prayer {
+				choo.SetPrayer = true
+			}
 		}
-	}
-	if choo.SetPrayer {
-		switch prayer {
-		case 1:
-			choo.PrayerName = "Sabah"
-		case 2:
-			choo.PrayerName = "Ögle"
-		case 3:
-			choo.PrayerName = "Ikindi"
-		case 4:
-			choo.PrayerName = "Aksam"
-		case 5:
-			choo.PrayerName = "Yatsi"
-		case 6:
-			choo.PrayerName = "Cuma"
-		case 7:
-			choo.PrayerName = "Bayram"
+		if choo.SetPrayer {
+			switch prayer {
+			case 1:
+				choo.PrayerName = "Sabah"
+			case 2:
+				choo.PrayerName = "Ögle"
+			case 3:
+				choo.PrayerName = "Ikindi"
+			case 4:
+				choo.PrayerName = "Aksam"
+			case 5:
+				choo.PrayerName = "Yatsi"
+			case 6:
+				choo.PrayerName = "Cuma"
+			case 7:
+				choo.PrayerName = "Bayram"
+			}
 		}
+		choo.DateString = choo.Date.Date.Format(time.RFC3339)
+		t, _ := template.ParseFiles("templates/confirm.html")
+		t.Execute(response, choo)
+	} else {
+		http.Redirect(response, request, "/login", 401)
 	}
-	choo.DateString = choo.Date.Date.Format(time.RFC3339)
-	t, _ := template.ParseFiles("templates/confirm.html")
-	t.Execute(response, choo)
 }
 
 func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
-	if request.URL.Query().Get("confirm") == "yes" {
-		collection, _ := repos.GetDBCollection(1)
-		prayer := 0
-		switch choo.PrayerName {
-		case "Sabah":
-			prayer = 1
-		case "Ögle":
-			prayer = 2
-		case "Ikindi":
-			prayer = 3
-		case "Aksam":
-			prayer = 4
-		case "Yatsi":
-			prayer = 5
-		case "Cuma":
-			prayer = 6
-		case "Bayram":
-			prayer = 7
+	if loggedin(response, request) {
+		if request.URL.Query().Get("confirm") == "yes" {
+			collection, _ := repos.GetDBCollection(1)
+			prayer := 0
+			switch choo.PrayerName {
+			case "Sabah":
+				prayer = 1
+			case "Ögle":
+				prayer = 2
+			case "Ikindi":
+				prayer = 3
+			case "Aksam":
+				prayer = 4
+			case "Yatsi":
+				prayer = 5
+			case "Cuma":
+				prayer = 6
+			case "Bayram":
+				prayer = 7
+			}
+			user, err := GetUserAsUser(response, request)
+			if err != nil {
+				http.Redirect(response, request, "/login", 302)
+				return
+			}
+			registered := model.RegisteredPrayer{}
+			var mosque model.Mosque
+			err = collection.FindOne(context.TODO(),
+				bson.D{
+					{"Name", choosenMosque.Name},
+				}).Decode(&mosque)
+			check(response, request, err)
+			registered.PrayerName = choo.PrayerName
+			registered.PrayerIndex = prayer
+			registered.MosqueName = mosque.Name
+			registered.MosqueAddress = strconv.Itoa(mosque.PLZ) + " " + mosque.City + ", " + mosque.Street
+			index := 0
+			for i, dates := range choosenMosque.Date {
+				if choo.Date.Date == dates.Date {
+					registered.Date = strconv.Itoa(dates.Date.Day()) + "." + strconv.Itoa(int(dates.Date.Month())) + "." + strconv.Itoa(dates.Date.Year())
+					index = i
+					break
+				}
+			}
+			collection, _ = repos.GetDBCollection(0)
+			registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
+			err1 := collection.FindOne(context.TODO(), bson.D{
+				{"Phone", user.Phone},
+				{"RegisteredPrayers.RpId", registered.RpId}})
+			if err1.Err() != nil {
+				collection, _ = repos.GetDBCollection(1)
+				registered.DateIndex = index
+				_, error := collection.UpdateOne(context.TODO(),
+					bson.M{"Name": mosque.Name},
+					bson.D{{"$inc", bson.D{
+						{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity" + user.Sex, -1},
+					},
+					}})
+				if error != nil {
+					http.Redirect(response, request, "/404", 302)
+				}
+
+				tempUser := user
+				tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
+				collection.UpdateOne(context.TODO(),
+					bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
+				user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
+				collection, _ = repos.GetDBCollection(0)
+				phone, err := GetPhoneFromCookie(request)
+				check(response, request, err)
+				collection.UpdateOne(context.TODO(),
+					bson.M{"Phone": phone}, bson.M{
+						"$push": bson.M{"RegisteredPrayers": registered}})
+				choo = *new(choose)
+				http.Redirect(response, request, "/", 302)
+			} else {
+				PrintError(response, request, errors.New("You are already Signed in for this prayer"))
+			}
+		} else {
+			//TODO delete all temp files method
+			reset()
+			http.Redirect(response, request, "/", 302)
 		}
+	} else {
+		http.Redirect(response, request, "/login", 401)
+	}
+}
+
+func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
+	if loggedin(response, request) {
+		name := request.FormValue("name")
+		date := request.FormValue("date")
+		prayer := request.FormValue("prayer")
+		phone := request.FormValue("phone")
+		prayerN, err := strconv.Atoi(prayer)
+		check(response, request, err)
+		prayer1 := strconv.Itoa(prayerN - 1)
+		collection, _ := repos.GetDBCollection(1)
+		collection.UpdateOne(context.TODO(),
+			bson.M{"Name": name},
+			bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": phone}}})
 		user, err := GetUserAsUser(response, request)
 		if err != nil {
 			http.Redirect(response, request, "/login", 302)
 			return
 		}
-		registered := model.RegisteredPrayer{}
-		var mosque model.Mosque
-		err = collection.FindOne(context.TODO(),
-			bson.D{
-				{"Name", choosenMosque.Name},
-			}).Decode(&mosque)
-		check(response, request, err)
-		registered.PrayerName = choo.PrayerName
-		registered.PrayerIndex = prayer
-		registered.MosqueName = mosque.Name
-		registered.MosqueAddress = strconv.Itoa(mosque.PLZ) + " " + mosque.City + ", " + mosque.Street
-		index := 0
-		for i, dates := range choosenMosque.Date {
-			if choo.Date.Date == dates.Date {
-				registered.Date = strconv.Itoa(dates.Date.Day()) + "." + strconv.Itoa(int(dates.Date.Month())) + "." + strconv.Itoa(dates.Date.Year())
-				index = i
-				break
-			}
-		}
+		collection.UpdateOne(context.TODO(),
+			bson.M{"Name": name},
+			bson.D{{"$inc", bson.D{
+				{"Date." + date + ".Prayer." + prayer1 + ".Capacity" + user.Sex, 1},
+			},
+			}})
 		collection, _ = repos.GetDBCollection(0)
-		registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
-		err1 := collection.FindOne(context.TODO(), bson.D{
-			{"Phone", user.Phone},
-			{"RegisteredPrayers.RpId", registered.RpId}})
-		if err1.Err() != nil {
-			collection, _ = repos.GetDBCollection(1)
-			registered.DateIndex = index
-			_, error := collection.UpdateOne(context.TODO(),
-				bson.M{"Name": mosque.Name},
-				bson.D{{"$inc", bson.D{
-					{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity" + user.Sex, -1},
-				},
-				}})
-			if error != nil {
-				http.Redirect(response, request, "/404", 302)
-			}
-
-			tempUser := user
-			tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
-			collection.UpdateOne(context.TODO(),
-				bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
-			user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
-			collection, _ = repos.GetDBCollection(0)
-			phone, err := GetPhoneFromCookie(request)
-			check(response, request, err)
-			collection.UpdateOne(context.TODO(),
-				bson.M{"Phone": phone}, bson.M{
-					"$push": bson.M{"RegisteredPrayers": registered}})
-			choo = *new(choose)
-			http.Redirect(response, request, "/", 302)
-		} else {
-			PrintError(response, request, errors.New("You are already Signed in for this prayer"))
-		}
-	} else {
-		//TODO delete all temp files method
-		reset()
+		rpid := name + ":" + date + ":" + prayer
+		filter := bson.D{{Key: "Phone", Value: phone}}
+		update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
+		collection.UpdateOne(context.TODO(), filter, update)
 		http.Redirect(response, request, "/", 302)
+	} else {
+		http.Redirect(response, request, "/login", 401)
 	}
-}
-
-func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
-	name := request.FormValue("name")
-	date := request.FormValue("date")
-	prayer := request.FormValue("prayer")
-	phone := request.FormValue("phone")
-	prayerN, err := strconv.Atoi(prayer)
-	check(response, request, err)
-	prayer1 := strconv.Itoa(prayerN - 1)
-	collection, _ := repos.GetDBCollection(1)
-	collection.UpdateOne(context.TODO(),
-		bson.M{"Name": name},
-		bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": phone}}})
-	user, err := GetUserAsUser(response, request)
-	if err != nil {
-		http.Redirect(response, request, "/login", 302)
-		return
-	}
-	collection.UpdateOne(context.TODO(),
-		bson.M{"Name": name},
-		bson.D{{"$inc", bson.D{
-			{"Date." + date + ".Prayer." + prayer1 + ".Capacity" + user.Sex, 1},
-		},
-		}})
-	collection, _ = repos.GetDBCollection(0)
-	rpid := name + ":" + date + ":" + prayer
-	filter := bson.D{{Key: "Phone", Value: phone}}
-	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
-	collection.UpdateOne(context.TODO(), filter, update)
-	http.Redirect(response, request, "/", 302)
-}
-
-func Add(response http.ResponseWriter, request *http.Request) {
-	t, err := template.ParseFiles("templates/addMosque.html")
-	check(response, request, err)
-	t.Execute(response, nil)
-}
-
-// Function for adding a VM to the Table
-func AddMosque(response http.ResponseWriter, request *http.Request) {
-	request.ParseForm()
-	name := request.FormValue("name")
-	plz, _ := strconv.Atoi(request.FormValue("plz"))
-	street := request.FormValue("street")
-	city := request.FormValue("city")
-	cap_m, _ := strconv.Atoi(request.FormValue("cap-m"))
-	cap_w, _ := strconv.Atoi(request.FormValue("cap-w"))
-
-	collection, err := repos.GetDBCollection(1)
-	check(response, request, err)
-	var date model.Date
-	var dates []model.Date
-	var prayer model.Prayer
-	var prayers []model.Prayer
-	prayer.CapacityMen = cap_m
-	prayer.CapacityWomen = cap_w
-	prayer.Users = []model.User{}
-	for i := 1; i < 6; i++ {
-		prayer.Name = model.PrayerName(i)
-		prayers = append(prayers, prayer)
-	}
-	// TODO: statt 10 einfach 100 nemhen oder so
-	for i := 0; i < 10; i++ {
-		currentDate := time.Now().AddDate(0, 0, i).Format(time.RFC3339)
-		date.Date, _ = time.Parse(time.RFC3339, currentDate)
-		date.Prayer = prayers
-		dates = append(dates, date)
-	}
-	mosque := *new(Mosque)
-	mosque.Name = name
-	mosque.PLZ = plz
-	mosque.Street = street
-	mosque.City = city
-	mosque.Date = dates
-
-	collection.InsertOne(context.TODO(), mosque)
-
-	http.Redirect(response, request, "/add", 302) // redirect back to Adminpage
 }
 
 // Function for setting the Cookie
@@ -490,7 +573,10 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 	phone := ""
 	// Check if there is an active Cookie
 	cookie, err := request.Cookie("cookie")
-	match, _ := regexp.MatchString("[^s]+?[^s]+&[^s]+", cookie.Value)
+	if err != nil {
+		return "", errors.New("Not logged in")
+	}
+	match, err := regexp.MatchString("[^s]+?[^s]+&[^s]+", cookie.Value)
 	if err == nil && match {
 		cookieValue := cookie.Value
 		cookieVal := strings.Split(cookieValue, "&")[0]
@@ -501,6 +587,8 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 			return "", errors.New("Wrong or Modified Cookie")
 		}
 		phone = values[1]
+	} else {
+		return "", errors.New("Invalid Cookie")
 	}
 	return phone, nil
 }
@@ -529,6 +617,14 @@ func PrintError(response http.ResponseWriter, request *http.Request, err error) 
 	}
 	t.Execute(response, err)
 	reset()
+}
+
+// check every method with this
+func loggedin(response http.ResponseWriter, request *http.Request) bool {
+	if _, err := GetPhoneFromCookie(request); err != nil {
+		return false
+	}
+	return true
 }
 
 func reset() {

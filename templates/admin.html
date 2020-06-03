@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js" integrity="sha256-+C0A5Ilqmu4QcSPxrlGpaZxJ04VjsRjKu+G82kl5UJk=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha256-ze/OEYGcFbPRmvCnrSeKbRTtjG4vGLHXgOqsyLFTRjg=" crossorigin="anonymous" />
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $('.submit').attr('disabled', true);
+      $('#message').keyup(function() {
+        if ($(this).val().length != 0)
+          $('.submit').attr('disabled', false);
+        else
+          $('.submit').attr('disabled', true);
+      })
+    });
+  </script>
+  <script>
+    window.addEventListener("pageshow", function(event) {
+      var historyTraversal = event.persisted ||
+        (typeof window.performance != "undefined" &&
+          window.performance.navigation.type === 2);
+      if (historyTraversal) {
+        // Handle page restore.
+        window.location.reload();
+      }
+    });
+  </script>
+  <script>
+    $(document).ready(function() {
+      var $select = $("#select-mosque").selectize({
+        sortField: 'text',
+        onItemAdd: function(value) {
+          window.location.href = '/choose?mosque=' + value;
+        }
+      });
+
+      $("#btnClear").on("click", function() {
+        var selectize = $select[0].selectize;
+        selectize.clear();
+      });
+      var $select = $("#delete-mosque").selectize({
+        sortField: 'text',
+        onItemAdd: function(value) {
+          var message = "Silmeyi onayliyormusunuz? Secilen Camii " + value + "\nBestätigen Sie die Löschung? Ausgewählte Moschee " + value;
+          var ok = window.confirm(message);
+          if (ok) {
+            window.location.href = '/delete?mosque=' + value;
+          } else {
+            window.location.reload();
+          }
+        }
+      });
+    });
+  </script>
+  <style>
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+
+{{- if .CreateMosque -}}
+
+<form method="post" action="/addMosque">
+  Name: <input type="text" name="name" required="required">
+  <br>
+  PLZ: <input type="number" name="plz" required="required">
+  <br>
+  Straße: <input type="text" name="street" required="required">
+  <br>
+  Stadt: <input type="text" name="city" required="required">
+  <br>
+  Kapazität Männer: <input type="number" name="cap-m" required="required">
+  <br>
+  Kapazität Frauen: <input type="number" name="cap-w">
+  <br> <br> <br>
+  <input id="submit" type="submit" value="Eintragen">
+</form>
+
+{{- else if .EditMosque -}}
+
+<select id="select-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+  <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+  {{ range .Mosques}}
+  <option value="{{.Name}}">{{.Name}}, Ort: {{.City}}</option>
+  {{ end }}
+</select>
+<input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+
+{{- else if .DeleteMosque -}}
+
+<select id="delete-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+  <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+  {{ range .Mosques}}
+  <option value="{{.Name}}">{{.Name}}, Ort: {{.City}}</option>
+  {{ end }}
+</select>
+<input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+{{- else if .ShowMosque -}}
+
+{{- end -}}
+
+</html>

@@ -17,6 +17,11 @@ func main() {
 	router.HandleFunc("/", common.IndexPageHandler)
 	router.HandleFunc("/login", common.LoginHandler)
 
+	router.HandleFunc("/admin", common.AdminHandler)
+	router.HandleFunc("/mosqueoverview", common.MosqueHandler)
+
+	router.HandleFunc("/delete", common.DeleteMosque)
+	router.HandleFunc("/addMosque", common.AddMosque)
 	router.HandleFunc("/index", common.IndexPageHandler)
 
 	router.HandleFunc("/logout", common.LogoutHandler)
@@ -28,7 +33,6 @@ func main() {
 	router.HandleFunc("/chooseDate", common.ChooseDate)
 	router.HandleFunc("/choosePrayer", common.ChoosePrayer)
 	router.HandleFunc("/add", common.Add)
-	router.HandleFunc("/addMosque", common.AddMosque)
 
 	//router.HandleFunc("/appleHeadquarter", common.SteveJobsHandler)
 	router.HandleFunc("/addMosque", common.AddMosque)
