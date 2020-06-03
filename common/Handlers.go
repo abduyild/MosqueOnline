@@ -327,6 +327,7 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		http.Redirect(response, request, "/login", 401)
+		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
 
@@ -401,6 +402,7 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 		choo.SetDate = true
 	} else {
 		http.Redirect(response, request, "/login", 401)
+		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
 
@@ -437,6 +439,7 @@ func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
 		t.Execute(response, choo)
 	} else {
 		http.Redirect(response, request, "/login", 401)
+		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
 
@@ -536,6 +539,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		http.Redirect(response, request, "/login", 401)
+		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
 
@@ -575,6 +579,7 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		http.Redirect(response, request, "/", 302)
 	} else {
 		http.Redirect(response, request, "/login", 401)
+		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
 
@@ -648,9 +653,10 @@ func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.U
 }
 
 func check(response http.ResponseWriter, request *http.Request, err error) *template.Template {
-	fmt.Println(err.Error())
 	if err != nil {
 		t, _ := template.ParseFiles("templates/errorpage.html")
+		http.Redirect(response, request, "/error", 402)
+		response.Write([]byte(`<script>window.location.href = "/error"</script>`))
 		reset()
 		return t
 	}
