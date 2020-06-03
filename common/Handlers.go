@@ -666,8 +666,10 @@ func check(response http.ResponseWriter, request *http.Request, err error) *temp
 // check every method with this
 func loggedin(response http.ResponseWriter, request *http.Request) bool {
 	if _, err := GetPhoneFromCookie(request); err != nil {
+		fmt.Println("oups")
 		return false
 	}
+	fmt.Println("yey")
 	return true
 }
 
