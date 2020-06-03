@@ -20,21 +20,18 @@ func main() {
 	router.HandleFunc("/admin", common.AdminHandler)
 	router.HandleFunc("/mosqueoverview", common.MosqueHandler)
 
-	router.HandleFunc("/delete", common.DeleteMosque)
+	router.HandleFunc("/deleteMosque", common.DeleteMosque)
 	router.HandleFunc("/addMosque", common.AddMosque)
+	router.HandleFunc("/editMosque", common.EditMosque)
 	router.HandleFunc("/index", common.IndexPageHandler)
 
 	router.HandleFunc("/logout", common.LogoutHandler)
-	//router.HandleFunc("/reset", common.ResetHandler)
 	router.HandleFunc("/submit", common.SubmitPrayer)
 
 	router.HandleFunc("/chooseMosque", common.Choose) // normally ChooseMosque
 	router.HandleFunc("/choose", common.Choosen)
 	router.HandleFunc("/chooseDate", common.ChooseDate)
 	router.HandleFunc("/choosePrayer", common.ChoosePrayer)
-	router.HandleFunc("/add", common.Add)
-
-	//router.HandleFunc("/appleHeadquarter", common.SteveJobsHandler)
 	router.HandleFunc("/addMosque", common.AddMosque)
 	router.HandleFunc("/signOut", common.SignOutPrayer)
 	http.Handle("/", router)

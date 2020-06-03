@@ -231,27 +231,6 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func DeleteMosque(response http.ResponseWriter, request *http.Request) {
-	mosque := request.URL.Query().Get("mosque")
-	collection, err := repos.GetDBCollection(1)
-	t := check(response, request, err)
-	if t != nil {
-		t.Execute(response, errors.New(dbConnectionError))
-		return
-	}
-	collection.DeleteOne(context.TODO(), bson.M{"Name": mosque})
-
-	collection, err = repos.GetDBCollection(0)
-	t = check(response, request, err)
-	if t != nil {
-		t.Execute(response, errors.New(dbConnectionError))
-		return
-	}
-	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "MosqueName", Value: mosque}}}}}}
-	collection.UpdateMany(context.TODO(), bson.D{{}}, update)
-
-}
-
 func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 	t, _ := template.ParseFiles("templates/mosqueOverview.html")
 	t.Execute(response, nil)
@@ -276,18 +255,6 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 	ClearCookie(response)
 	http.Redirect(response, request, "/", 302)
-}
-
-func Choosen(response http.ResponseWriter, request *http.Request) {
-	mosque := request.URL.Query().Get("mosque")
-	collection, _ := repos.GetDBCollection(1)
-	collection.FindOne(context.TODO(),
-		bson.D{
-			{"Name", mosque},
-		}).Decode(&choosenMosque)
-	t, _ := template.ParseFiles("templates/chooseDate.html")
-	t.Execute(response, choosenMosque)
-	//http.Redirect(response, request, "/chooseDate", 302)
 }
 
 func Choose(response http.ResponseWriter, request *http.Request) {
@@ -329,6 +296,18 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 		http.Redirect(response, request, "/login", 401)
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
+}
+
+func Choosen(response http.ResponseWriter, request *http.Request) {
+	mosque := request.URL.Query().Get("mosque")
+	collection, _ := repos.GetDBCollection(1)
+	collection.FindOne(context.TODO(),
+		bson.D{
+			{"Name", mosque},
+		}).Decode(&choosenMosque)
+	t, _ := template.ParseFiles("templates/chooseDate.html")
+	t.Execute(response, choosenMosque)
+	//http.Redirect(response, request, "/chooseDate", 302)
 }
 
 func getMosques(response http.ResponseWriter, request *http.Request) mosques {
@@ -666,10 +645,8 @@ func check(response http.ResponseWriter, request *http.Request, err error) *temp
 // check every method with this
 func loggedin(response http.ResponseWriter, request *http.Request) bool {
 	if _, err := GetPhoneFromCookie(request); err != nil {
-		fmt.Println("oups")
 		return false
 	}
-	fmt.Println("yey")
 	return true
 }
 

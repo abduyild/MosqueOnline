@@ -9,13 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha256-ze/OEYGcFbPRmvCnrSeKbRTtjG4vGLHXgOqsyLFTRjg=" crossorigin="anonymous" />
   <script type="text/javascript">
     $(document).ready(function() {
-      $('.submit').attr('disabled', true);
-      $('#message').keyup(function() {
-        if ($(this).val().length != 0)
-          $('.submit').attr('disabled', false);
-        else
-          $('.submit').attr('disabled', true);
-      })
+
     });
   </script>
   <script>
@@ -31,24 +25,26 @@
   </script>
   <script>
     $(document).ready(function() {
-      var $select = $("#select-mosque").selectize({
-        sortField: 'text',
-        onItemAdd: function(value) {
-          window.location.href = '/choose?mosque=' + value;
-        }
-      });
+      $('.submit').attr('disabled', true);
+      $('#message').keyup(function() {
+        if ($(this).val().length != 0)
+          $('.submit').attr('disabled', false);
+        else
+          $('.submit').attr('disabled', true);
+      })
 
       $("#btnClear").on("click", function() {
         var selectize = $select[0].selectize;
         selectize.clear();
       });
+
       var $select = $("#delete-mosque").selectize({
         sortField: 'text',
         onItemAdd: function(value) {
           var message = "Silmeyi onayliyormusunuz? Secilen Camii " + value + "\nBestätigen Sie die Löschung? Ausgewählte Moschee " + value;
           var ok = window.confirm(message);
           if (ok) {
-            window.location.href = '/delete?mosque=' + value;
+            window.location.href = '/deleteMosque?mosque=' + value;
           } else {
             window.location.reload();
           }
@@ -69,7 +65,7 @@
   </style>
 </head>
 
-{{- if .CreateMosque -}}
+{{- if .AddMosque -}}
 
 <form method="post" action="/addMosque">
   Name: <input type="text" name="name" required="required">
@@ -82,20 +78,29 @@
   <br>
   Kapazität Männer: <input type="number" name="cap-m" required="required">
   <br>
-  Kapazität Frauen: <input type="number" name="cap-w">
+  Kapazität Frauen: <input type="number" name="cap-w" required="required">
   <br> <br> <br>
   <input id="submit" type="submit" value="Eintragen">
 </form>
 
 {{- else if .EditMosque -}}
 
-<select id="select-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+<form method="post" action="/editMosque">
+<select name ="edit-mosque" id="edit-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
   <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
   {{ range .Mosques}}
   <option value="{{.Name}}">{{.Name}}, Ort: {{.City}}</option>
   {{ end }}
 </select>
 <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+<br>
+
+  Kapazität Männer: <input type="number" name="cap-m">
+  <br>
+  Kapazität Frauen: <input type="number" name="cap-w">
+  <br> <br> <br>
+  <input id="submit" type="submit" value="Eintragen">
+</form><br><br><br><br><br>
 
 {{- else if .DeleteMosque -}}
 
@@ -106,6 +111,7 @@
   {{ end }}
 </select>
 <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+
 {{- else if .ShowMosque -}}
 
 {{- end -}}
