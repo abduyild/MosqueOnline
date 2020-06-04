@@ -83,25 +83,6 @@
   <input id="submit" type="submit" value="Eintragen">
 </form>
 
-{{- else if .EditMosque -}}
-
-<form method="post" action="/editMosque">
-<select name ="edit-mosque" id="edit-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
-  <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
-  {{ range .Mosques}}
-  <option value="{{.Name}}">{{.Name}}, Ort: {{.City}}</option>
-  {{ end }}
-</select>
-<input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
-<br>
-
-  Kapazität Männer: <input type="number" name="cap-m">
-  <br>
-  Kapazität Frauen: <input type="number" name="cap-w">
-  <br> <br> <br>
-  <input id="submit" type="submit" value="Eintragen">
-</form><br><br><br><br><br>
-
 {{- else if .DeleteMosque -}}
 
 <select id="delete-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">

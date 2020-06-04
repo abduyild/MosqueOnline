@@ -22,7 +22,6 @@ func main() {
 
 	router.HandleFunc("/deleteMosque", common.DeleteMosque)
 	router.HandleFunc("/addMosque", common.AddMosque)
-	router.HandleFunc("/editMosque", common.EditMosque)
 	router.HandleFunc("/index", common.IndexPageHandler)
 
 	router.HandleFunc("/logout", common.LogoutHandler)
