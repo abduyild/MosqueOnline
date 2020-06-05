@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"pi-software/model"
@@ -22,8 +23,15 @@ type AdminPipeline struct {
 
 var mosque model.Mosque
 
+type Date struct { // custom date type for easier templating and format of date
+	Date   string
+	Prayer []model.Prayer
+}
+
+var dates []Date
+
 func AdminHandler(response http.ResponseWriter, request *http.Request) {
-	adminPipe := AdminPipeline{false, false, false, getMosques(response, request)}
+	adminPipe := AdminPipeline{false, false, true, getMosques(response, request)}
 	t, _ := template.ParseFiles("templates/admin.html")
 	t.Execute(response, adminPipe)
 }
@@ -71,6 +79,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 		mosque.Date = dates
 		mosque.MaxCapM = cap_m
 		mosque.MaxCapW = cap_w
+		mosque.Active = true
 
 		collection.InsertOne(context.TODO(), mosque)
 
@@ -99,5 +108,55 @@ func DeleteMosque(response http.ResponseWriter, request *http.Request) {
 	}
 	update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "MosqueName", Value: mosque}}}}}}
 	collection.UpdateMany(context.TODO(), bson.D{{}}, update)
+}
 
+func ShowMosque(response http.ResponseWriter, request *http.Request) {
+	mosqueName := request.URL.Query().Get("mosque")
+	confirm := false
+	if request.URL.Query().Get("confirm") == "yes" {
+		confirm = true
+	}
+	request.ParseForm()
+	if mosqueName != "" && !confirm {
+		collection, _ := repos.GetDBCollection(1)
+		collection.FindOne(context.TODO(),
+			bson.D{
+				{"Name", mosqueName},
+			}).Decode(&mosque)
+		t, _ := template.ParseFiles("templates/show-hide.html")
+		t.Execute(response, mosque)
+	} else if confirm {
+		fmt.Println("confirm")
+		var prayers []model.Prayer
+		mosque.Active = !mosque.Active
+		if !mosque.Active { // if old status active, then list active registrations
+			for _, date := range mosque.Date {
+				for _, prayer := range date.Prayer {
+					if len(prayer.Users) > 0 {
+						prayers = append(prayers, prayer)
+					}
+				}
+				if len(prayers) > 0 {
+					var dat Date
+					dateS := strconv.Itoa(date.Date.Day()) + ". " + date.Date.Month().String() + " " + strconv.Itoa(date.Date.Year())
+					dat.Date = dateS
+					dat.Prayer = prayers
+					prayers = []model.Prayer{}
+					dates = append(dates, dat)
+				}
+			}
+		}
+		collection, _ := repos.GetDBCollection(1)
+		collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Active": mosque.Active}})
+		response.Write([]byte(`<script>window.location.href = "/activeRegistrations";</script>`))
+	} else {
+		http.Redirect(response, request, "/admin", 300)
+
+	}
+}
+
+func ActiveRegistrations(response http.ResponseWriter, request *http.Request) {
+	t, _ := template.ParseFiles("templates/activeRegistrations.html")
+	t.Execute(response, dates)
+	dates = []Date{}
 }

@@ -38,7 +38,7 @@
         selectize.clear();
       });
 
-      var $select = $("#delete-mosque").selectize({
+      var $select2 = $("#delete-mosque").selectize({
         sortField: 'text',
         onItemAdd: function(value) {
           var message = "Silmeyi onayliyormusunuz? Secilen Camii " + value + "\nBestätigen Sie die Löschung? Ausgewählte Moschee " + value;
@@ -50,7 +50,13 @@
           }
         }
       });
-    });
+      var $select = $("#show-mosque").selectize({
+        sortField: 'text',
+        onItemAdd: function(value) {
+            window.location.href = '/show-hide?mosque=' + value;
+          }
+        });
+      });
   </script>
   <style>
     input::-webkit-outer-spin-button,
@@ -94,6 +100,14 @@
 <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
 
 {{- else if .ShowMosque -}}
+
+<select id="show-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+  <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+  {{ range .Mosques}}
+  <option value="{{.Name}}">{{.Name}}, Ort: {{.City}}</option>
+  {{ end }}
+</select>
+<input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
 
 {{- end -}}
 

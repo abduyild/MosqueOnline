@@ -215,7 +215,7 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 				redirectTarget = "/admin"
 				// Else redirect to the normal indexpage
 			} else {
-				redirectTarget = "/mosqueoverview"
+				redirectTarget = "/mosqueOverview"
 			}
 			// function for redirecting
 			http.Redirect(response, request, redirectTarget, 302)
@@ -229,11 +229,6 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 		t, _ := template.ParseFiles("templates/login.html")
 		t.Execute(response, nil)
 	}
-}
-
-func MosqueHandler(response http.ResponseWriter, request *http.Request) {
-	t, _ := template.ParseFiles("templates/mosqueOverview.html")
-	t.Execute(response, nil)
 }
 
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
@@ -261,19 +256,8 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		mosque := request.URL.Query().Get("mosque")
 		if !choo.SetMosque {
-			dataBase, err := repos.GetDBCollection(1)
-			t := check(response, request, err)
-			if t != nil {
-				t.Execute(response, errors.New(dbConnectionError))
-				return
-			}
-			cur, _ := dataBase.Find(context.TODO(), bson.D{})
-			for cur.Next(context.TODO()) {
-				var mosque model.Mosque
-				cur.Decode(&mosque)
-				choo.Mosques = append(choo.Mosques, mosque)
-			}
-			t, _ = template.ParseFiles("templates/choose.html")
+			choo.Mosques = getMosques(response, request)
+			t, _ := template.ParseFiles("templates/choose.html")
 			t.Execute(response, choo)
 			choo.SetMosque = true
 		} else {
@@ -322,7 +306,9 @@ func getMosques(response http.ResponseWriter, request *http.Request) mosques {
 	for cur.Next(context.TODO()) {
 		var mosque model.Mosque
 		cur.Decode(&mosque)
-		mosquess = append(mosquess, mosque)
+		if mosque.Active {
+			mosquess = append(mosquess, mosque)
+		}
 	}
 	return mosquess
 }

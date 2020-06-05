@@ -7,7 +7,6 @@ require (
 	4d63.com/gochecknoinits v0.0.0-20200108094044-eb73b47b9fc4 // indirect
 	github.com/alecthomas/gocyclo v0.0.0-20150208221726-aa8f8b160214 // indirect
 	github.com/alexkohler/nakedret v1.0.0 // indirect
-	github.com/client9/misspell v0.3.4 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20200309095847-7953dde2c7bf // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/securecookie v1.1.1
@@ -26,6 +25,7 @@ require (
 	github.com/walle/lll v1.0.1 // indirect
 	go.mongodb.org/mongo-driver v1.3.0
 	golang.org/x/crypto v0.0.0-20200208060501-ecb85df21340
+	google.golang.org/genproto v0.0.0-20200605102947-12044bf5ea91
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 	labix.org/v2/mgo v0.0.0-20140701140051-000000000287
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect

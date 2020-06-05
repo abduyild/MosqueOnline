@@ -17,13 +17,20 @@
   </script>
 </head>
 
-
+<body>
 {{- if .EditPrayers -}}
-  {{- template "editprayers.gohtml" . -}}
+
 {{- else if .EditCapacity -}}
-  {{- template "editcapacity.gohtml" . -}}
+
 {{- else if .GetRegistrations -}}
-  {{- template "getregistrations.gohtml" . -}}
+<form action="/getRegistrations">
+    <input type="submit" value="Alle Anmeldungen" />
+</form>
 {{- else if .GetDate -}}
-  {{- template "getdate.gohtml" . -}}
+<form method="post" action="/getRegistrationsDate">
+  Date:
+  <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input>
+  <input type="submit" value="submit">
+</form>
 {{- end -}}
+</body>
