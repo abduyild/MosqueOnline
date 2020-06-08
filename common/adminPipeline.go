@@ -28,6 +28,8 @@ type AdminPipeline struct {
 
 var mosque model.Mosque
 
+var fridayIndices []int
+
 type Date struct { // custom date type for easier templating and format of date
 	Date   string
 	Prayer []model.Prayer
@@ -70,12 +72,6 @@ func AdminHandler(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func accessError(response http.ResponseWriter, request *http.Request) {
-	t, _ := template.ParseFiles("templates/errorpage.html")
-	t.Execute(response, errors.New("Illegal Access"))
-	response.Write([]byte(`<script>window.location.href = "/error"</script>`))
-}
-
 func AddMosque(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		request.ParseForm()
@@ -94,13 +90,14 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 				t.Execute(response, errors.New(dbConnectionError))
 				return
 			}
-			var date model.Date
-			var dates []model.Date
+			addDates := 100 // set how many dates you want to add to the future
 			var prayer model.Prayer
 			var prayers []model.Prayer
 			prayer.CapacityMen = cap_m
 			prayer.CapacityWomen = cap_w
 			prayer.Users = []model.User{}
+			cumaSet := false
+			bayramSet := false
 			form := request.Form["prayer"]
 			for i := 1; i < 8; i++ {
 				switch i {
@@ -114,33 +111,58 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 					prayer.Available = containString(form, "maghrib")
 				case 5:
 					prayer.Available = containString(form, "ishaa")
+				case 6:
+					cumaSet = containString(form, "cuma")
+				case 7:
+					bayramSet = containString(form, "bayram")
 				}
 				prayer.Name = model.PrayerName(i)
 				prayers = append(prayers, prayer)
+				prayer.Available = false
 			}
-			// TODO: statt 10 einfach 100 nemhen oder so
-			for i := 0; i < 10; i++ {
+			var indicesBayram []int
+			datesToAdd := make([]model.Date, addDates)
+			fridayIndices = []int{}
+			for i := 0; i < addDates; i++ {
+				var date model.Date
 				currentDate := time.Now().AddDate(0, 0, i).Format(time.RFC3339)
+				weekday := time.Now().AddDate(0, 0, i).Weekday()
+				if cumaSet && int(weekday) == 5 { // cuma
+					fridayIndices = append(fridayIndices, i)
+				}
+				if bayramSet && containString(model.GetBayrams(), strings.Split(currentDate, "T")[0]) {
+					indicesBayram = append(indicesBayram, i)
+				}
 				date.Date, _ = time.Parse(time.RFC3339, currentDate)
 				date.Prayer = prayers
-				dates = append(dates, date)
+				datesToAdd[i] = date
 			}
 			mosque := *new(Mosque)
 			mosque.Name = name
 			mosque.PLZ = plz
 			mosque.Street = street
 			mosque.City = city
-			mosque.Date = dates
+			mosque.Date = datesToAdd
 			mosque.MaxCapM = cap_m
 			mosque.MaxCapW = cap_w
 			mosque.Active = true
-
 			collection.InsertOne(context.TODO(), mosque)
-
+			for _, i := range fridayIndices {
+				collection.UpdateOne(context.TODO(),
+					bson.M{"Name": name},
+					bson.M{"$set": bson.M{
+						"Date." + strconv.Itoa(i) + ".Prayer.1.Available": false,
+						"Date." + strconv.Itoa(i) + ".Prayer.5.Available": true}})
+			}
+			for _, i := range indicesBayram {
+				collection.UpdateOne(context.TODO(),
+					bson.M{"Name": name},
+					bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
+			}
 			http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 		} else {
-			t, _ := template.ParseFiles("templates/addMosque.html")
-			t.Execute(response, nil)
+			/*t, _ := template.ParseFiles("templates/addMosque.html")
+			t.Execute(response, nil)*/
 		}
 	} else {
 		accessError(response, request)
@@ -274,6 +296,11 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 	} else {
 		accessError(response, request)
 	}
+}
+
+func accessError(response http.ResponseWriter, request *http.Request) {
+	t, _ := template.ParseFiles("templates/errorpage.html")
+	t.Execute(response, errors.New("Illegal Access"))
 }
 
 func containString(slice []string, item string) bool {

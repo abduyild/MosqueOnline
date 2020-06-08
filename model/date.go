@@ -4,6 +4,8 @@ import "time"
 
 type PrayerName int
 
+var bayramList []string
+
 const (
 	Sabah  PrayerName = iota //1
 	Ögle                     //2
@@ -25,4 +27,9 @@ type Prayer struct {
 	CapacityMen   int        `bson:"CapacityMen"`
 	CapacityWomen int        `bson:"CapacityWomen"`
 	Users         []User     `bson:"Users"`
+}
+
+func GetBayrams() []string { // just add new bayrams here
+	bayramList = []string{"2020-07-30"}
+	return bayramList
 }

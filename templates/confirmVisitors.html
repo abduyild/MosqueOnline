@@ -42,6 +42,8 @@
       {{else if (eq .Name 3)}} Gebet: Ikindi | Asr
       {{else if (eq .Name 4)}} Gebet: Aksam | Maghrib
       {{else if (eq .Name 5)}} Gebet: Yatsi | Ishaa
+      {{else if (eq .Name 6)}} Gebet: Cuma | Freitagsgebet
+      {{else if (eq .Name 7)}} Gebet: Bayram | Eid
       {{end}}
     </h3>
     <h4>Angemeldete Benutzer:</h4>
@@ -63,6 +65,8 @@
     {{else if (eq .Name 3)}} Gebet: Ikindi | Asr
     {{else if (eq .Name 4)}} Gebet: Aksam | Maghrib
     {{else if (eq .Name 5)}} Gebet: Yatsi | Ishaa
+    {{else if (eq .Name 6)}} Gebet: Cuma | Freitagsgebet
+    {{else if (eq .Name 7)}} Gebet: Bayram | Eid
     {{end}} <br>
     {{range .Users}}
       {{.FirstName}} {{.LastName}}
