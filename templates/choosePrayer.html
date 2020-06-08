@@ -27,11 +27,18 @@
 <label for="prayer">Vakit secin / Wähle Gebetszeit:</label>
 <select name="prayer" id="prayer">
   <option value=>Vakit secin / Wähle Gebetszeit:</option>
-  <option value=1>Sabah / Fajr, Platz: {{(index .Prayer 0).Capacity}}</option>
-  <option value=2>Ögle / Dhuhr, Platz: {{(index .Prayer 1).Capacity}}</option>
-  <option value=3>Ikindi / Asr, Platz: {{(index .Prayer 2).Capacity}}</option>
-  <option value=4>Aksam / Maghrib, Platz: {{(index .Prayer 3).Capacity}}</option>
-  <option value=5>Yatsi / Ishaa, Platz: {{(index .Prayer 4).Capacity}}</option>
+  {{range .Prayer}}
+    {{if .Available}}
+    <option value={{.Name}}>
+    {{if (eq .Name 1)}} Gebet: Sabah | Fajr
+    {{else if (eq .Name 2)}} Gebet: Ögle | Dhuhr
+    {{else if (eq .Name 3)}} Gebet: Ikindi | Asr
+    {{else if (eq .Name 4)}} Gebet: Aksam | Maghrib
+    {{else if (eq .Name 5)}} Gebet: Yatsi | Ishaa
+    {{end}}, Platz: {{.Capacity}}
+    </option>
+    {{end}}
+  {{end}}
   <!-- .Cuma Make Placeholder work with bool and string generator-->
 </select>
 <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>

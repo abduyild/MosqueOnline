@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    window.addEventListener("pageshow", function(event) {
+      var historyTraversal = event.persisted ||
+        (typeof window.performance != "undefined" &&
+          window.performance.navigation.type === 2);
+      if (historyTraversal) {
+        // Handle page restore.
+        window.location.reload();
+      }
+    });
+  </script>
+  <style>
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+
+<body>
+  {{$name := .Name}}
+  <h1>Moschee: {{$name}} </h1>
+  {{with .Date}}
+  {{$date := .Date}}
+
+  <h2>Heutige Anmeldungen, Datum: {{$date}}</h2>
+    {{range .Prayer}}
+    {{ if .Available }}
+    <h3>
+      {{if (eq .Name 1)}} Gebet: Sabah | Fajr
+      {{else if (eq .Name 2)}} Gebet: Ögle | Dhuhr
+      {{else if (eq .Name 3)}} Gebet: Ikindi | Asr
+      {{else if (eq .Name 4)}} Gebet: Aksam | Maghrib
+      {{else if (eq .Name 5)}} Gebet: Yatsi | Ishaa
+      {{end}}
+    </h3>
+    <h4>Angemeldete Benutzer:</h4>
+    <form action="confirmVisitors">
+      {{$prayer := .Name}}
+      {{range .Users}}
+        <input type="hidden" name="data" value="{{$name}}!{{$prayer}}">
+        <input type="checkbox" name="visitor" value="{{.Phone}}" {{if .Attended}} checked {{end}}> {{.FirstName}} {{.LastName}}, {{.Phone}}
+        <br><br><br>
+      {{end}}
+      <input type="submit" value="Gelenleri Kaydet | Speichere Besucher">
+      <br><br><br>
+    </form>
+    {{else}}
+    <h4>Gizlenilmis Vakit icin hala Kayitlar mevcut!</h4>
+    <h4>Es befinden sich derzeit noch Anmeldungen für ein nicht mehr verfügbares Gebet!</h4>
+    {{if (eq .Name 1)}} Gebet: Sabah | Fajr
+    {{else if (eq .Name 2)}} Gebet: Ögle | Dhuhr
+    {{else if (eq .Name 3)}} Gebet: Ikindi | Asr
+    {{else if (eq .Name 4)}} Gebet: Aksam | Maghrib
+    {{else if (eq .Name 5)}} Gebet: Yatsi | Ishaa
+    {{end}} <br>
+    {{range .Users}}
+      {{.FirstName}} {{.LastName}}
+      <br><br><br>
+    {{end}}
+    {{end}}
+    {{end}}
+  {{end}}
+</body>
+
+
+</html>

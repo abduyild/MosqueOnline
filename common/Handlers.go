@@ -42,11 +42,14 @@ type choose struct {
 	PrayerName string
 }
 
-// Struct for easy handling the htm,l template generation on the index page
+// Struct for easy handling the html template generation on the index page
 type TempPrayer struct {
-	Name     model.PrayerName
-	Capacity int
+	Name      model.PrayerName
+	Capacity  int
+	Available bool
 }
+
+var isAdmin bool
 
 var choo choose
 
@@ -155,8 +158,8 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/register", 302)
 			}
 
-			userCredentials, err := bcrypt.GenerateFromPassword([]byte(email+phone), 14)
-			cookie := email + "?" + phone + "&" + string(userCredentials)
+			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
+			cookie := R(email+"?"+phone+"&"+string(userCredentials)) + "!"
 			SetCookie(cookie, response)
 			// If the admin tries to login, change the redirect to the Adminpage
 			if email == "steveJobs@apple.de" {
@@ -180,7 +183,7 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 		email := request.FormValue("email")
 		password := request.FormValue("password")
 		// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
-		redirectTarget := "/"
+		redirectTarget := "/login"
 		if len(email) != 0 && len(password) != 0 {
 			// Returns Table
 			collection, err := repos.GetDBCollection(2)
@@ -207,16 +210,20 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/register", 302)
 			}
 			name := admin.Name
-			userCredentials, err := bcrypt.GenerateFromPassword([]byte(email+name), 14)
-			cookie := email + "?" + name + "&" + string(userCredentials)
-			SetCookie(cookie, response)
-			// If the admin tries to login, change the redirect to the Adminpage
+			adminType := ""
 			if admin.Admin {
 				redirectTarget = "/admin"
-				// Else redirect to the normal indexpage
+				adminType = "!admin"
 			} else {
-				redirectTarget = "/mosqueOverview"
+				redirectTarget = "/mosqueIndex"
+				adminType = "!mosque"
 			}
+
+			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+name)), 14)
+			cookie := R(email+"?"+name+"&"+string(userCredentials)) + adminType
+			SetCookie(cookie, response)
+			// If the admin tries to login, change the redirect to the Adminpage
+
 			// function for redirecting
 			http.Redirect(response, request, redirectTarget, 302)
 		} else {
@@ -255,7 +262,7 @@ func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 func Choose(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		mosque := request.URL.Query().Get("mosque")
-		if !choo.SetMosque {
+		if mosque == "" {
 			choo.Mosques = getMosques(response, request)
 			t, _ := template.ParseFiles("templates/choose.html")
 			t.Execute(response, choo)
@@ -342,25 +349,26 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 			}
 		}
 		cap := 0
-		male := true
 		user, err := GetUserAsUser(response, request)
 		if err != nil {
 			http.Redirect(response, request, "/login", 302)
 			reset()
+			return
 		}
-		if user.Sex == "Women" {
-			male = false
-		}
+		male := user.Sex == "Men"
 		for _, prayer := range choosenMosque.Date[index].Prayer {
-			if male {
-				cap = prayer.CapacityMen
-			} else {
-				cap = prayer.CapacityWomen
+			if prayer.Available {
+				if male {
+					cap = prayer.CapacityMen
+				} else {
+					cap = prayer.CapacityWomen
+				}
+				pray := *new(TempPrayer)
+				pray.Name = prayer.Name
+				pray.Capacity = cap
+				pray.Available = true
+				choo.Prayer = append(choo.Prayer, pray)
 			}
-			pray := *new(TempPrayer)
-			pray.Name = prayer.Name
-			pray.Capacity = cap
-			choo.Prayer = append(choo.Prayer, pray)
 		}
 		t, _ := template.ParseFiles("templates/choosePrayer.html")
 		t.Execute(response, choo)
@@ -584,21 +592,30 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 	if err != nil {
 		return "", errors.New("Not logged in")
 	}
-	match, err := regexp.MatchString("[^s]+?[^s]+&[^s]+", cookie.Value)
-	if err == nil && match {
-		cookieValue := cookie.Value
-		cookieVal := strings.Split(cookieValue, "&")[0]
-		values := strings.Split(cookieVal, "?")
-		cookieHash := strings.Split(cookieValue, "&")[1]
-		err = bcrypt.CompareHashAndPassword([]byte(cookieHash), []byte(values[0]+values[1]))
-		if err != nil {
-			return "", errors.New("Wrong or Modified Cookie")
-		}
-		phone = values[1]
-	} else {
+	if !strings.Contains(cookie.Value, "!") {
 		return "", errors.New("Invalid Cookie")
 	}
+	if !strings.Contains(cookie.Value, "&") {
+		return "", errors.New("Invalid Cookie")
+	}
+	if !strings.Contains(cookie.Value, "?") {
+		return "", errors.New("Invalid Cookie")
+	}
+	cookieValue := strings.Split(R(cookie.Value), "!")[0]
+	cookieVal := strings.Split(cookieValue, "&")[0]
+	values := strings.Split(cookieVal, "?")
+	cookieHash := strings.Split(cookieValue, "&")[1]
+	err = bcrypt.CompareHashAndPassword([]byte(cookieHash), []byte(values[0]+values[1]))
+	if err != nil {
+		return "", errors.New("Wrong or Modified Cookie")
+	}
+	phone = values[1]
 	return phone, nil
+}
+
+func R(input string) string {
+	replacer := strings.NewReplacer("ä", "ae", "ö", "oe", "ü", "ue", "ß", "ss")
+	return replacer.Replace(input)
 }
 
 func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.User, error) {
@@ -626,6 +643,35 @@ func check(response http.ResponseWriter, request *http.Request, err error) *temp
 		return t
 	}
 	return nil
+}
+
+func adminLoggedin(response http.ResponseWriter, request *http.Request, adminType string) bool {
+	cookie, err := request.Cookie("cookie")
+	if err != nil {
+		return false
+	}
+	values := cookie.Value
+	if !strings.Contains(values, "!") {
+		return false
+	}
+	if !strings.Contains(values, "&") {
+		return false
+	}
+	if !strings.Contains(values, "?") {
+		return false
+	}
+	if strings.Split(values, "!")[1] == adminType {
+		cookieValue := strings.Split(R(cookie.Value), "!")[0]
+		cookieVal := strings.Split(cookieValue, "&")[0]
+		valuesCookie := strings.Split(cookieVal, "?")
+		cookieHash := strings.Split(cookieValue, "&")[1]
+		err = bcrypt.CompareHashAndPassword([]byte(cookieHash), []byte(valuesCookie[0]+valuesCookie[1]))
+		if err != nil {
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 // check every method with this

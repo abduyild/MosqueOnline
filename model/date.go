@@ -21,6 +21,7 @@ type Date struct {
 
 type Prayer struct {
 	Name          PrayerName `bson:"Name"`
+	Available     bool       `bson:"Available"`
 	CapacityMen   int        `bson:"CapacityMen"`
 	CapacityWomen int        `bson:"CapacityWomen"`
 	Users         []User     `bson:"Users"`

@@ -25,7 +25,8 @@
       {{end}} </h3>
       <h4>Angemeldete Benutzer:</h4>
       {{range .Users}}
-        {{.FirstName}} {{.LastName}} <br>
+      {{.FirstName}} {{.LastName}}, {{.Phone}}, {{.Email}} <br>
+        Geldi | Anwesend<input type="checkbox" disabled="disabled"  {{if .Attended}} checked {{end}}><br>
       {{end}}
     {{end}}
   {{end}}

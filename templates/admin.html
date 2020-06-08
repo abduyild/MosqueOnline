@@ -85,9 +85,27 @@
   Kapazität Männer: <input type="number" name="cap-m" required="required">
   <br>
   Kapazität Frauen: <input type="number" name="cap-w" required="required">
-  <br> <br> <br>
+  <br>
+  <h3>Sunulan Namazlar | Angebotene Gebete</h3>
+  <input type="checkbox" name="prayer" value="fajr">
+  <label for="fajr">Sabah | Fajr</label>
+  <br>
+  <input type="checkbox" name="prayer" value="dhuhr">
+  <label for="dhuhr">Ögle | Dhuhr</label>
+  <br>
+  <input type="checkbox" name="prayer" value="asr">
+  <label for="asr">Ikindi | Asr</label>
+  <br>
+  <input type="checkbox" name="prayer" value="maghrib">
+  <label for="maghrib">Aksam | Maghrib</label>
+  <br>
+  <input type="checkbox" name="prayer" value="ishaa">
+  <label for="ishaa">Yatsi | Ishaa</label>
+  <br>
+
+  <br> <br>
   <input id="submit" type="submit" value="Eintragen">
-</form>
+</form><br><br><br><br><br>
 
 {{- else if .DeleteMosque -}}
 
@@ -109,6 +127,37 @@
 </select>
 <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
 
+{{- else if .RegisterAdmin -}}
+
+<form method="post" action="/registerAdmin">
+  Name: <input type="text" name="name" required="required">
+  <br>
+  Email: <input type="email" name="email" required="required">
+  <br>
+  Password: <input type="text" name="password" required="required">
+  <br> <br> <br>
+  <input id="submit" type="submit" value="Eintragen">
+</form>
+
+{{- else if .RegisterMosqueAdmin -}}
+
+<form method="post" action="/registerMosqueAdmin">
+  Email: <input type="email" name="email" required="required">
+  <br>
+  Password: <input type="text" name="password" required="required">
+  <br>
+  <select id="register-mosqueadmin" name="register-mosqueadmin"  placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+    <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+    {{ range .Mosques}}
+    <option value="{{.Name}}">{{.Name}}, Ort: {{.City}}</option>
+    {{ end }}
+  </select>
+  <input type="button" class="button" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+  <br> <br> <br>
+  <input id="submit" type="submit" value="Eintragen">
+</form>
+
 {{- end -}}
+
 
 </html>

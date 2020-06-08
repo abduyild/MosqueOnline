@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    window.addEventListener("pageshow", function(event) {
+      var historyTraversal = event.persisted ||
+        (typeof window.performance != "undefined" &&
+          window.performance.navigation.type === 2);
+      if (historyTraversal) {
+        // Handle page restore.
+        window.location.reload();
+      }g
+    });
+  </script>
+  <style>
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>{{with .Mosque}}{{.Name}}{{end}}</h1>
+  {{with .Date}}
+
+  <h2>Heutige Anmeldungen, Datum: {{.Date}}</h2>
+    <h3>Zeige Anmeldungen für:</h3>
+    {{range .Prayer}}
+    {{ if .Available }}
+      <a href="/confirmVisitors?prayer={{.Name}}"><input type="button" value="{{if (eq .Name 1)}} Sabah | Fajr {{else if (eq .Name 2)}} Ögle | Dhuhr {{else if (eq .Name 3)}} Ikindi | Asr {{else if (eq .Name 4)}} Aksam | Maghrib {{else if (eq .Name 5)}} Yatsi | Ishaa {{end}}"></a><br><br>
+    {{else}}
+      <h4>Gizlenilmis Vakit icin hala Kayitlar mevcut!</h4>
+      <h4>Es befinden sich derzeit noch Anmeldungen für ein nicht mehr verfügbares Gebet!</h4>
+      {{if (eq .Name 1)}} Gebet: Sabah | Fajr
+      {{else if (eq .Name 2)}} Gebet: Ögle | Dhuhr
+      {{else if (eq .Name 3)}} Gebet: Ikindi | Asr
+      {{else if (eq .Name 4)}} Gebet: Aksam | Maghrib
+      {{else if (eq .Name 5)}} Gebet: Yatsi | Ishaa
+      {{end}} <br>
+        {{range .Users}}
+          {{.FirstName}} {{.LastName}}, {{.Phone}}<br>
+          {{.Email}}<br><br><br>
+        {{end}}
+    {{end}}
+    {{end}}
+  {{end}}
+  <br>
+  <h2>Istediginiz Islemi secin | Wählen Sie Ihre gewünschte Aktion</h2>
+  <form action="/mosqueAction">
+    <button type="submit" name="action" value="editprayers">Sunulan namaz vakitleri degistir | Bearbeite angebotene Gebete</button> <br>
+    <br>
+    <!--Derzeit nicht implementiert <button type="submit" name="action" value="editcapacity">Camii sil | Lösche Moschee</button> <br>-->
+    <a href="/getRegistrations"><input type="button" value="Bütün kayitlari göster | Zeige alle Anmeldungen"></a><br>
+
+    <br>
+    <button type="submit" name="action" value="getdate">Belirli Tarih icin kayitlari göster | Zeige Anmeldungen für bestimmten Tag</button> <br>
+    <br>
+  </form>
+</body>
+
+
+</html>

@@ -18,19 +18,16 @@
 </head>
 
 <body>
-{{- if .EditPrayers -}}
 
-{{- else if .EditCapacity -}}
-
-{{- else if .GetRegistrations -}}
-<form action="/getRegistrations">
-    <input type="submit" value="Alle Anmeldungen" />
-</form>
-{{- else if .GetDate -}}
-<form method="post" action="/getRegistrationsDate">
-  Date:
-  <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input>
-  <input type="submit" value="submit">
-</form>
-{{- end -}}
+  {{- if .EditPrayers -}}
+  todo
+  {{- else if .EditCapacity -}}
+  <h1>Currently not supported</h1>
+  {{- else if .GetDate -}}
+  <form method="post" action="/getRegistrationsDate">
+    Date:
+    <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input>
+    <input type="submit" value="submit">
+  </form>
+  {{- end -}}
 </body>
