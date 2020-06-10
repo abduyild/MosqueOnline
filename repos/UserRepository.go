@@ -3,17 +3,21 @@ package repos
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var dataBase *mongo.Database
 
+var clientEncryption *mongo.ClientEncryption
+var dataKeyID primitive.Binary
+
+const localMasterKey = "MoqsueOnline2020Corona"
+
 func Init() {
-	var localMasterKey []byte // This must be the same master key that was used to create the encryption key.
 	kmsProviders := map[string]map[string]interface{}{
 		"local": {
 			"key": localMasterKey,
@@ -40,11 +44,6 @@ func Init() {
 	}
 	defer func() { client.Disconnect(context.TODO()) }()
 
-	// Get a handle to the application collection and clear existing data.
-	//dataBase = client.Database("MosqueOnline")
-	coll := client.Database("test").Collection("coll")
-	_ = coll.Drop(context.TODO())
-
 	// Set up the key vault for this example.
 	keyVaultColl := client.Database(keyVaultDBName).Collection(keyVaultCollName)
 	_ = keyVaultColl.Drop(context.TODO())
@@ -63,27 +62,28 @@ func Init() {
 		panic(err)
 	}
 
+	//irgendwo zentrral cachen statt jedes mal neue
 	// Create the ClientEncryption object to use for explicit encryption/decryption. The Client passed to
 	// NewClientEncryption is used to read/write to the key vault. This can be the same Client used by the main
 	// application.
 	clientEncryptionOpts := options.ClientEncryption().
 		SetKmsProviders(kmsProviders).
 		SetKeyVaultNamespace(keyVaultNamespace)
-	clientEncryption, err := mongo.NewClientEncryption(client, clientEncryptionOpts)
+	clientEncryption, err = mongo.NewClientEncryption(client, clientEncryptionOpts)
 	if err != nil {
 		panic(err)
 	}
 	defer func() { _ = clientEncryption.Close(context.TODO()) }()
 
-	// Create a new data key for the encrypted field.
-	dataKeyOpts := options.DataKey().SetKeyAltNames([]string{"go_encryption_example"})
-	dataKeyID, err := clientEncryption.CreateDataKey(context.TODO(), "local", dataKeyOpts)
+	dataKeyOpts := options.DataKey().SetKeyAltNames([]string{"mosqueonline"})
+	dataKeyID, err = clientEncryption.CreateDataKey(context.TODO(), "local", dataKeyOpts)
 	if err != nil {
 		panic(err)
 	}
+}
 
-	// Create a bson.RawValue to encrypt and encrypt it using the key that was just created.
-	rawValueType, rawValueData, err := bson.MarshalValue("123456789")
+func EncryptField(val interface{}) primitive.Binary {
+	rawValueType, rawValueData, err := bson.MarshalValue(val)
 	if err != nil {
 		panic(err)
 	}
@@ -95,17 +95,7 @@ func Init() {
 	if err != nil {
 		panic(err)
 	}
-
-	// Insert a document with the encrypted field and then find it. The FindOne call will automatically decrypt the
-	// field in the document.
-	if _, err = coll.InsertOne(context.TODO(), bson.D{{"encryptedField", encryptedField}}); err != nil {
-		panic(err)
-	}
-	var foundDoc bson.M
-	if err = coll.FindOne(context.TODO(), bson.D{}).Decode(&foundDoc); err != nil {
-		panic(err)
-	}
-	fmt.Printf("Decrypted document: %v\n", foundDoc)
+	return encryptedField
 }
 
 // TODO: istead integers use constants like const admin for getting admin collection

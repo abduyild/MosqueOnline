@@ -105,7 +105,8 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 
 			//usr := model.User{firstName, email, string(hash)}
 
-			usr := model.User{sex, firstName, lastName, email, phone, false, []model.RegisteredPrayer{}}
+			encFirstName := repos.EncryptField(firstName)
+			usr := model.User{sex, string(encFirstName.Data), lastName, email, phone, false, []model.RegisteredPrayer{}}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage

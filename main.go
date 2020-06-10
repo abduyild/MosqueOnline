@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"pi-software/common"
+	"pi-software/repos"
 
 	"github.com/gorilla/mux"
 )
@@ -11,6 +12,7 @@ var router = mux.NewRouter()
 
 // Functions for handling pagecalls like localhost:8080/login
 func main() {
+	repos.Init()
 	router.HandleFunc("/register", common.RegisterPageHandler).Methods("GET")
 	router.HandleFunc("/register", common.RegisterHandler).Methods("POST")
 
