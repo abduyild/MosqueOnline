@@ -1,0 +1,73 @@
+{{template "base" .}}
+
+{{define "scripts"}}
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+{{end}}
+
+{{define "title"}}
+  Login
+{{end}}
+
+{{define "main"}}
+
+  <div class="accordion" id="login">
+    <div class="card">
+      <div class="card-header" id="User">
+        <h2 class="mb-0">
+          <button class="btn btn-link btn-block text-left" type="button" data-toggle="collapse" data-target="#collapseUser" aria-expanded="true" aria-controls="collapseUser">
+            Üyeler icin Giris
+          </button>
+        </h2>
+      </div>
+
+      <div id="collapseUser" class="collapse show" aria-labelledby="User" data-parent="#login">
+        <div class="card-body">
+          <form method="post" action="/login">
+            <label for="email">E-Mail Adresi | E-Mail Adresse</label>
+            <br>
+            <input type="email" id="email" name="email">
+            <br><br><br>
+
+            <label for="phone">Telefon Numarasi | Telefon Nummer</label>
+            <br>
+            <input type="text" id="phone" name="phone">
+            <br><br><br>
+            <input type="hidden" name="type" value="user">
+            <button type="submit" class="btn btn-secondary">Giris Yap | Anmelden</button>
+            <br>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" id="Admin">
+        <h2 class="mb-0">
+          <button class="btn btn-link btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#collapseAdmin" aria-expanded="false" aria-controls="collapseAdmin">
+            Yöneticiler icin Giris
+          </button>
+        </h2>
+      </div>
+      <div id="collapseAdmin" class="collapse" aria-labelledby="Admin" data-parent="#login">
+        <div class="card-body">
+          <form method="post" action="/login">
+            <label for="email">E-Mail Adresi | E-Mail Adresse</label>
+            <br>
+            <input type="email" id="email" name="email">
+            <br><br><br>
+
+            <label for="password">Sifre | Passwort</label>
+            <br>
+            <input type="password" id="password" name="password">
+            <br><br><br>
+
+            <input type="hidden" name="type" value="admin">
+            <button type="submit" class="btn btn-secondary">Giris Yap | Anmelden</button>
+            <br>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{{end}}

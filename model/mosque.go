@@ -9,5 +9,5 @@ type Mosque struct {
 	MaxCapW int    `bson:"MaxCapW"`
 	City    string `bson:"City"`
 	Date    []Date `bson:"Date"`
-	Active  bool   `bson:"Active""`
+	Active  bool   `bson:"Active"`
 }

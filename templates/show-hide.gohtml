@@ -1,0 +1,125 @@
+{{template "base" .}}
+{{define "scripts"}}{{end}}
+{{define "title"}}
+  Zeige | Verstecke Moschee
+{{end}}
+
+{{define "main"}}
+  <h3>Secdiginiz Camii | Ausgewählte Moschee</h3>
+  <div class="card m-2">
+    <div class="card-body">
+      <h5 class="card-title">{{.Name}}</h5>
+      <p class="card-text">
+        <br>{{.Street}}
+        <br>
+        {{.PLZ}},
+        {{.City}}
+      </p>
+    </div>
+  </div>
+
+  {{ if .Active }}
+
+    <div class="card m-2">
+      <div class="card-body">
+        <h5 class="card-title">Suanki Durum | Derzeitiger Status</h5>
+        <p class="card-text">
+          <p>Kayitlara acik | Offen für Anmeldungen</p>
+        </p>
+      </div>
+    </div>
+
+    <div class="card m-2">
+      <div class="card-body">
+        <h5 class="card-title">Onaydan sonra Durum | Status nach Bestätigung</h5>
+        <p class="card-text">
+          <p>Kayitlara kapali | Anmeldungen geschlossen</p>
+        </p>
+      </div>
+    </div>
+
+    {{if not .Date}}
+    {{else}}
+      <div class="card m-2">
+        <div class="card-body">
+          <h5 class="card-title">Kayitlar bulunmakta | Es existieren Anmeldungen</h5>
+          <h6 class="card-subtitle mb-2 text-muted">Onaylandiktan sonra hepsi silinecek | Nach der Bestätigung werden alle gelöscht!</h6>
+          <p class="card-text">
+
+            {{range .Date}}
+              <dl class="row">
+                <dt class="col-sm-3">Datum</dt>
+                <dd class="col-sm-9">{{.Date}}</dd>
+
+                <dt class="col-sm-3">Gebet</dt>
+                <dd class="col-sm-9">
+                  {{range .Prayer}}
+                    {{if (eq .Name 1)}}
+                      Sabah | Fajr
+                    {{else if (eq .Name 2)}}
+                      Ögle | Dhuhr
+                    {{else if (eq .Name 3)}}
+                      Ikindi | Asr
+                    {{else if (eq .Name 4)}}
+                      Aksam | Maghrib
+                    {{else if (eq .Name 5)}}
+                      Yatsi | Ishaa
+                    {{end}}
+                    <dl class="row">
+                      <dt class="col-sm-4">Angemeldete Benutzer</dt>
+                      <dd class="col-sm-8">
+                        {{range .Users}}
+                          <p>{{.FirstName}}
+                            {{.LastName}}</p>
+                        {{end}}
+                      </dd>
+                    </dl>
+                  {{end}}
+                </dd>
+              </dl>
+            {{end}}
+          </p>
+        </p>
+      </div>
+    </div>
+  {{end}}
+
+{{else}}
+
+  <div class="card m-2">
+    <div class="card-body">
+      <h5 class="card-title">Suanki Durum | Derzeitiger Status</h5>
+      <p class="card-text">
+        <p>Kayitlara kapali | Anmeldungen geschlossen</p>
+      </p>
+    </div>
+  </div>
+
+  <div class="card m-2">
+    <div class="card-body">
+      <h5 class="card-title">Onaydan sonra Durum | Status nach Bestätigung</h5>
+      <p class="card-text">
+        <p>Kayitlara acik | Offen für Anmeldungen</p>
+      </p>
+    </div>
+  </div>
+
+{{end}}
+
+<form action="/show-hide">
+  <label for="confirm">Durumu degistirmek istiyormusunuz? |
+    <br>
+    Möchten Sie den Status ändern?</label>
+  <div class="col mb-3">
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="radio" id="cYes" name="confirm" value="yes">
+      <label class="form-check-label" for="cYes">Evet | Ja</label>
+    </div>
+    <div class="form-check form-check-inline">
+      <input class="form-check-input" type="radio" id="cNo" name="confirm" value="no">
+      <label class="form-check-label" for="cNo">Hayir | Nein</label>
+    </div>
+  </div>
+  <input type="submit" class="btn btn-outline-dark" value="Sec | Auswählen"></input>
+</form>
+{{end}}

@@ -1,0 +1,203 @@
+{{template "base" .}}
+{{define "scripts"}}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha256-ze/OEYGcFbPRmvCnrSeKbRTtjG4vGLHXgOqsyLFTRjg=" crossorigin="anonymous"/>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js" integrity="sha256-+C0A5Ilqmu4QcSPxrlGpaZxJ04VjsRjKu+G82kl5UJk=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+{{end}}
+
+{{define "title"}}
+  Admin
+{{end}}
+
+{{define "main"}}
+  <div class="accordion" id="adminAction">
+    <div class="card">
+      <div class="card-header" id="AddMosque">
+        <h2 class="mb-0">
+          <button class="btn btn-outline-dark btn-block text-left" type="button" data-toggle="collapse" data-target="#colAddM" aria-expanded="true" aria-controls="colAddM">
+            Camii ekle | Füge Moschee hinzu
+          </button>
+        </h2>
+      </div>
+
+      <div id="colAddM" class="collapse" aria-labelledby="AddMosque" data-parent="#adminAction">
+        <div class="card-body">
+          <form method="post" action="/addMosque">
+            <div class="form-group row">
+              <label for="name" class="col-sm-4 col-form-label">Camii Ismi | Moschee Name</label>
+              <div class="col-sm-8">
+                <input type="text" class="form-control" id="name" name="name" required="required">
+              </div>
+            </div>
+            <div class="form-group row">
+              <div class="col-sm-4">Sunulan Namazlar | Angebotene Gebete</div>
+              <div class="col-sm-8">
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="inlineCheckbox1" name="prayer" value="fajr">
+                  <label class="form-check-label" for="inlineCheckbox1">Sabah | Fajr</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="inlineCheckbox2" name="prayer" value="dhuhr">
+                  <label class="form-check-label" for="inlineCheckbox2">Ögle | Dhuhr</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="inlineCheckbox3" name="prayer" value="asr">
+                  <label class="form-check-label" for="inlineCheckbox3">Ikindi | Asr</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="inlineCheckbox4" name="prayer" value="maghrib">
+                  <label class="form-check-label" for="inlineCheckbox4">Aksam | Maghrib</label>
+                </div> <br><br>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="inlineCheckbox5" name="prayer" value="ishaa">
+                  <label class="form-check-label" for="inlineCheckbox5">Yatsi | Ishaa</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="inlineCheckbox6" name="prayer" value="cuma">
+                  <label class="form-check-label" for="inlineCheckbox6">Cuma | Freitagsgebet</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="inlineCheckbox4" name="prayer" value="bayram">
+                  <label class="form-check-label" for="inlineCheckbox7">Bayram | Eid</label>
+                </div>
+              </div>
+            </div>
+            <div class="form-group row">
+              <div class="col-sm-4">Adres | Straße</div>
+              <div class="col-sm-8">
+                <input type="text" class="form-control" id="street" name="street" required="required">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="plz">PLZ</label>
+                <input type="number" class="form-control" id="plz" name="plz" required="required" min="0">
+              </div>
+              <div class="form-group col-md-6">
+                <label for="city">Sehir | Stadt</label>
+                <input type="text" class="form-control" id="city" name="city" required="required">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                <label for="cap-m">Kapasite Erkek | Kapazität Männer</label>
+                <input type="number" class="form-control" id="cap-m" name="cap-m" required="required" min="0">
+              </div>
+              <div class="form-group col-md-6">
+                <label for="cap-w">Kapasite Kadin | Kapazität Frauen</label>
+                <input type="number" class="form-control" id="cap-w" name="cap-w" required="required" min="0">
+              </div>
+            </div>
+            <div class="form-group row">
+              <div class="col-sm-8">
+                <button type="submit" class="btn btn-outline-dark">Ekle | Eintragen</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" id="DeleteMosque">
+        <h2 class="mb-0">
+          <form>
+            <button class="btn btn-outline-dark btn-block text-left collapsed" name="action" type="submit" value="deletemosque">
+              Camii sil | Lösche Moschee
+            </button>
+          </form>
+        </h2>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" id="ShowMosque">
+        <h2 class="mb-0">
+          <form action="/admin">
+            <button class="btn btn-outline-dark btn-block text-left collapsed" name="action" type="submit" value="showmosque">
+              Camii göster / sakla | Zeige / Verstecke Moschee
+            </button>
+          </form>
+        </h2>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" id="RegisterAdmin">
+        <h2 class="mb-0">
+          <button class="btn btn-outline-dark btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#colRegA" aria-expanded="false" aria-controls="colRegA">
+            Yönetici ekle | Füge Admin hinzu
+          </button>
+        </h2>
+      </div>
+      <div id="colRegA" class="collapse" aria-labelledby="RegisterAdmin" data-parent="#adminAction">
+        <div class="card-body">
+
+          <form>
+            <div class="form-group row">
+              <label for="name" class="col-sm-3 col-form-label">Camii ismi | Moscheename</label>
+              <div class="col-sm-9">
+                <input type="text" class="form-control" id="name" name="name" required="required">
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="email" class="col-sm-3 col-form-label">Email</label>
+              <div class="col-sm-9">
+                <input type="email" class="form-control" id="email" name="email" required="required">
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="inputPassword3" class="col-sm-3 col-form-label">Sifre | Passwort</label>
+              <div class="col-sm-9">
+                <input type="password" class="form-control" id="inputPassword3" name="password" required="required">
+              </div>
+            </div>
+            <input class="btn btn-outline-dark" id="submit" type="submit" value="Eintragen">
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" id="RegisterMosqueAdmin">
+        <h2 class="mb-0">
+          <button class="btn btn-outline-dark btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#colRegM" aria-expanded="false" aria-controls="colRegM">
+            Cammii Yönetici ekle | Füge Moscheeverwalter hinzu
+          </button>
+        </h2>
+      </div>
+      <div id="colRegM" class="collapse" aria-labelledby="RegisterMosqueAdmin" data-parent="#adminAction">
+        <div class="card-body">
+
+          <form method="post" action="/registerMosqueAdmin">
+            <div class="form-group row">
+              <label for="email" class="col-sm-3 col-form-label">Email</label>
+              <div class="col-sm-9">
+                <input type="email" class="form-control" id="email" name="email" required="required">
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="inputPassword3" class="col-sm-3 col-form-label">Sifre | Passwort</label>
+              <div class="col-sm-9">
+                <input type="password" class="form-control" id="inputPassword3" name="password" required="required">
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="name" class="col-sm-3 col-form-label">Camii secin | Wähle Moschee</label>
+              <div class="col-sm-9">
+                <select id="mosqueadmin" class="form-control" name="register-mosqueadmin" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+                  <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+                  {{ range .Mosques}}
+                    <option value="{{.Name}}">{{.Name}}, Ort:
+                      {{.City}}</option>
+                  {{ end }}
+                </select>
+              </div>
+            </div>
+            <input class="btn btn-outline-dark" id="submit" type="submit" value="Eintragen">
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{{end}}

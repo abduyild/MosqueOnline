@@ -1,0 +1,57 @@
+{{template "base" .}}
+{{define "scripts"}}{{end}}
+
+{{define "title"}}
+  Registrieren
+{{end}}
+
+{{define "main"}}
+  <form>
+    <fieldset class="form-group">
+      <div class="row">
+        <legend class="col-form-label col-sm-2 pt-0">Cinsiyetinizi Secin | Wählen Sie Ihr Geschlecht</legend>
+        <div class="col-sm-10">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="sex" id="sexm" value="Men" checked="checked">
+            <label class="form-check-label" for="sexm">
+              Erkek | Mann
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="sex" id="sexw" value="Women">
+            <label class="form-check-label" for="sexw">
+              Kadin | Frau
+            </label>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+    <div class="form-group row">
+        <label for="phone" class="col-sm-2 col-form-label">Isim | Vorname</label>
+          <div class="col">
+        <input type="text" class="form-control" name="firstname" id="firstname">
+      </div>
+        <label for="phone" class="col-sm-2 col-form-label">Soyisim | Nachname</label>
+        <div class="col">
+        <input type="text" class="form-control" name="lastname" id="lastname">
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="email" class="col-sm-2 col-form-label">Email</label>
+      <div class="col-sm-10">
+        <input type="email" name="email" required="required" class="form-control" id="email">
+      </div>
+    </div>
+    <div class="form-group row">
+      <label for="phone" class="col-sm-2 col-form-label">Telefon</label>
+      <div class="col-sm-10">
+        <input type="text" name="phone" required="required" class="form-control" id="phone" placeholder="01746372791">
+      </div>
+    </div>
+    <div class="form-group row">
+      <div class="col-sm-10">
+        <button type="submit" class="btn btn-outline-dark">Kayit ol | Registrieren</button>
+      </div>
+    </div>
+  </form>
+{{end}}

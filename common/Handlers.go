@@ -61,8 +61,8 @@ var cookieHandler = securecookie.New(
 
 // Function for handling the Webpage call with GET
 func RegisterPageHandler(response http.ResponseWriter, request *http.Request) {
-	var body, _ = helpers.LoadFile("templates/register.html")
-	fmt.Fprintf(response, body)
+	t, _ := template.ParseFiles("templates/register.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
+	t.Execute(response, nil)
 }
 
 // Function for handling the register action submitted by user
@@ -111,9 +111,11 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			// Change redirect target to LoginPage
 			http.Redirect(response, request, "/", 302)
 		} else {
+			// TODO: checkError
 			fmt.Fprintln(response, "User already exists")
 		}
 	} else {
+		// TODO: checkError
 		fmt.Fprintln(response, "This fields can not be blank!")
 	}
 }
@@ -172,7 +174,7 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		// function for redirecting
 		http.Redirect(response, request, redirectTarget, 302)
 	} else {
-		t, _ := template.ParseFiles("templates/login.html")
+		t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 		t.Execute(response, nil)
 	}
 }
@@ -227,13 +229,13 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 			// function for redirecting
 			http.Redirect(response, request, redirectTarget, 302)
 		} else {
-			t, _ := template.ParseFiles("templates/login.html")
+			t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 			t.Execute(response, nil)
 		}
 		// function for redirecting
 		http.Redirect(response, request, redirectTarget, 302)
 	} else {
-		t, _ := template.ParseFiles("templates/login.html")
+		t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 		t.Execute(response, nil)
 	}
 }
@@ -242,14 +244,29 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		user, err := GetUserAsUser(response, request)
 		if err != nil {
-			http.Redirect(response, request, "/login", 302)
+			response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 			reset()
 		} else {
-			t, _ := template.ParseFiles("templates/index.html")
-			t.Execute(response, user)
+			var tUser model.User // for only adding the actual prayers, not past ones
+			tUser = user
+			var regP []model.RegisteredPrayer
+			tUser.RegisteredPrayers = regP
+			date := time.Now()
+			today := strconv.Itoa(date.Day()) + "." + strconv.Itoa(int(date.Month())) + "." + strconv.Itoa(date.Year())
+			reachedToday := false
+			for _, reg := range user.RegisteredPrayers {
+				if today == reg.Date {
+					reachedToday = true
+				}
+				if reachedToday {
+					regP = append(regP, reg)
+				}
+			}
+			tUser.RegisteredPrayers = regP
+			t, _ := template.ParseFiles("templates/index.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+			t.Execute(response, tUser)
 		}
 	} else {
-		http.Redirect(response, request, "/login", 401)
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
@@ -264,7 +281,7 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 		mosque := request.URL.Query().Get("mosque")
 		if mosque == "" {
 			choo.Mosques = getMosques(response, request)
-			t, _ := template.ParseFiles("templates/choose.html")
+			t, _ := template.ParseFiles("templates/choose.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 			t.Execute(response, choo)
 			choo.SetMosque = true
 		} else {
@@ -273,7 +290,7 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 				for _, mosq := range choo.Mosques {
 					if mosq.Name == mosque {
 						choosenMosque = mosq
-						t, _ := template.ParseFiles("templates/chooseDate.html")
+						t, _ := template.ParseFiles("templates/chooseDate.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 						t.Execute(response, choo)
 						return
 					}
@@ -296,7 +313,7 @@ func Choosen(response http.ResponseWriter, request *http.Request) {
 		bson.D{
 			{"Name", mosque},
 		}).Decode(&choosenMosque)
-	t, _ := template.ParseFiles("templates/chooseDate.html")
+	t, _ := template.ParseFiles("templates/chooseDate.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 	t.Execute(response, choosenMosque)
 	//http.Redirect(response, request, "/chooseDate", 302)
 }
@@ -370,7 +387,7 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 				choo.Prayer = append(choo.Prayer, pray)
 			}
 		}
-		t, _ := template.ParseFiles("templates/choosePrayer.html")
+		t, _ := template.ParseFiles("templates/choosePrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, choo)
 		choo.SetDate = true
 	} else {
@@ -408,7 +425,7 @@ func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
 			}
 		}
 		choo.DateString = choo.Date.Date.Format(time.RFC3339)
-		t, _ := template.ParseFiles("templates/confirm.html")
+		t, _ := template.ParseFiles("templates/confirm.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, choo)
 	} else {
 		http.Redirect(response, request, "/login", 401)
@@ -462,10 +479,10 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			}
 			collection, _ = repos.GetDBCollection(0)
 			registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
-			err1 := collection.FindOne(context.TODO(), bson.D{
+			result := collection.FindOne(context.TODO(), bson.D{
 				{"Phone", user.Phone},
 				{"RegisteredPrayers.RpId", registered.RpId}})
-			if err1 != nil {
+			if result.Err() != nil {
 				collection, _ = repos.GetDBCollection(1)
 				registered.DateIndex = index
 				_, error := collection.UpdateOne(context.TODO(),
@@ -501,9 +518,8 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 				choo = *new(choose)
 				http.Redirect(response, request, "/", 302)
 			} else {
-				t, _ := template.ParseFiles("templates/errorpage.html")
-				err = errors.New("Bu namaz icin gecerli bir kayidiniz bulunmakta! Sie besitzen bereits eine gültige Anmeldung für dieses Gebet")
-				t.Execute(response, err)
+				t, _ := template.ParseFiles("templates/errorpage.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+				t.Execute(response, errors.New("Bu namaz icin gecerli bir kayidiniz bulunmakta! Sie besitzen bereits eine gültige Anmeldung für dieses Gebet"))
 			}
 		} else {
 			//TODO delete all temp files method
