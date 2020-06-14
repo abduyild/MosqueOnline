@@ -1,0 +1,185 @@
+{{template "base" .}}
+{{define "scripts"}}
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $(":checkbox").each(function () {
+        $(this).add(this.nextSibling).add(this.nextSibling.nextSibling).wrapAll("<label class='attendant'></label>")
+      })
+      $("#attendantsSearch").keyup(function () {
+        var re = new RegExp($(this).val(), "i")
+        $('.attendant').each(function () {
+          var text = $(this).text(),
+            matches = !!text.match(re);
+          $(this).toggle(matches)
+        })
+      })
+    });
+  </script>
+{{end}}
+{{define "title"}}
+  Moscheeübersicht
+{{end}}
+{{define "main"}}
+  {{$name := ""}}
+  {{$capm := 0}}
+  {{$capw := 0}}
+  {{with .Mosque}}
+    {{$name = .Name}}
+    {{$capm = .MaxCapM}}
+    {{$capw = .MaxCapW}}
+
+    <div class="card m-2" style="width: 18rem;">
+      <div class="card-body">
+        <h5 class="card-title">{{$name}}</h5>
+        <p class="card-text">
+          {{.Street}}
+          <br>
+          {{.PLZ}},
+          {{.City}}
+        </p>
+      </div>
+    </div>
+  {{end}}
+  {{with .Date}}
+    {{$date := .Date}}
+    <h3>Datum:
+      {{$date}}</h3>
+    <div class="accordion m-2" id="getAttendants">
+      {{if not .Prayer}}
+      <h5>Bugün icin Kayitlar bulunmamakta | Für heute sind keine Anmeldungen vorhanden</h5>
+      {{else}}
+      {{range .Prayer}}
+        {{$prayer := .Name}}
+        <div class="card">
+          <div class="card-header" id="prayer{{$prayer}}">
+            <h2 class="mb-0">
+              <button class="btn btn-block text-left btn-light" type="button" data-toggle="collapse" data-target="#collapse{{$prayer}}" aria-expanded="true" aria-controls="collapse{{$prayer}}">
+                Angemeldet für
+                {{if (eq $prayer  1)}}
+                  Gebet: Sabah | Fajr
+                {{else if (eq $prayer  2)}}
+                  Gebet: Ögle | Dhuhr
+                {{else if (eq $prayer  3)}}
+                  Gebet: Ikindi | Asr
+                {{else if (eq $prayer  4)}}
+                  Gebet: Aksam | Maghrib
+                {{else if (eq $prayer  5)}}
+                  Gebet: Yatsi | Ishaa
+                {{else if (eq $prayer  6)}}
+                  Gebet: Cuma | Freitagsgebet
+                {{else if (eq $prayer  7)}}
+                  Gebet: Bayram | Eid
+                {{end}}
+              </button>
+            </h2>
+          </div>
+          <div id="collapse{{$prayer}}" class="collapse" aria-labelledby="prayer{{$prayer}}" data-parent="#getAttendants">
+            <div class="card-body text-dark">
+              {{ if .Available }}
+                <input type="text" autocomplete="off" id="attendantsSearch" placeholder="Suche nach Anmeldung.."><br><br>
+                <div id="confirmVisitor">
+                  <form action="/confirmVisitors">
+                    {{range .Users}}
+                      <div class="form-check">
+                        <input type="hidden" name="data" value="{{$name}}!{{$prayer}}">
+                        <input class="form-check-input" type="checkbox" name="visitor" id="visitor{{.Phone}}" value="{{.Phone}}" autocomplete="off" {{if .Attended}} checked="checked" {{end}}>
+                        <label class="form-check-label" for="visitor{{.Phone}}">{{.FirstName}}
+                          {{.LastName}},
+                          {{.Phone}}</label>
+                      </div>
+                    {{end}}
+
+                    <br><br>
+                    <input type="submit" class="btn btn-outline-dark" value="Gelenleri Kaydet | Speichere Besucher">
+                    <br><br>
+                  </form>
+                </div>
+              {{else}}
+                <h4>Gizlenilmis Vakit icin hala Kayitlar mevcut!
+                  <br>
+                  Es befinden sich derzeit noch Anmeldungen für ein nicht mehr verfügbares Gebet!</h4>
+                <h5>
+                  {{if (eq $prayer  1)}}
+                    Gebet: Sabah | Fajr
+                  {{else if (eq $prayer  2)}}
+                    Gebet: Ögle | Dhuhr
+                  {{else if (eq $prayer  3)}}
+                    Gebet: Ikindi | Asr
+                  {{else if (eq $prayer  4)}}
+                    Gebet: Aksam | Maghrib
+                  {{else if (eq $prayer  5)}}
+                    Gebet: Yatsi | Ishaa
+                  {{else if (eq $prayer  6)}}
+                    Gebet: Cuma | Freitagsgebet
+                  {{else if (eq $prayer  7)}}
+                    Gebet: Bayram | Eid{{end}}
+                </h5>
+                <br>
+                {{range .Users}}
+                  {{.FirstName}}
+                  {{.LastName}}
+                  <br>
+                {{end}}
+              {{end}}
+            </div>
+          </div>
+        </div>
+      {{end}}
+    {{end}}
+    </div>
+    <br>
+  {{end}}
+  <h3>Istediginiz Islemi secin | Wählen Sie Ihre gewünschte Aktion</h3>
+  <a href="/editPrayers"><button class="btn btn-outline-dark m-3" type="button">Sunulan namaz vakitleri degistir | Bearbeite angebotene Gebete</button></a><br>
+  <a href="/getRegistrations"><button class="btn btn-outline-dark m-3" type="button">Bütün kayitlari göster | Zeige alle Anmeldungen</button></a><br>
+  <p>
+    <button class="btn btn-outline-dark m-3" type="button" data-toggle="collapse" data-target="#getRegistrations" aria-expanded="false" aria-controls="getRegistrations">
+      Belirli Tarih icin kayitlari göster | Zeige Anmeldungen für bestimmten Tag
+    </button>
+  </p>
+  <div class="collapse mb-3" id="getRegistrations">
+    <div class="card card-body">
+      <h5 class="card-title">Belirli Tarih icin kayitlari göster | Zeige Anmeldungen für bestimmten Tag
+      </h5>
+      <form action="/getRegistrations">
+        <div class="row">
+          <div class="col">
+            <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input><br><br>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
+      </form>
+    </div>
+  </div>
+
+  <p>
+    <button class="btn btn-outline-dark mx-3" type="button" data-toggle="collapse" data-target="#editCap" aria-expanded="false" aria-controls="editCap">
+      Kapasiteyi degistir | Ändere Kapazität
+    </button>
+  </p>
+  <div class="collapse" id="editCap">
+    <div class="card card-body">
+      <h5 class="card-title">Kapasiteyi degistir | Ändere Kapazität
+      </h5>
+      <form action="/editCapacity">
+        <div class="row">
+          <div class="col">
+            <input type="number" name="capm" class="form-control" min=0>
+            <label class="form-check-label" for="capm1">Önceki beylere Kapasite | Vorherige Maximale Kapazität für Männer:
+              {{$capm}}</label>
+          </div>
+          <div class="col">
+            <input type="number" name="capw" class="form-control" min=0>
+            <label class="form-check-label" for="capw1">Önceki hanimlara Kapasite | Vorherige Maximale Kapazität für Frauen:
+              {{$capw}}</label></br></br>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-outline-dark">Degistir | Verändern</button>
+      </form>
+    </div>
+  </div>
+{{end}}

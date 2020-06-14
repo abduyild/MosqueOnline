@@ -1,0 +1,129 @@
+{{template "base" .}}
+{{define "scripts"}}{{end}}
+
+{{define "title"}}
+  Aktiviere / Deaktiviere Gebete
+{{end}}
+
+{{define "main"}}
+  <div class="card-deck">
+    <div class="card">
+      <div class="card-body">
+        {{$st0 := index . 0}}
+        <h5 class="card-title">Sabah | Fajr -
+          {{$st0}}
+        </h5>
+        {{- if eq $st0 "Acik | Offen" -}}
+          <a href="/editPrayers?0=false" class="btn btn-outline-dark">
+            Kayitlara kapat
+          {{else}}
+            <a href="/editPrayers?0=true" class="btn btn-outline-dark">
+              Kaytilara ac
+            {{end}}
+          </a>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          {{$st1 := index . 1}}
+          <h5 class="card-title">Ögle | Dhuhr -
+            {{$st1}}</h5>
+          {{- if eq $st1 "Acik | Offen" -}}
+            <a href="/editPrayers?1=false" class="btn btn-outline-dark">
+              Kayitlara kapat
+            {{else}}
+              <a href="/editPrayers?1=true" class="btn btn-outline-dark">
+                Kaytilara ac
+              {{end}}
+            </a>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="card-deck">
+      <div class="card">
+        <div class="card-body">
+          {{$st2 := index . 2}}
+          <h5 class="card-title">Ikindi | Asr -
+            {{$st2}}</h5>
+          {{- if eq $st2 "Acik | Offen" -}}
+            <a href="/editPrayers?2=false" class="btn btn-outline-dark">
+              Kayitlara kapat
+            {{else}}
+              <a href="/editPrayers?2=true" class="btn btn-outline-dark">
+                Kaytilara ac
+              {{end}}
+            </a>
+          </a>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          {{$st3 := index . 3}}
+          <h5 class="card-title">Aksam | Maghrib -
+            {{$st3}}</h5>
+          {{- if eq $st3 "Acik | Offen" -}}
+            <a href="/editPrayers?3=false" class="btn btn-outline-dark">
+              Kayitlara kapat
+            {{else}}
+              <a href="/editPrayers?3=true" class="btn btn-outline-dark">
+                Kaytilara ac
+              {{end}}
+            </a>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-deck">
+      <div class="card">
+        <div class="card-body">
+          {{$st4 := index . 4}}
+          <h5 class="card-title">Yatsi | Ishaa -
+            {{$st4}}</h5>
+          {{- if eq $st4 "Acik | Offen" -}}
+            <a href="/editPrayers?4=false" class="btn btn-outline-dark">
+              Kayitlara kapat
+            {{else}}
+              <a href="/editPrayers?4=true" class="btn btn-outline-dark">
+                Kaytilara ac
+              {{end}}
+            </a>
+          </a>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          {{$st5 := index . 5}}
+          <h5 class="card-title">Cuma | Freitag -
+            {{$st5}}</h5>
+          {{- if eq $st5 "Acik | Offen" -}}
+            <a href="/editPrayers?5=false" class="btn btn-outline-dark">
+              Kayitlara kapat
+            {{else}}
+              <a href="/editPrayers?5=true" class="btn btn-outline-dark">
+                Kaytilara ac
+              {{end}}
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="card-deck">
+        <div class="card">
+          <div class="card-body">
+            {{$st6 := index . 6}}
+            <h5 class="card-title">Bayram | Eid -
+              {{$st6}}</h5>
+            {{- if eq $st6 "Acik | Offen" -}}
+              <a href="/editPrayers?6=false" class="btn btn-outline-dark">
+                Kayitlara kapat
+              {{else}}
+                <a href="/editPrayers?6=true" class="btn btn-outline-dark">
+                  Kaytilara ac
+                {{end}}
+              </a>
+            </a>
+          </div>
+        </div>
+      </div>
+    {{end}}

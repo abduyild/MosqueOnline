@@ -28,16 +28,14 @@ func main() {
 	router.HandleFunc("/deleteMosque", common.DeleteMosque)
 	router.HandleFunc("/addMosque", common.AddMosque)
 	router.HandleFunc("/show-hide", common.ShowMosque)
-	router.HandleFunc("/activeRegistrations", common.ActiveRegistrations)
 	router.HandleFunc("/registerAdmin", common.RegisterAdmin)
 	router.HandleFunc("/registerMosqueAdmin", common.RegisterAdmin)
 
 	router.HandleFunc("/mosqueIndex", common.MosqueHandler)
-	router.HandleFunc("/mosqueAction", common.MosqueAction)
-	router.HandleFunc("/getRegistrationsDate", common.GetRegistrations)
 	router.HandleFunc("/getRegistrations", common.GetRegistrations)
-	router.HandleFunc("/getPrayers", common.GetPrayers)
 	router.HandleFunc("/editPrayers", common.EditPrayers)
+	router.HandleFunc("/editCapacity", common.EditCapacity)
+
 	router.HandleFunc("/confirmVisitors", common.ConfirmVisitors)
 
 	router.HandleFunc("/logout", common.LogoutHandler)

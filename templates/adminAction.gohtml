@@ -1,0 +1,71 @@
+{{template "base" .}}
+{{define "scripts"}}
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js" integrity="sha256-+C0A5Ilqmu4QcSPxrlGpaZxJ04VjsRjKu+G82kl5UJk=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" integrity="sha256-ze/OEYGcFbPRmvCnrSeKbRTtjG4vGLHXgOqsyLFTRjg=" crossorigin="anonymous"/>
+  <script>
+    $(document).ready(function () {
+      $('.submit').attr('disabled', true);
+      $('#message').keyup(function () {
+        if ($(this).val().length != 0)
+          $('.submit').attr('disabled', false);
+        else
+          $('.submit').attr('disabled', true);
+        }
+      )
+
+      $("#btnClear").on("click", function () {
+        var selectize = $select[0].selectize;
+        selectize.clear();
+      });
+
+      var $select2 = $("#delete-mosque").selectize({
+        sortField: 'text',
+        onItemAdd: function (value) {
+          var message = "Silmeyi onayliyormusunuz? Secilen Camii " + value + "\nBestätigen Sie die Löschung? Ausgewählte Moschee " + value;
+          var ok = window.confirm(message);
+          if (ok) {
+            window.location.href = '/deleteMosque?mosque=' + value;
+          } else {
+            window.location.reload();
+          }
+        }
+      });
+      var $select = $("#show-mosque").selectize({
+        sortField: 'text',
+        onItemAdd: function (value) {
+          window.location.href = '/show-hide?mosque=' + value;
+        }
+      });
+    });
+  </script>
+{{end}}
+{{define "title"}}
+  Wählen Sie die Moschee
+{{end}}
+
+{{define "main"}}
+  {{- if .DeleteMosque -}}
+
+    <select id="delete-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+      <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+      {{ range .Mosques}}
+        <option value="{{.Name}}">{{.Name}}, Ort:
+          {{.City}}</option>
+      {{ end }}
+    </select>
+    <button type="submit" id="btnClear" class="btn btn-outline-dark">Ekle | Eintragen</button>
+
+  {{- else if .ShowMosque -}}
+
+    <select id="show-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">
+      <option value="">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+      {{ range .Mosques}}
+        <option value="{{.Name}}">{{.Name}}, Ort:
+          {{.City}}</option>
+      {{ end }}
+    </select>
+    <button type="submit" id="btnClear" class="btn btn-outline-dark">Ekle | Eintragen</button>
+
+  {{- end -}}
+{{end}}

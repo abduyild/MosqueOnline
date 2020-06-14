@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"net/url"
 	"pi-software/model"
 	"pi-software/repos"
 	"strconv"
@@ -18,12 +17,9 @@ import (
 )
 
 type AdminPipeline struct {
-	AddMosque           bool
-	DeleteMosque        bool
-	ShowMosque          bool
-	RegisterAdmin       bool
-	RegisterMosqueAdmin bool
-	Mosques             []model.Mosque
+	DeleteMosque bool
+	ShowMosque   bool
+	Mosques      []model.Mosque
 }
 
 var mosque model.Mosque
@@ -39,34 +35,23 @@ var dates []Date
 
 func AdminHandler(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
-		pathUrl, _ := url.ParseQuery(request.URL.RawQuery)
-		path := pathUrl.Encode()
-		if path != "" {
-			action := strings.Split(path, "=")[1]
-			addM := false
-			delM := false
-			showM := false
-			regA := false
-			regMA := false
+		action := request.URL.Query().Get("action")
+		target := "templates/admin.gohtml"
+		delM := false
+		showM := false
+		if action != "" {
 			switch action {
-			case "addmosque":
-				addM = true
 			case "deletemosque":
 				delM = true
+				target = "templates/adminAction.gohtml"
 			case "showmosque":
 				showM = true
-			case "registeradmin":
-				regA = true
-			case "registermosqueadmin":
-				regMA = true
+				target = "templates/adminAction.gohtml"
 			}
-			adminPipe := AdminPipeline{addM, delM, showM, regA, regMA, getMosques(response, request)}
-			t, _ := template.ParseFiles("templates/admin.html")
-			t.Execute(response, adminPipe)
-		} else {
-			t, _ := template.ParseFiles("templates/adminIndex.html")
-			t.Execute(response, nil)
 		}
+		adminPipe := AdminPipeline{delM, showM, getMosques(response, request)}
+		t, _ := template.ParseFiles(target, "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
+		t.Execute(response, adminPipe)
 	} else {
 		accessError(response, request)
 	}
@@ -161,8 +146,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 			}
 			http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 		} else {
-			/*t, _ := template.ParseFiles("templates/addMosque.html")
-			t.Execute(response, nil)*/
+			http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 		}
 	} else {
 		accessError(response, request)
@@ -188,6 +172,7 @@ func DeleteMosque(response http.ResponseWriter, request *http.Request) {
 		}
 		update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "MosqueName", Value: mosque}}}}}}
 		collection.UpdateMany(context.TODO(), bson.D{{}}, update)
+		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
 		accessError(response, request)
 	}
@@ -201,22 +186,38 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 			confirm = true
 		}
 		request.ParseForm()
-		if mosqueName != "" && !confirm {
+		if mosqueName != "" {
+			var mosque model.Mosque
 			collection, _ := repos.GetDBCollection(1)
 			collection.FindOne(context.TODO(),
 				bson.D{
 					{"Name", mosqueName},
 				}).Decode(&mosque)
-			t, _ := template.ParseFiles("templates/show-hide.html")
-			t.Execute(response, mosque)
-		} else if confirm {
-			fmt.Println("confirm")
-			var prayers []model.Prayer
-			mosque.Active = !mosque.Active
-			if !mosque.Active { // if old status active, then list active registrations
+			var dates []Date
+			type tMos struct {
+				Name   string
+				Date   []Date
+				Active bool
+				PLZ    int
+				Street string
+				City   string
+			}
+			var newMosque tMos
+			newMosque.Name = mosque.Name
+			newMosque.Active = mosque.Active
+			newMosque.PLZ = mosque.PLZ
+			newMosque.Street = mosque.Street
+			newMosque.City = mosque.City
+			if mosque.Active {
+				reachedToday := false
+				today := strings.Split(time.Now().String(), " ")[0]
+				var prayers []model.Prayer
 				for _, date := range mosque.Date {
 					for _, prayer := range date.Prayer {
-						if len(prayer.Users) > 0 {
+						if today == strings.Split(date.Date.String(), " ")[0] {
+							reachedToday = true
+						}
+						if reachedToday && len(prayer.Users) > 0 {
 							prayers = append(prayers, prayer)
 						}
 					}
@@ -230,27 +231,16 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 					}
 				}
 			}
+			newMosque.Date = dates
+			t, _ := template.ParseFiles("templates/show-hide.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
+			t.Execute(response, newMosque)
+		} else if confirm {
+			mosque.Active = !mosque.Active
 			collection, _ := repos.GetDBCollection(1)
 			collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Active": mosque.Active}})
-			response.Write([]byte(`<script>window.location.href = "/activeRegistrations";</script>`))
+			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		} else {
 			http.Redirect(response, request, "/admin", 300)
-
-		}
-	} else {
-		accessError(response, request)
-	}
-}
-
-func ActiveRegistrations(response http.ResponseWriter, request *http.Request) {
-	if adminLoggedin(response, request, "admin") {
-		if len(dates) > 0 {
-			t, _ := template.ParseFiles("templates/activeRegistrations.html")
-			t.Execute(response, dates)
-			dates = []Date{}
-		} else {
-			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
-
 		}
 	} else {
 		accessError(response, request)
@@ -291,6 +281,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 			// Change redirect target to LoginPage
 			http.Redirect(response, request, "/admin", 302)
 		} else {
+			// TODO: checkError
 			fmt.Fprintln(response, "User already exists")
 		}
 	} else {
@@ -299,7 +290,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 }
 
 func accessError(response http.ResponseWriter, request *http.Request) {
-	t, _ := template.ParseFiles("templates/errorpage.html")
+	t, _ := template.ParseFiles("templates/errorpage.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
 	t.Execute(response, errors.New("Illegal Access"))
 }
 
