@@ -2,10 +2,23 @@ package repos
 
 import (
 	"context"
-
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	b64 "encoding/base64"
+	"encoding/pem"
+	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"io/ioutil"
+	"log"
 )
+
+const (
+	keyFile       = "aes.key"
+)
+
+var IV = []byte("1234567812345678")
 
 func GetDBCollection(i int) (*mongo.Collection, error) {
 	// Define Address of Database
@@ -37,5 +50,80 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 		return db.Collection("admins"), nil
 	}
 	return nil, nil
+}
 
+func readKey(filename string) ([]byte, error) {
+	key, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return key, err
+	}
+	block, _ := pem.Decode(key)
+	return block.Bytes, nil
+}
+
+func createKey() []byte {
+	genkey := make([]byte, 16)
+	_, err := rand.Read(genkey)
+	if err != nil {
+		log.Fatalf("Failed to read new random key: %s", err)
+	}
+	return genkey
+}
+
+func saveKey(filename string, key []byte) {
+	block := &pem.Block{
+		Type:  "AES KEY",
+		Bytes: key,
+	}
+	err := ioutil.WriteFile(filename, pem.EncodeToMemory(block), 0644)
+	if err != nil {
+		log.Fatalf("Failed in saving key to %s: %s", filename, err)
+	}
+}
+
+func aesKey() []byte {
+	file := fmt.Sprintf(keyFile)
+	key, err := readKey(file)
+	if err != nil {
+		log.Println("Creating a new AES key")
+		key = createKey()
+		saveKey(file, key)
+	}
+	return key
+}
+
+func createCipher() cipher.Block {
+	c, err := aes.NewCipher(aesKey())
+	if err != nil {
+		log.Fatalf("Failed to create the AES cipher: %s", err)
+	}
+	return c
+}
+
+func Encrypt(plainText string) string {
+	bytes := []byte(plainText)
+	blockCipher := createCipher()
+	stream := cipher.NewCTR(blockCipher, IV)
+	stream.XORKeyStream(bytes, bytes)
+	return encode(bytes)
+}
+
+func Decrypt(cipherText string) string {
+	bytes := decode(cipherText)
+	blockCipher := createCipher()
+	stream := cipher.NewCTR(blockCipher, IV)
+	stream.XORKeyStream(bytes, bytes)
+	return string(bytes)
+}
+
+func encode(input []byte) string {
+	return string(b64.StdEncoding.EncodeToString(input))
+}
+
+func decode(input string) []byte {
+	dcd, err := b64.StdEncoding.DecodeString(input)
+	if err != nil {
+		return []byte{}
+	}
+	return dcd
 }

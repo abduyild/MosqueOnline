@@ -12,6 +12,7 @@ require (
 	github.com/gorilla/securecookie v1.1.1
 	github.com/howeyc/fsnotify v0.9.0 // indirect
 	github.com/jgautheron/goconst v0.0.0-20200227150835-cda7ea3bf591 // indirect
+	github.com/martinlindhe/base36 v1.0.0
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mdempsky/maligned v0.0.0-20180708014732-6e39bd26a8c8 // indirect
 	github.com/mdempsky/unconvert v0.0.0-20200228143138-95ecdbfc0b5f // indirect
@@ -20,6 +21,7 @@ require (
 	github.com/pilu/config v0.0.0-20131214182432-3eb99e6c0b9a // indirect
 	github.com/pilu/fresh v0.0.0-20190826141211-0fa698148017 // indirect
 	github.com/securego/gosec v0.0.0-20200401082031-e946c8c39989 // indirect
+	github.com/spacemonkeygo/openssl v0.0.0-20181017203307-c2dcc5cca94a
 	github.com/stripe/safesql v0.2.0 // indirect
 	github.com/tsenart/deadcode v0.0.0-20160724212837-210d2dc333e9 // indirect
 	github.com/walle/lll v1.0.1 // indirect

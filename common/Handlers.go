@@ -104,8 +104,24 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			// define a User model with typed first and last name, email and phone
 
 			//usr := model.User{firstName, email, string(hash)}
-
-			usr := model.User{sex, firstName, lastName, email, phone, false, []model.RegisteredPrayer{}}
+			encF := repos.Encrypt(firstName)
+			if encF == "" {
+				fmt.Println("encF")
+			}
+			encL := repos.Encrypt(lastName)
+			if encL == "" {
+				fmt.Println("encL")
+			}
+			encE := repos.Encrypt(email)
+			if encE == "" {
+				fmt.Println("encE")
+			}
+			encP := repos.Encrypt(phone)
+			fmt.Println("registeredPhone:", encP)
+			if encP == "" {
+				fmt.Println("encP")
+			}
+			usr := model.User{sex, encF, encL, encE, encP, false, []model.RegisteredPrayer{}}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage
@@ -131,7 +147,7 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		email := request.FormValue("email")
 		phone := request.FormValue("phone")
 		// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
-		redirectTarget := "/"
+		redirectTarget := "/login"
 		if len(email) != 0 && len(phone) != 0 {
 			// Returns Table
 			collection, err := repos.GetDBCollection(0)
@@ -141,8 +157,10 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/register", 302)
 			}
 			var user model.User
-			// Checking if typed in Username exists, if not redirect to register page
-			err = collection.FindOne(context.TODO(), bson.D{{"Phone", phone}}).Decode(&user)
+
+			encP := repos.Encrypt(phone)
+
+			err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
 			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
@@ -155,21 +173,17 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/register", 302)
 			}
 			*/
-
-			if user.Email != email {
+			encE := repos.Encrypt(email)
+			if user.Email != encE {
 				http.Redirect(response, request, "/register", 302)
 			}
-
 			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 			cookie := R(email+"?"+phone+"&"+string(userCredentials)) + "!"
 			SetCookie(cookie, response)
-			// If the admin tries to login, change the redirect to the Adminpage
-			if email == "steveJobs@apple.de" {
-				redirectTarget = "/appleHeadquarter"
-				// Else redirect to the normal indexpage
-			} else {
-				redirectTarget = "/"
-			}
+			redirectTarget = "/"
 		}
 		// function for redirecting
 		http.Redirect(response, request, redirectTarget, 302)
@@ -240,13 +254,24 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func decodeUser(encryptedUser model.User) model.User {
+	dU := encryptedUser
+	dU.FirstName = repos.Decrypt(encryptedUser.FirstName)
+	dU.LastName = repos.Decrypt(encryptedUser.LastName)
+	dU.Email = repos.Decrypt(encryptedUser.Email)
+	dU.Phone = repos.Decrypt(encryptedUser.Phone)
+	return dU
+}
+
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
-		user, err := GetUserAsUser(response, request)
+		encryptedUser, err := GetUserAsUser(response, request)
+
 		if err != nil {
 			response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 			reset()
 		} else {
+			user := decodeUser(encryptedUser)
 			var tUser model.User // for only adding the actual prayers, not past ones
 			tUser = user
 			var regP []model.RegisteredPrayer
@@ -267,6 +292,7 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 			t.Execute(response, tUser)
 		}
 	} else {
+		fmt.Println("error logging in")
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
@@ -606,15 +632,19 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 	// Check if there is an active Cookie
 	cookie, err := request.Cookie("cookie")
 	if err != nil {
+		fmt.Println("error at getting details from cookie! No user logged in:", err.Error())
 		return "", errors.New("Not logged in")
 	}
 	if !strings.Contains(cookie.Value, "!") {
+		fmt.Println("error at getting details from cookie! no !", err.Error())
 		return "", errors.New("Invalid Cookie")
 	}
 	if !strings.Contains(cookie.Value, "&") {
+		fmt.Println("error at getting details from cookie! no &", err.Error())
 		return "", errors.New("Invalid Cookie")
 	}
 	if !strings.Contains(cookie.Value, "?") {
+		fmt.Println("error at getting details from cookie! no ?", err.Error())
 		return "", errors.New("Invalid Cookie")
 	}
 	cookieValue := strings.Split(R(cookie.Value), "!")[0]
@@ -623,6 +653,7 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 	cookieHash := strings.Split(cookieValue, "&")[1]
 	err = bcrypt.CompareHashAndPassword([]byte(cookieHash), []byte(values[0]+values[1]))
 	if err != nil {
+		fmt.Println("error at getting details from cookie!", err.Error())
 		return "", errors.New("Wrong or Modified Cookie")
 	}
 	phone = values[1]
@@ -646,7 +677,8 @@ func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.U
 	if t != nil {
 		return user, errors.New(dbConnectionError)
 	}
-	err = collection.FindOne(context.TODO(), bson.M{"Phone": phone}).Decode(&user)
+	encP := repos.Encrypt(phone)
+	err = collection.FindOne(context.TODO(), bson.M{"Phone": encP}).Decode(&user)
 	return user, err
 }
 
