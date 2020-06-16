@@ -193,6 +193,13 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func decryptAdmin(admin model.Admin) model.Admin {
+	dA := admin
+	dA.Name = repos.Decrypt(admin.Name)
+	dA.Email = repos.Decrypt(admin.Email)
+	return dA
+}
+
 func adminLogin(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	if len(request.PostForm) > 0 {
@@ -210,21 +217,18 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 			}
 			var admin model.Admin
 			// Checking if typed in Username exists, if not redirect to register page
-			err = collection.FindOne(context.TODO(), bson.D{{Key: "Email", Value: email}}).Decode(&admin)
+			encE := repos.Encrypt(email)
+			err = collection.FindOne(context.TODO(), bson.D{{Key: "Email", Value: encE}}).Decode(&admin)
 			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
 			}
 
 			err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password))
-
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
 			}
 
-			if admin.Email != email {
-				http.Redirect(response, request, "/register", 302)
-			}
 			name := admin.Name
 			adminType := ""
 			if admin.Admin {
@@ -254,7 +258,7 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func decodeUser(encryptedUser model.User) model.User {
+func decryptUser(encryptedUser model.User) model.User {
 	dU := encryptedUser
 	dU.FirstName = repos.Decrypt(encryptedUser.FirstName)
 	dU.LastName = repos.Decrypt(encryptedUser.LastName)
@@ -271,7 +275,7 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 			response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 			reset()
 		} else {
-			user := decodeUser(encryptedUser)
+			user := decryptUser(encryptedUser)
 			var tUser model.User // for only adding the actual prayers, not past ones
 			tUser = user
 			var regP []model.RegisteredPrayer
@@ -364,7 +368,7 @@ func getMosques(response http.ResponseWriter, request *http.Request) mosques {
 }
 
 func getUsers(response http.ResponseWriter, request *http.Request) users {
-	users := []model.User{}
+	var users []model.User
 	dataBase, err := repos.GetDBCollection(0)
 	t := check(response, request, err)
 	if t != nil {
@@ -375,7 +379,7 @@ func getUsers(response http.ResponseWriter, request *http.Request) users {
 	for cur.Next(context.TODO()) {
 		var user model.User
 		cur.Decode(&user)
-		users = append(users, user)
+		users = append(users, decryptUser(user))
 	}
 	return users
 }
@@ -505,8 +509,9 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			}
 			collection, _ = repos.GetDBCollection(0)
 			registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
+			encP := repos.Encrypt(user.Phone)
 			result := collection.FindOne(context.TODO(), bson.D{
-				{"Phone", user.Phone},
+				{"Phone", encP},
 				{"RegisteredPrayers.RpId", registered.RpId}})
 			if result.Err() != nil {
 				collection, _ = repos.GetDBCollection(1)
@@ -538,8 +543,9 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 					t.Execute(response, errors.New(err.Error()))
 					return
 				}
+				encP := repos.Encrypt(phone)
 				collection.UpdateOne(context.TODO(),
-					bson.M{"Phone": phone}, bson.M{
+					bson.M{"Phone": encP}, bson.M{
 						"$push": bson.M{"RegisteredPrayers": registered}})
 				choo = *new(choose)
 				http.Redirect(response, request, "/", 302)
@@ -572,9 +578,10 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		}
 		prayer1 := strconv.Itoa(prayerN - 1)
 		collection, _ := repos.GetDBCollection(1)
+		encP := repos.Encrypt(phone)
 		collection.UpdateOne(context.TODO(),
 			bson.M{"Name": name},
-			bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": phone}}})
+			bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": encP}}})
 		user, err := GetUserAsUser(response, request)
 		if err != nil {
 			http.Redirect(response, request, "/login", 302)
@@ -588,7 +595,7 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 			}})
 		collection, _ = repos.GetDBCollection(0)
 		rpid := name + ":" + date + ":" + prayer
-		filter := bson.D{{Key: "Phone", Value: phone}}
+		filter := bson.D{{Key: "Phone", Value: encP}}
 		update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
 		collection.UpdateOne(context.TODO(), filter, update)
 		http.Redirect(response, request, "/", 302)
@@ -632,19 +639,15 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 	// Check if there is an active Cookie
 	cookie, err := request.Cookie("cookie")
 	if err != nil {
-		fmt.Println("error at getting details from cookie! No user logged in:", err.Error())
 		return "", errors.New("Not logged in")
 	}
 	if !strings.Contains(cookie.Value, "!") {
-		fmt.Println("error at getting details from cookie! no !", err.Error())
 		return "", errors.New("Invalid Cookie")
 	}
 	if !strings.Contains(cookie.Value, "&") {
-		fmt.Println("error at getting details from cookie! no &", err.Error())
 		return "", errors.New("Invalid Cookie")
 	}
 	if !strings.Contains(cookie.Value, "?") {
-		fmt.Println("error at getting details from cookie! no ?", err.Error())
 		return "", errors.New("Invalid Cookie")
 	}
 	cookieValue := strings.Split(R(cookie.Value), "!")[0]
@@ -653,7 +656,6 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 	cookieHash := strings.Split(cookieValue, "&")[1]
 	err = bcrypt.CompareHashAndPassword([]byte(cookieHash), []byte(values[0]+values[1]))
 	if err != nil {
-		fmt.Println("error at getting details from cookie!", err.Error())
 		return "", errors.New("Wrong or Modified Cookie")
 	}
 	phone = values[1]

@@ -8,14 +8,20 @@ import (
 	b64 "encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"io/ioutil"
 	"log"
+	"pi-software/model"
+	"strings"
+	"time"
+
+	"github.com/jasonlvhit/gocron"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
-	keyFile       = "aes.key"
+	keyFile = "aes.key"
 )
 
 var IV = []byte("1234567812345678")
@@ -126,4 +132,41 @@ func decode(input string) []byte {
 		return []byte{}
 	}
 	return dcd
+}
+
+func StartCronjob() {
+	gocron.Every(2).Weeks().Do(overwrite)
+	gocron.Start()
+}
+
+func overwrite() {
+	collection, err := GetDBCollection(1)
+	if err != nil {
+		panic(err.Error())
+	}
+	var emptyUser model.User
+	emptyUser.RegisteredPrayers = []model.RegisteredPrayer{}
+	var newMosque model.Mosque
+	var mosques []model.Mosque
+	today := strings.Split(time.Now().String(), " ")[0]
+	cur, _ := collection.Find(context.TODO(), bson.M{})
+	for cur.Next(context.TODO()) {
+		var mosque model.Mosque
+		cur.Decode(&mosque)
+		mosques = append(mosques, mosque)
+	}
+	for _, mosq := range mosques {
+		newMosque = mosq
+		for i, date := range mosq.Date {
+			if today == strings.Split(date.Date.String(), " ")[0] {
+				break
+			}
+			for j, prayer := range date.Prayer {
+				for k := range prayer.Users {
+					newMosque.Date[i].Prayer[j].Users[k] = emptyUser
+				}
+			}
+		}
+		collection.ReplaceOne(context.TODO(), bson.M{"Name": mosq.Name}, newMosque)
+	}
 }

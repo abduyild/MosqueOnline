@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"pi-software/common"
+	"pi-software/repos"
 
 	"github.com/gorilla/mux"
 )
@@ -11,6 +13,7 @@ var router = mux.NewRouter()
 
 // Functions for handling pagecalls like localhost:8080/login
 func main() {
+	repos.StartCronjob()
 	router.HandleFunc("/register", common.RegisterPageHandler).Methods("GET")
 	router.HandleFunc("/register", common.RegisterHandler).Methods("POST")
 
@@ -41,6 +44,6 @@ func main() {
 	router.HandleFunc("/logout", common.LogoutHandler)
 
 	http.Handle("/", router)
-
+	fmt.Println("Server is up and running at Port :8080")
 	http.ListenAndServe(":8080", nil)
 }
