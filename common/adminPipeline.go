@@ -218,7 +218,7 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 							reachedToday = true
 						}
 						if reachedToday && len(prayer.Users) > 0 {
-							prayers = append(prayers, prayer)
+							prayers = append(prayers, decryptPrayer(prayer))
 						}
 					}
 					if len(prayers) > 0 {
@@ -267,15 +267,19 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 		} else {
 			name = request.FormValue("register-mosqueadmin")
 		}
+		encE := repos.Encrypt(email)
+		var adminM model.Admin
 		// Look if the entered Username is already used
-		result := collection.FindOne(context.TODO(), bson.D{{"Email", email}})
+		err = collection.FindOne(context.TODO(), bson.D{{"Email", encE}}).Decode(&adminM)
 		// If not found (throws exception/error) then we can proceed
-		if result.Err() != nil {
-
+		if err != nil || adminM.Admin != admin {
 			// Generate the hashed password with 14 as salt
 			hash, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
-
-			newAdmin := model.Admin{name, email, string(hash), admin}
+			encN := name
+			if admin {
+				encN = repos.Encrypt(name)
+			}
+			newAdmin := model.Admin{encN, encE, string(hash), admin}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), newAdmin)
 			// Change redirect target to LoginPage

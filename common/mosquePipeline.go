@@ -39,6 +39,15 @@ var prayerB prayerBool
 
 var mosquePipe MosquePipeline
 
+func decryptPrayer(prayer model.Prayer) model.Prayer {
+	dP := prayer
+	dP.Users = []model.User{}
+	for _, user := range prayer.Users {
+		dP.Users = append(dP.Users, decryptUser(user))
+	}
+	return dP
+}
+
 func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "mosque") {
 		collection, _ := repos.GetDBCollection(1)
@@ -52,7 +61,7 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 			if today == strconv.Itoa(date.Date.Day())+"."+strconv.Itoa(int(date.Date.Month()))+"."+strconv.Itoa(date.Date.Year()) {
 				for _, prayer := range date.Prayer {
 					if len(prayer.Users) > 0 {
-						prayers = append(prayers, prayer)
+						prayers = append(prayers, decryptPrayer(prayer))
 					}
 				}
 				break
@@ -88,7 +97,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			}
 			for _, prayer := range choosenDate.Prayer {
 				if len(prayer.Users) > 0 {
-					prayers = append(prayers, prayer)
+					prayers = append(prayers, decryptPrayer(prayer))
 				}
 			}
 			choosenDate.Prayer = prayers
@@ -105,7 +114,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			for _, date := range mosquePipe.Mosque.Date {
 				for _, prayer := range date.Prayer {
 					if len(prayer.Users) > 0 {
-						prayers = append(prayers, prayer)
+						prayers = append(prayers, decryptPrayer(prayer))
 					}
 				}
 				if len(prayers) > 0 {
@@ -142,8 +151,9 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 			collection, _ := repos.GetDBCollection(1)
 			in, _ := strconv.Atoi(data[1])
 			ind := strconv.Itoa(in - 1)
+			encP := repos.Encrypt(phone)
 			collection.UpdateOne(context.TODO(),
-				bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": phone},
+				bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": encP},
 				bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.$.Attended": true}})
 			response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
 		}

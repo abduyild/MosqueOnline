@@ -104,8 +104,24 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			// define a User model with typed first and last name, email and phone
 
 			//usr := model.User{firstName, email, string(hash)}
-
-			usr := model.User{sex, firstName, lastName, email, phone, false, []model.RegisteredPrayer{}}
+			encF := repos.Encrypt(firstName)
+			if encF == "" {
+				fmt.Println("encF")
+			}
+			encL := repos.Encrypt(lastName)
+			if encL == "" {
+				fmt.Println("encL")
+			}
+			encE := repos.Encrypt(email)
+			if encE == "" {
+				fmt.Println("encE")
+			}
+			encP := repos.Encrypt(phone)
+			fmt.Println("registeredPhone:", encP)
+			if encP == "" {
+				fmt.Println("encP")
+			}
+			usr := model.User{sex, encF, encL, encE, encP, false, []model.RegisteredPrayer{}}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage
@@ -131,7 +147,7 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		email := request.FormValue("email")
 		phone := request.FormValue("phone")
 		// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
-		redirectTarget := "/"
+		redirectTarget := "/login"
 		if len(email) != 0 && len(phone) != 0 {
 			// Returns Table
 			collection, err := repos.GetDBCollection(0)
@@ -141,8 +157,10 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/register", 302)
 			}
 			var user model.User
-			// Checking if typed in Username exists, if not redirect to register page
-			err = collection.FindOne(context.TODO(), bson.D{{"Phone", phone}}).Decode(&user)
+
+			encP := repos.Encrypt(phone)
+
+			err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
 			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
@@ -155,21 +173,17 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/register", 302)
 			}
 			*/
-
-			if user.Email != email {
+			encE := repos.Encrypt(email)
+			if user.Email != encE {
 				http.Redirect(response, request, "/register", 302)
 			}
-
 			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 			cookie := R(email+"?"+phone+"&"+string(userCredentials)) + "!"
 			SetCookie(cookie, response)
-			// If the admin tries to login, change the redirect to the Adminpage
-			if email == "steveJobs@apple.de" {
-				redirectTarget = "/appleHeadquarter"
-				// Else redirect to the normal indexpage
-			} else {
-				redirectTarget = "/"
-			}
+			redirectTarget = "/"
 		}
 		// function for redirecting
 		http.Redirect(response, request, redirectTarget, 302)
@@ -177,6 +191,13 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 		t.Execute(response, nil)
 	}
+}
+
+func decryptAdmin(admin model.Admin) model.Admin {
+	dA := admin
+	dA.Name = repos.Decrypt(admin.Name)
+	dA.Email = repos.Decrypt(admin.Email)
+	return dA
 }
 
 func adminLogin(response http.ResponseWriter, request *http.Request) {
@@ -196,21 +217,18 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 			}
 			var admin model.Admin
 			// Checking if typed in Username exists, if not redirect to register page
-			err = collection.FindOne(context.TODO(), bson.D{{Key: "Email", Value: email}}).Decode(&admin)
+			encE := repos.Encrypt(email)
+			err = collection.FindOne(context.TODO(), bson.D{{Key: "Email", Value: encE}}).Decode(&admin)
 			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
 			}
 
 			err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password))
-
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
 			}
 
-			if admin.Email != email {
-				http.Redirect(response, request, "/register", 302)
-			}
 			name := admin.Name
 			adminType := ""
 			if admin.Admin {
@@ -240,13 +258,24 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func decryptUser(encryptedUser model.User) model.User {
+	dU := encryptedUser
+	dU.FirstName = repos.Decrypt(encryptedUser.FirstName)
+	dU.LastName = repos.Decrypt(encryptedUser.LastName)
+	dU.Email = repos.Decrypt(encryptedUser.Email)
+	dU.Phone = repos.Decrypt(encryptedUser.Phone)
+	return dU
+}
+
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
-		user, err := GetUserAsUser(response, request)
+		encryptedUser, err := GetUserAsUser(response, request)
+
 		if err != nil {
 			response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 			reset()
 		} else {
+			user := decryptUser(encryptedUser)
 			var tUser model.User // for only adding the actual prayers, not past ones
 			tUser = user
 			var regP []model.RegisteredPrayer
@@ -267,6 +296,7 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 			t.Execute(response, tUser)
 		}
 	} else {
+		fmt.Println("error logging in")
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
@@ -338,7 +368,7 @@ func getMosques(response http.ResponseWriter, request *http.Request) mosques {
 }
 
 func getUsers(response http.ResponseWriter, request *http.Request) users {
-	users := []model.User{}
+	var users []model.User
 	dataBase, err := repos.GetDBCollection(0)
 	t := check(response, request, err)
 	if t != nil {
@@ -349,7 +379,7 @@ func getUsers(response http.ResponseWriter, request *http.Request) users {
 	for cur.Next(context.TODO()) {
 		var user model.User
 		cur.Decode(&user)
-		users = append(users, user)
+		users = append(users, decryptUser(user))
 	}
 	return users
 }
@@ -479,8 +509,9 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			}
 			collection, _ = repos.GetDBCollection(0)
 			registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
+			encP := repos.Encrypt(user.Phone)
 			result := collection.FindOne(context.TODO(), bson.D{
-				{"Phone", user.Phone},
+				{"Phone", encP},
 				{"RegisteredPrayers.RpId", registered.RpId}})
 			if result.Err() != nil {
 				collection, _ = repos.GetDBCollection(1)
@@ -512,8 +543,9 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 					t.Execute(response, errors.New(err.Error()))
 					return
 				}
+				encP := repos.Encrypt(phone)
 				collection.UpdateOne(context.TODO(),
-					bson.M{"Phone": phone}, bson.M{
+					bson.M{"Phone": encP}, bson.M{
 						"$push": bson.M{"RegisteredPrayers": registered}})
 				choo = *new(choose)
 				http.Redirect(response, request, "/", 302)
@@ -546,9 +578,10 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		}
 		prayer1 := strconv.Itoa(prayerN - 1)
 		collection, _ := repos.GetDBCollection(1)
+		encP := repos.Encrypt(phone)
 		collection.UpdateOne(context.TODO(),
 			bson.M{"Name": name},
-			bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": phone}}})
+			bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": encP}}})
 		user, err := GetUserAsUser(response, request)
 		if err != nil {
 			http.Redirect(response, request, "/login", 302)
@@ -562,7 +595,7 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 			}})
 		collection, _ = repos.GetDBCollection(0)
 		rpid := name + ":" + date + ":" + prayer
-		filter := bson.D{{Key: "Phone", Value: phone}}
+		filter := bson.D{{Key: "Phone", Value: encP}}
 		update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
 		collection.UpdateOne(context.TODO(), filter, update)
 		http.Redirect(response, request, "/", 302)
@@ -646,7 +679,8 @@ func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.U
 	if t != nil {
 		return user, errors.New(dbConnectionError)
 	}
-	err = collection.FindOne(context.TODO(), bson.M{"Phone": phone}).Decode(&user)
+	encP := repos.Encrypt(phone)
+	err = collection.FindOne(context.TODO(), bson.M{"Phone": encP}).Decode(&user)
 	return user, err
 }
 
