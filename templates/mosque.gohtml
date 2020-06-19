@@ -36,6 +36,10 @@
       <div class="card-body">
         <h5 class="card-title">{{$name}}</h5>
         <p class="card-text">
+          Maximale Kapazität Männer:
+          {{$capm}}
+          Maximale Kapazität Frauen:
+          {{$capw}}
           {{.Street}}
           <br>
           {{.PLZ}},
@@ -50,59 +54,15 @@
       {{$date}}</h3>
     <div class="accordion m-2" id="getAttendants">
       {{if not .Prayer}}
-      <h5>Bugün icin Kayitlar bulunmamakta | Für heute sind keine Anmeldungen vorhanden</h5>
+        <h5>Bugün icin Kayitlar bulunmamakta | Für heute sind keine Anmeldungen vorhanden</h5>
       {{else}}
-      {{range .Prayer}}
-        {{$prayer := .Name}}
-        <div class="card">
-          <div class="card-header" id="prayer{{$prayer}}">
-            <h2 class="mb-0">
-              <button class="btn btn-block text-left btn-light" type="button" data-toggle="collapse" data-target="#collapse{{$prayer}}" aria-expanded="true" aria-controls="collapse{{$prayer}}">
-                Angemeldet für
-                {{if (eq $prayer  1)}}
-                  Gebet: Sabah | Fajr
-                {{else if (eq $prayer  2)}}
-                  Gebet: Ögle | Dhuhr
-                {{else if (eq $prayer  3)}}
-                  Gebet: Ikindi | Asr
-                {{else if (eq $prayer  4)}}
-                  Gebet: Aksam | Maghrib
-                {{else if (eq $prayer  5)}}
-                  Gebet: Yatsi | Ishaa
-                {{else if (eq $prayer  6)}}
-                  Gebet: Cuma | Freitagsgebet
-                {{else if (eq $prayer  7)}}
-                  Gebet: Bayram | Eid
-                {{end}}
-              </button>
-            </h2>
-          </div>
-          <div id="collapse{{$prayer}}" class="collapse" aria-labelledby="prayer{{$prayer}}" data-parent="#getAttendants">
-            <div class="card-body text-dark">
-              {{ if .Available }}
-                <input type="text" autocomplete="off" id="attendantsSearch" placeholder="Suche nach Anmeldung.."><br><br>
-                <div id="confirmVisitor">
-                  <form action="/confirmVisitors">
-                    {{range .Users}}
-                      <div class="form-check">
-                        <input type="hidden" name="data" value="{{$name}}!{{$prayer}}">
-                        <input class="form-check-input" type="checkbox" name="visitor" id="visitor{{.Phone}}" value="{{.Phone}}" autocomplete="off" {{if .Attended}} checked="checked" {{end}}>
-                        <label class="form-check-label" for="visitor{{.Phone}}">{{.FirstName}}
-                          {{.LastName}},
-                          {{.Phone}}</label>
-                      </div>
-                    {{end}}
-
-                    <br><br>
-                    <input type="submit" class="btn btn-outline-dark" value="Gelenleri Kaydet | Speichere Besucher">
-                    <br><br>
-                  </form>
-                </div>
-              {{else}}
-                <h4>Gizlenilmis Vakit icin hala Kayitlar mevcut!
-                  <br>
-                  Es befinden sich derzeit noch Anmeldungen für ein nicht mehr verfügbares Gebet!</h4>
-                <h5>
+        {{range .Prayer}}
+          {{$prayer := .Name}}
+          <div class="card">
+            <div class="card-header" id="prayer{{$prayer}}">
+              <h2 class="mb-0">
+                <button class="btn btn-block text-left btn-light" type="button" data-toggle="collapse" data-target="#collapse{{$prayer}}" aria-expanded="true" aria-controls="collapse{{$prayer}}">
+                  Angemeldet für
                   {{if (eq $prayer  1)}}
                     Gebet: Sabah | Fajr
                   {{else if (eq $prayer  2)}}
@@ -116,26 +76,100 @@
                   {{else if (eq $prayer  6)}}
                     Gebet: Cuma | Freitagsgebet
                   {{else if (eq $prayer  7)}}
-                    Gebet: Bayram | Eid{{end}}
-                </h5>
-                <br>
-                {{range .Users}}
-                  {{.FirstName}}
-                  {{.LastName}}
+                    Gebet: Bayram | Eid
+                  {{end}}, Freie Kapazität: M-{{.CapacityMen}}, F-{{.CapacityWomen}}
+                </button>
+              </h2>
+            </div>
+            <div id="collapse{{$prayer}}" class="collapse" aria-labelledby="prayer{{$prayer}}" data-parent="#getAttendants">
+              <div class="card-body text-dark">
+                {{ if .Available }}
+                  <input type="text" autocomplete="off" id="attendantsSearch" placeholder="Suche nach Anmeldung.."><br><br>
+                  <div id="confirmVisitor">
+                    <form action="/confirmVisitors">
+                      <input type="hidden" id="type" name="type" value="add">
+                      {{range .Users}}
+                        <div class="form-check">
+                          <input type="hidden" name="data" value="{{$name}}!{{$prayer}}">
+                          <input class="form-check-input" type="checkbox" name="visitor" value="{{.Phone}}" autocomplete="off" {{if .Attended}} checked="checked" {{end}}>
+                          <label class="form-check-label" for="visitor{{.Phone}}">{{.FirstName}}
+                            {{.LastName}},
+                            {{.Phone}}</label>
+                        </div>
+                      {{end}}
+
+                      <br><br>
+                      <input type="submit" class="btn btn-outline-dark" value="Gelenleri Kaydet | Speichere Besucher">
+                      <br><br>
+                    </form>
+                  </div>
+                  <p>
+                    <a class="btn btn-outline-danger" data-toggle="collapse" href="#unconfirmVisitor" role="button" aria-expanded="false" aria-controls="unconfirmVisitor">
+                      Kayit silme icin tikla | Klicke für entfernen von gespeicherten Besuchern
+                    </a>
+                  </p>
+                  <div class="collapse" id="unconfirmVisitor">
+                    <div class="card card-body">
+                      <form action="/confirmVisitors">
+                        <input type="hidden" id="type" name="type" value="del">
+                        <div class="form-check">
+                          {{range .Users}}
+                            {{if .Attended}}
+                              <input type="hidden" name="data" value="{{$name}}!{{$prayer}}">
+                              <input class="form-check-input" type="checkbox" name="visitor" value="{{.Phone}}" autocomplete="off">
+                              <label class="form-check-label" for="visitor{{.Phone}}">{{.FirstName}}
+                                {{.LastName}},
+                                {{.Phone}}</label>
+                            {{else}}
+                            {{end}}
+                          {{end}}
+                        </div>
+
+                        <br><br>
+                        <input type="submit" class="btn btn-outline-danger" value="Secilenleri sil | Entferne Ausgewählte">
+                        <br><br>
+                      </form>
+                    </div>
+                  </div>
+                {{else}}
+                  <h4>Gizlenilmis Vakit icin hala Kayitlar mevcut!
+                    <br>
+                    Es befinden sich derzeit noch Anmeldungen für ein nicht mehr verfügbares Gebet!</h4>
+                  <h5>
+                    {{if (eq $prayer  1)}}
+                      Gebet: Sabah | Fajr
+                    {{else if (eq $prayer  2)}}
+                      Gebet: Ögle | Dhuhr
+                    {{else if (eq $prayer  3)}}
+                      Gebet: Ikindi | Asr
+                    {{else if (eq $prayer  4)}}
+                      Gebet: Aksam | Maghrib
+                    {{else if (eq $prayer  5)}}
+                      Gebet: Yatsi | Ishaa
+                    {{else if (eq $prayer  6)}}
+                      Gebet: Cuma | Freitagsgebet
+                    {{else if (eq $prayer  7)}}
+                      Gebet: Bayram | Eid{{end}}
+                  </h5>
                   <br>
+                  {{range .Users}}
+                    {{.FirstName}}
+                    {{.LastName}}
+                    <br>
+                  {{end}}
                 {{end}}
-              {{end}}
+              </div>
             </div>
           </div>
-        </div>
+        {{end}}
       {{end}}
-    {{end}}
     </div>
     <br>
   {{end}}
   <h3>Istediginiz Islemi secin | Wählen Sie Ihre gewünschte Aktion</h3>
-  <a href="/editPrayers"><button class="btn btn-outline-dark m-3" type="button">Sunulan namaz vakitleri degistir | Bearbeite angebotene Gebete</button></a><br>
-  <a href="/getRegistrations"><button class="btn btn-outline-dark m-3" type="button">Bütün kayitlari göster | Zeige alle Anmeldungen</button></a><br>
+  <a href="/getRegistrations">
+    <button class="btn btn-outline-dark m-3" type="button">Bütün kayitlari göster | Zeige alle Anmeldungen</button>
+  </a><br>
   <p>
     <button class="btn btn-outline-dark m-3" type="button" data-toggle="collapse" data-target="#getRegistrations" aria-expanded="false" aria-controls="getRegistrations">
       Belirli Tarih icin kayitlari göster | Zeige Anmeldungen für bestimmten Tag
@@ -148,37 +182,10 @@
       <form action="/getRegistrations">
         <div class="row">
           <div class="col">
-            <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input><br><br>
+            <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'><br><br>
           </div>
         </div>
         <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
-      </form>
-    </div>
-  </div>
-
-  <p>
-    <button class="btn btn-outline-dark mx-3" type="button" data-toggle="collapse" data-target="#editCap" aria-expanded="false" aria-controls="editCap">
-      Kapasiteyi degistir | Ändere Kapazität
-    </button>
-  </p>
-  <div class="collapse" id="editCap">
-    <div class="card card-body">
-      <h5 class="card-title">Kapasiteyi degistir | Ändere Kapazität
-      </h5>
-      <form action="/editCapacity">
-        <div class="row">
-          <div class="col">
-            <input type="number" name="capm" class="form-control" min=0>
-            <label class="form-check-label" for="capm1">Önceki beylere Kapasite | Vorherige Maximale Kapazität für Männer:
-              {{$capm}}</label>
-          </div>
-          <div class="col">
-            <input type="number" name="capw" class="form-control" min=0>
-            <label class="form-check-label" for="capw1">Önceki hanimlara Kapasite | Vorherige Maximale Kapazität für Frauen:
-              {{$capw}}</label></br></br>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-outline-dark">Degistir | Verändern</button>
       </form>
     </div>
   </div>

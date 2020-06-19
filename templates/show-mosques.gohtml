@@ -1,0 +1,57 @@
+{{template "base" .}}
+{{define "scripts"}}
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      $('#mosqueSearch').keyup(function () {
+        var value = $(this).val().toLowerCase();
+        $(".card").filter(function () {
+          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+      })
+    });
+  </script>
+{{end}}
+{{define "title"}}
+  Moscheeübersicht
+{{end}}
+{{define "main"}}
+  {{if not .}}
+    <h2>Camiiler bulunmamakta | Es sind keine Moscheen vorhanden</h2>
+  {{else}}
+    <input type="text" autocomplete="off" id="mosqueSearch" placeholder="Suche nach Moschee.."><br><br>
+    <div class="container">
+      <div class="row">
+        {{range .}}
+          <div class="card m-2" style="width: 18rem;">
+            <div class="card-body">
+              <h5 class="card-title">{{.Name}}</h5>
+              <p class="card-text">
+                Max. Kapazität M:
+                {{.MaxCapM}}
+                <br>
+                Max. Kapazität F:
+                {{.MaxCapW}}
+                <br>
+                {{.Street}}
+                <br>
+                {{.PLZ}},
+                {{.City}}
+                <br>
+                Aktiv:
+                {{if .Active}}
+                  Ja
+                {{else}}
+                  Nein
+                {{end}}
+              </p>
+            </div>
+          </div>
+        {{end}}
+      </div>
+    </div>
+  {{end}}
+{{end}}

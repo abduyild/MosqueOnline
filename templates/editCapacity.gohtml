@@ -1,0 +1,28 @@
+{{template "base" .}}
+{{define "scripts"}}{{end}}
+{{define "title"}}
+  Ändere Kapazität
+{{end}}
+{{define "main"}}
+  <form action="/editCapacity">
+    <div class="row">
+      <div class="col">
+        <input type="number" name="capm" class="form-control" min={{.MinM}}>
+        <label class="form-check-label" for="capm">Önceki beylere Kapasite | Vorherige Maximale Kapazität für Männer:
+          {{.CurrentM}}.<br>
+          En az kapasite:
+          {{.MinM}}</label>
+      </div>
+      <div class="col">
+        <input type="number" name="capw" class="form-control" min={{.MinW}}>
+        <label class="form-check-label" for="capw">Önceki hanimlara Kapasite | Vorherige Maximale Kapazität für Frauen:
+          {{.CurrentW}}<br>
+          En az kapasite:
+          {{.MinW}}</label>
+      </br>
+    </br>
+  </div>
+</div>
+<button type="submit" class="btn btn-outline-dark">Degistir | Verändern</button>
+</form>
+{{end}}

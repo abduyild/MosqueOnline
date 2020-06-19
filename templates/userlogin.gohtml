@@ -1,0 +1,45 @@
+{{template "base" .}}
+
+{{define "scripts"}}
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+{{end}}
+
+{{define "title"}}
+  Login
+{{end}}
+
+{{define "main"}}
+  <div class="card">
+    <div class="card-header" id="User">
+      <h2 class="mb-0">
+        Üyeler icin Giris
+      </h2>
+    </div>
+    <div class="card-body">
+      <form method="post" action="/login">
+        <label for="email">E-Mail Adresi | E-Mail Adresse</label>
+        <br>
+        <input type="email" id="email" name="email">
+        <br><br><br>
+
+        <label for="phone">Telefon Numarasi | Telefon Nummer</label>
+        <br>
+        <input type="text" id="phone" name="phone">
+        <br><br><br>
+        <input type="hidden" name="type" value="user">
+        <button type="submit" class="btn btn-outline-dark">Giris Yap | Anmelden</button>
+        <br>
+      </form>
+    </div>
+  </div>
+  <div class="container">
+    <div class="row m-3">
+      {{range .}}
+        <div class="card m-1" style="width: 15rem;">
+          <a href="{{.Link}}"><img class="card-img-top" src="/banner/{{.Path}}"></a>
+        </div>
+      {{end}}
+    </div>
+  {{end}}

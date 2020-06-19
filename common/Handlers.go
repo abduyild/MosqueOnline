@@ -30,16 +30,19 @@ type mosques []model.Mosque
 type users []model.User
 
 type choose struct {
-	Name       string
-	City       string
-	SetMosque  bool
-	SetDate    bool
-	SetPrayer  bool
-	Mosques    []model.Mosque
-	Date       model.Date
-	DateString string
-	Prayer     []TempPrayer
-	PrayerName string
+	Name          string
+	City          string
+	Street        string
+	PLZ           int
+	SetMosque     bool
+	SetDate       bool
+	SetPrayer     bool
+	Mosques       []model.Mosque
+	Date          model.Date
+	DateString    string
+	Prayer        []TempPrayer
+	PrayerName    string
+	MaxFutureDate int
 }
 
 // Struct for easy handling the html template generation on the index page
@@ -139,20 +142,26 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 // Handler for Login Page used with POST by submitting Loginform
 func LoginHandler(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
-	if len(request.PostForm) > 0 {
+	mosque := request.URL.Query().Get("mosque")
+	if mosque != "" {
+		collection, _ := repos.GetDBCollection(1)
+		var mosqueM model.Mosque
+		collection.FindOne(context.TODO(), bson.M{"Name": mosque}).Decode(&mosqueM)
+		ads := mosqueM.Ads
+		t, _ := template.ParseFiles("templates/userlogin.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
+		fmt.Println(ads)
+		t.Execute(response, ads)
+
+	} else if len(request.PostForm) > 0 {
 		if request.FormValue("type") == "admin" {
 			adminLogin(response, request)
 			return
 		}
 		email := request.FormValue("email")
 		phone := request.FormValue("phone")
-		// Default redirect page is the login page, so if anything goes wrong, the program just redirects to the login page again
 		redirectTarget := "/login"
 		if len(email) != 0 && len(phone) != 0 {
-			// Returns Table
 			collection, err := repos.GetDBCollection(0)
-
-			// if there was no error getting the table, te program does these operations
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
 			}
@@ -161,18 +170,9 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 			encP := repos.Encrypt(phone)
 
 			err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
-			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
 			}
-			// Checking if typed in password is equivalent to the password typed in registry process, if not redirect to faultpage
-			/* Use encryption if you want
-			err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(pass
-
-			if check(err) {
-				http.Redirect(response, request, "/register", 302)
-			}
-			*/
 			encE := repos.Encrypt(email)
 			if user.Email != encE {
 				http.Redirect(response, request, "/register", 302)
@@ -189,7 +189,7 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		http.Redirect(response, request, redirectTarget, 302)
 	} else {
 		t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
-		t.Execute(response, nil)
+		t.Execute(response, getMosques(response, request, false))
 	}
 }
 
@@ -280,15 +280,24 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 			tUser = user
 			var regP []model.RegisteredPrayer
 			tUser.RegisteredPrayers = regP
-			date := time.Now()
-			today := strconv.Itoa(date.Day()) + "." + strconv.Itoa(int(date.Month())) + "." + strconv.Itoa(date.Year())
 			reachedToday := false
+			var mosque model.Mosque
+			collection, _ := repos.GetDBCollection(1)
 			for _, reg := range user.RegisteredPrayers {
-				if today == reg.Date {
-					reachedToday = true
-				}
-				if reachedToday {
-					regP = append(regP, reg)
+				collection.FindOne(context.TODO(), bson.M{"Name": reg.MosqueName}).Decode(&mosque)
+				if mosque.Active { // only show registrations if mosque is active
+					regT := strings.Split(reg.Date, ".")
+					m, _ := strconv.Atoi(regT[1])
+					d, _ := strconv.Atoi(regT[0])
+					regT[1] = fmt.Sprintf("%02d", m)
+					regT[0] = fmt.Sprintf("%02d", d)
+					regToday, _ := time.Parse(time.RFC3339, regT[2]+"-"+regT[1]+"-"+regT[0]+"T23:59:59Z")
+					if regToday.After(time.Now()) {
+						reachedToday = true
+					}
+					if reachedToday {
+						regP = append(regP, reg)
+					}
 				}
 			}
 			tUser.RegisteredPrayers = regP
@@ -310,7 +319,7 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		mosque := request.URL.Query().Get("mosque")
 		if mosque == "" {
-			choo.Mosques = getMosques(response, request)
+			choo.Mosques = getMosques(response, request, false)
 			t, _ := template.ParseFiles("templates/choose.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 			t.Execute(response, choo)
 			choo.SetMosque = true
@@ -320,6 +329,10 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 				for _, mosq := range choo.Mosques {
 					if mosq.Name == mosque {
 						choosenMosque = mosq
+						choo.MaxFutureDate = mosq.MaxFutureDate
+						choo.Street = mosq.Street
+						choo.PLZ = mosq.PLZ
+						choo.City = mosq.City
 						t, _ := template.ParseFiles("templates/chooseDate.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 						t.Execute(response, choo)
 						return
@@ -348,7 +361,7 @@ func Choosen(response http.ResponseWriter, request *http.Request) {
 	//http.Redirect(response, request, "/chooseDate", 302)
 }
 
-func getMosques(response http.ResponseWriter, request *http.Request) mosques {
+func getMosques(response http.ResponseWriter, request *http.Request, all bool) mosques {
 	mosquess := []model.Mosque{}
 	dataBase, err := repos.GetDBCollection(1)
 	t := check(response, request, err)
@@ -360,7 +373,7 @@ func getMosques(response http.ResponseWriter, request *http.Request) mosques {
 	for cur.Next(context.TODO()) {
 		var mosque model.Mosque
 		cur.Decode(&mosque)
-		if mosque.Active {
+		if all || mosque.Active {
 			mosquess = append(mosquess, mosque)
 		}
 	}
@@ -410,16 +423,19 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 				} else {
 					cap = prayer.CapacityWomen
 				}
-				pray := *new(TempPrayer)
-				pray.Name = prayer.Name
-				pray.Capacity = cap
-				pray.Available = true
-				choo.Prayer = append(choo.Prayer, pray)
+				if cap != 0 {
+					pray := *new(TempPrayer)
+					pray.Name = prayer.Name
+					pray.Capacity = cap
+					pray.Available = true
+					choo.Prayer = append(choo.Prayer, pray)
+				}
 			}
 		}
 		t, _ := template.ParseFiles("templates/choosePrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, choo)
 		choo.SetDate = true
+		choo.Prayer = []TempPrayer{}
 	} else {
 		http.Redirect(response, request, "/login", 401)
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))

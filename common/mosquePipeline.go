@@ -2,9 +2,9 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"html/template"
 	"net/http"
-	"net/url"
 	"pi-software/model"
 	"pi-software/repos"
 	"strconv"
@@ -97,9 +97,19 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			}
 			for _, prayer := range choosenDate.Prayer {
 				if len(prayer.Users) > 0 {
-					prayers = append(prayers, decryptPrayer(prayer))
+					nprayer := prayer
+					nprayer.Users = []model.User{}
+					for _, user := range prayer.Users {
+						if user.Attended {
+							nprayer.Users = append(nprayer.Users, user)
+						}
+					}
+					if len(nprayer.Users) > 0 {
+						prayers = append(prayers, decryptPrayer(nprayer))
+					}
 				}
 			}
+			fmt.Println(prayers)
 			choosenDate.Prayer = prayers
 			tmpDate := make([]Date, 1)
 			tmpDate[0].Date = dateG
@@ -114,9 +124,19 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			for _, date := range mosquePipe.Mosque.Date {
 				for _, prayer := range date.Prayer {
 					if len(prayer.Users) > 0 {
-						prayers = append(prayers, decryptPrayer(prayer))
+						nprayer := prayer
+						nprayer.Users = []model.User{}
+						for _, user := range prayer.Users {
+							if user.Attended {
+								nprayer.Users = append(nprayer.Users, user)
+							}
+						}
+						if len(nprayer.Users) > 0 {
+							prayers = append(prayers, decryptPrayer(nprayer))
+						}
 					}
 				}
+				fmt.Println(prayers)
 				if len(prayers) > 0 {
 					var dat Date
 					dateS := strconv.Itoa(date.Date.Day()) + "." + strconv.Itoa(int(date.Date.Month())) + "." + strconv.Itoa(date.Date.Year())
@@ -138,167 +158,50 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "mosque") {
 		request.ParseForm()
 		visitors := request.Form["visitor"]
-
-		data := strings.Split(request.URL.Query().Get("data"), "!")
-		for _, phone := range visitors {
-			today := strings.Split(time.Now().String(), " ")[0]
-			index := 0
-			for i, dateI := range mosquePipe.Mosque.Date {
-				if today == strings.Split(dateI.Date.String(), " ")[0] {
-					index = i
-				}
-			}
-			collection, _ := repos.GetDBCollection(1)
-			in, _ := strconv.Atoi(data[1])
-			ind := strconv.Itoa(in - 1)
-			encP := repos.Encrypt(phone)
-			collection.UpdateOne(context.TODO(),
-				bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": encP},
-				bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.$.Attended": true}})
-			response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
-		}
-	} else {
-		accessError(response, request)
-	}
-}
-
-func EditPrayers(response http.ResponseWriter, request *http.Request) {
-	if adminLoggedin(response, request, "mosque") {
-		if request.URL.RawQuery != "" {
-			tod := time.Now().Format(time.RFC3339)
-			today, _ := time.Parse(time.RFC3339, tod)
-			fromDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
-			pathUrl, _ := url.ParseQuery(request.URL.RawQuery)
-			path := pathUrl.Encode()
-			prayer := strings.Split(path, "=")[0]
-			// TODO: If prayer = 6/7 attention! only activate on fridays/bayrams, see: adminPipieline line 150+
-			value := strings.Split(path, "=")[1]
-			collection, _ := repos.GetDBCollection(1)
-			available, err := strconv.ParseBool(value)
-			if err != nil {
-				http.Error(response, "Wrong parameter", 402)
-			}
-			var mosque model.Mosque
-			name, _ := GetPhoneFromCookie(request)
-			collection.FindOne(context.TODO(), bson.M{"Name": name}).Decode(&mosque)
-			dates := mosque.Date
-			if prayer == "5" { // cuma
-				for i, date := range dates {
-					weekday := date.Date.Weekday()
-					if int(weekday) == 5 { // cuma
-						collection.UpdateOne(context.TODO(),
-							bson.M{"Name": name},
-							bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.5.Available": available}})
-					}
-				}
-			} else if prayer == "6" { // bayram
-				for i, date := range dates {
-					if containString(model.GetBayrams(), strings.Split(date.Date.String(), " ")[0]) {
-						collection.UpdateOne(context.TODO(),
-							bson.M{"Name": name},
-							bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": available}})
-					}
-				}
-			} else {
-				collection.UpdateMany(context.TODO(),
-					bson.M{"Name": mosquePipe.Mosque.Name, "Date.Date": bson.M{"$gt": fromDate}},
-					bson.M{"$set": bson.M{"Date.$[].Prayer." + prayer + ".Available": available}})
-			}
-			response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
-		} else {
-			mosque := mosquePipe.Mosque
-			dates := mosque.Date
-			var status [7]string
-			reachedToday := false
-			reachedFriday := false
-			reachedBayram := false
-			setF := false
-			setB := false
-			today := strings.Split(time.Now().String(), " ")[0]
-			for _, date := range dates {
-				if !reachedToday && today == strings.Split(date.Date.String(), " ")[0] {
-					reachedToday = true
-					for i, prayer := range date.Prayer {
-						if prayer.Available {
-							status[i] = "Acik | Offen"
-						} else {
-							status[i] = "Kapali | Geschlossen"
+		if len(visitors) > 0 {
+			if request.URL.Query().Get("type") == "add" {
+				data := strings.Split(request.URL.Query().Get("data"), "!")
+				for _, phone := range visitors {
+					today := strings.Split(time.Now().String(), " ")[0]
+					index := 0
+					for i, dateI := range mosquePipe.Mosque.Date {
+						if today == strings.Split(dateI.Date.String(), " ")[0] {
+							index = i
 						}
 					}
+					collection, _ := repos.GetDBCollection(1)
+					in, _ := strconv.Atoi(data[1])
+					ind := strconv.Itoa(in - 1)
+					encP := repos.Encrypt(phone)
+					collection.UpdateOne(context.TODO(),
+						bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": encP},
+						bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.$.Attended": true}})
+					response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
 				}
-				if !reachedFriday && int(date.Date.Weekday()) == 5 {
-					reachedFriday = true
-					if date.Prayer[5].Available {
-						setF = true
-					}
-				}
-				if !reachedBayram && containString(model.GetBayrams(), strings.Split(date.Date.String(), " ")[0]) {
-					reachedBayram = true
-					if date.Prayer[6].Available {
-						setB = true
-					}
-				}
-				if reachedToday && reachedFriday && reachedBayram {
-					break
-				}
-			}
-			if setF {
-				status[5] = "Acik | Offen"
 			} else {
-				status[5] = "Kapali | Geschlossen"
+				data := strings.Split(request.URL.Query().Get("data"), "!")
+				for _, phone := range visitors {
+					today := strings.Split(time.Now().String(), " ")[0]
+					index := 0
+					for i, dateI := range mosquePipe.Mosque.Date {
+						if today == strings.Split(dateI.Date.String(), " ")[0] {
+							index = i
+						}
+					}
+					collection, _ := repos.GetDBCollection(1)
+					in, _ := strconv.Atoi(data[1])
+					ind := strconv.Itoa(in - 1)
+					encP := repos.Encrypt(phone)
+					collection.UpdateOne(context.TODO(),
+						bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": encP},
+						bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.$.Attended": false}})
+					response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
+				}
 			}
-			if setB {
-				status[6] = "Acik | Offen"
-			} else {
-				status[6] = "Kapali | Geschlossen"
-			}
-			t, _ := template.ParseFiles("templates/editPrayers.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
-			t.Execute(response, status)
+		} else {
+			response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
 		}
 	} else {
 		accessError(response, request)
-	}
-}
-
-func EditCapacity(response http.ResponseWriter, request *http.Request) {
-	if adminLoggedin(response, request, "mosque") {
-		capm := request.FormValue("capm")
-		capw := request.FormValue("capw")
-		capmI := 0
-		capwI := 0
-		if capm == "" && capw == "" {
-			return
-		}
-		if capm == "" {
-			capmI = mosquePipe.Mosque.MaxCapM
-		} else {
-			capmI, _ = strconv.Atoi(capm)
-		}
-		if capw == "" {
-			capwI = mosquePipe.Mosque.MaxCapW
-		} else {
-			capwI, _ = strconv.Atoi(capw)
-		}
-		collection, _ := repos.GetDBCollection(1)
-		var mosque model.Mosque
-		collection.FindOne(context.TODO(), bson.M{"Name": mosquePipe.Mosque.Name}).Decode(&mosque)
-		today := strings.Split(time.Now().String(), " ")[0]
-		dates := mosque.Date
-		reachedToday := false
-		for _, date := range dates {
-			for _, prayer := range date.Prayer {
-				if today == strings.Split(date.Date.String(), " ")[0] {
-					reachedToday = true
-				}
-				if reachedToday && len(prayer.Users) > 0 {
-					http.Error(response, "Kayitlar var, Kapasite degisitirelemez | Anmeldungen vorhanden, keine Änderung der Kapazität möglich", 402)
-					return
-				}
-			}
-		}
-		collection.UpdateOne(context.TODO(), bson.M{"Name": mosquePipe.Mosque.Name}, bson.M{"$set": bson.M{"MaxCapM": capmI, "MaxCapW": capwI}})
-		// attention: also changes available capacity in past  actually no problem, as not used
-		collection.UpdateMany(context.TODO(), bson.M{"Name": mosquePipe.Mosque.Name}, bson.M{"$set": bson.M{"Date.$[].Prayer.$[].CapacityMen": capmI, "Date.$[].Prayer.$[].CapacityWomen": capwI}})
-		response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
 	}
 }

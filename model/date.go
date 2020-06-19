@@ -1,10 +1,13 @@
 package model
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type PrayerName int
 
-var bayramList []string
+var bayramList = []string{"2020-07-30"}
 
 const (
 	Sabah  PrayerName = iota //1
@@ -30,6 +33,10 @@ type Prayer struct {
 }
 
 func GetBayrams() []string { // just add new bayrams here
-	bayramList = []string{"2020-07-30"}
 	return bayramList
+}
+
+func SetBayrams(input []string) {
+	bayramList = input
+	fmt.Println(bayramList)
 }

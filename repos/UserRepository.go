@@ -111,7 +111,7 @@ func Encrypt(plainText string) string {
 	blockCipher := createCipher()
 	stream := cipher.NewCTR(blockCipher, IV)
 	stream.XORKeyStream(bytes, bytes)
-	return encode(bytes)
+	return Encode(bytes)
 }
 
 func Decrypt(cipherText string) string {
@@ -122,7 +122,7 @@ func Decrypt(cipherText string) string {
 	return string(bytes)
 }
 
-func encode(input []byte) string {
+func Encode(input []byte) string {
 	return string(b64.StdEncoding.EncodeToString(input))
 }
 
@@ -161,11 +161,17 @@ func overwrite() {
 			if today == strings.Split(date.Date.String(), " ")[0] {
 				break
 			}
+			for j := range date.Prayer {
+				newMosque.Date[i].Prayer[j].Users = []model.User{}
+			}
+
+			/* previous version:
 			for j, prayer := range date.Prayer {
 				for k := range prayer.Users {
 					newMosque.Date[i].Prayer[j].Users[k] = emptyUser
 				}
 			}
+			*/
 		}
 		collection.ReplaceOne(context.TODO(), bson.M{"Name": mosq.Name}, newMosque)
 	}

@@ -27,6 +27,20 @@
 {{end}}
 
 {{define "main"}}
+
+  <h3>Secdiginiz Camii | Ausgewählte Moschee</h3>
+
+    <div class="card m-2" style="width: 18rem;">
+      <div class="card-body">
+        <h5 class="card-title">{{.Name}}</h5>
+        <p class="card-text">
+          {{.Street}}
+          <br>
+          {{.PLZ}},
+          {{.City}}
+        </p>
+      </div>
+    </div>
   <label for="prayer">Vakit secin / Wähle Gebet:</label>
   <select name="prayer" id="prayer">
     <option value>Vakit secin / Wähle Gebet:</option>

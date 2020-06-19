@@ -17,7 +17,18 @@ Bestätige
 {{define "main"}}
   <form action="/submit">
     <h3>Secdiginiz Camii | Ausgewählte Moschee</h3>
-    <p>{{.Name}}</p>
+
+      <div class="card m-2" style="width: 18rem;">
+        <div class="card-body">
+          <h5 class="card-title">{{.Name}}</h5>
+          <p class="card-text">
+            {{.Street}}
+            <br>
+            {{.PLZ}},
+            {{.City}}
+          </p>
+        </div>
+      </div>
 
     <h4>Secdiginiz Namaz | Ausgewähltes Gebet</h4>
     <p>{{.PrayerName}}</p><br>
@@ -25,10 +36,10 @@ Bestätige
       <br>
       Möchten Sie Ihre Auswahl bestätigen?</label>
     <p>
-      <input type="radio" name="confirm" value="yes">Evet | Ja</input>
+      <input type="radio" name="confirm" value="yes"> Evet | Ja</input>
     </p>
     <p>
-      <input type="radio" name="confirm" value="no">Hayir | Nein</input>
+      <input type="radio" name="confirm" value="no"> Hayir | Nein</input>
       <br>
       <br>
       <br>
