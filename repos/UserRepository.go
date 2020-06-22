@@ -54,6 +54,8 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	} else if i == 2 {
 		// Get The Mosques Table with the entries of the Mosques
 		return db.Collection("admins"), nil
+	} else if i == 3 {
+		return db.Collection("eids"), nil
 	}
 	return nil, nil
 }
@@ -115,7 +117,7 @@ func Encrypt(plainText string) string {
 }
 
 func Decrypt(cipherText string) string {
-	bytes := decode(cipherText)
+	bytes := Decode(cipherText)
 	blockCipher := createCipher()
 	stream := cipher.NewCTR(blockCipher, IV)
 	stream.XORKeyStream(bytes, bytes)
@@ -126,7 +128,7 @@ func Encode(input []byte) string {
 	return string(b64.StdEncoding.EncodeToString(input))
 }
 
-func decode(input string) []byte {
+func Decode(input string) []byte {
 	dcd, err := b64.StdEncoding.DecodeString(input)
 	if err != nil {
 		return []byte{}
@@ -175,4 +177,26 @@ func overwrite() {
 		}
 		collection.ReplaceOne(context.TODO(), bson.M{"Name": mosq.Name}, newMosque)
 	}
+}
+
+type eidStruct struct {
+	Date string `bson:"Date"`
+}
+
+func GetEids() []string {
+	collection, _ := GetDBCollection(3)
+	cur, _ := collection.Find(context.TODO(), bson.M{})
+	eids := []string{}
+	var eid eidStruct
+	for cur.Next(context.TODO()) {
+		cur.Decode(&eid)
+		eids = append(eids, eid.Date)
+	}
+	return eids
+}
+
+func AddEid(input string) {
+	collection, _ := GetDBCollection(3)
+	eid := eidStruct{Date: input}
+	collection.InsertOne(context.TODO(), eid)
 }

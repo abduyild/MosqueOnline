@@ -106,11 +106,12 @@
 
 {{end}}
 
-<form action="/show-hide">
+<form action="/show-hide" method="post">
   <label for="confirm">Durumu degistirmek istiyormusunuz? |
     <br>
     Möchten Sie den Status ändern?</label>
   <div class="col mb-3">
+    <input type="hidden" name="mosque" value="{{.Name}}">
     <div class="form-check form-check-inline">
       <input class="form-check-input" type="radio" id="cYes" name="confirm" value="yes">
       <label class="form-check-label" for="cYes">Evet | Ja</label>

@@ -21,7 +21,6 @@ func main() {
 	router.HandleFunc("/index", common.IndexPageHandler)
 	router.HandleFunc("/", common.IndexPageHandler)
 	router.HandleFunc("/chooseMosque", common.Choose)
-	router.HandleFunc("/choose", common.Choosen)
 	router.HandleFunc("/chooseDate", common.ChooseDate)
 	router.HandleFunc("/choosePrayer", common.ChoosePrayer)
 	router.HandleFunc("/submit", common.SubmitPrayer)

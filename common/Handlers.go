@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -34,8 +35,6 @@ type choose struct {
 	City          string
 	Street        string
 	PLZ           int
-	SetMosque     bool
-	SetDate       bool
 	SetPrayer     bool
 	Mosques       []model.Mosque
 	Date          model.Date
@@ -45,6 +44,79 @@ type choose struct {
 	MaxFutureDate int
 }
 
+type chooseCookie struct {
+	N string //Name
+	S bool   //SetPrayer
+	D int    //Date as int from today for time.Now add D
+	P int    //Prayer
+}
+
+func chooseToCookie(choo choose) chooseCookie {
+	var cookie chooseCookie
+	cookie.N = choo.Name
+	cookie.S = choo.SetPrayer
+	for i := 0; i < choo.MaxFutureDate; i++ {
+		if strings.Split(choo.Date.Date.String(), " ")[0] == strings.Split(time.Now().AddDate(0, 0, i).String(), " ")[0] {
+			cookie.D = i
+			break
+		}
+	}
+	switch choo.PrayerName {
+	case "Sabah":
+		cookie.P = 1
+	case "Ögle":
+		cookie.P = 2
+	case "Ikindi":
+		cookie.P = 3
+	case "Aksam":
+		cookie.P = 4
+	case "Yatsi":
+		cookie.P = 5
+	case "Cuma":
+		cookie.P = 6
+	case "Bayram":
+		cookie.P = 7
+	}
+	return cookie
+}
+
+func cookieToChoose(cookie chooseCookie) choose {
+	var choo choose
+	choo.Name = cookie.N
+	collection, _ := repos.GetDBCollection(1)
+	var mosque model.Mosque
+	collection.FindOne(context.TODO(), bson.M{"Name": cookie.N}).Decode(&mosque)
+	choo.City = mosque.City
+	choo.Street = mosque.Street
+	choo.PLZ = mosque.PLZ
+	choo.SetPrayer = cookie.S
+	choo.MaxFutureDate = mosque.MaxFutureDate
+	for _, dates := range mosque.Date {
+		if strings.Split(dates.Date.String(), " ")[0] == strings.Split(time.Now().AddDate(0, 0, cookie.D).String(), " ")[0] {
+			choo.Date = dates
+			break
+		}
+	}
+	choo.DateString = choo.Date.Date.Format(time.RFC3339)
+	switch cookie.P {
+	case 1:
+		choo.PrayerName = "Sabah"
+	case 2:
+		choo.PrayerName = "Ögle"
+	case 3:
+		choo.PrayerName = "Ikindi"
+	case 4:
+		choo.PrayerName = "Aksam"
+	case 5:
+		choo.PrayerName = "Yatsi"
+	case 6:
+		choo.PrayerName = "Cuma"
+	case 7:
+		choo.PrayerName = "Bayram"
+	}
+	return choo
+}
+
 // Struct for easy handling the html template generation on the index page
 type TempPrayer struct {
 	Name      model.PrayerName
@@ -52,11 +124,12 @@ type TempPrayer struct {
 	Available bool
 }
 
+var emptyChoose = choose{"", "", "", 0, false, *new([]model.Mosque), *new(model.Date), "", *new([]TempPrayer), "", 0}
+
+var emptyCookie = chooseCookie{"", false, 0, 0}
+
 var isAdmin bool
-
-var choo choose
-
-var choosenMosque model.Mosque
+var mosquesList []model.Mosque
 
 var cookieHandler = securecookie.New(
 	securecookie.GenerateRandomKey(64),
@@ -149,7 +222,6 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		collection.FindOne(context.TODO(), bson.M{"Name": mosque}).Decode(&mosqueM)
 		ads := mosqueM.Ads
 		t, _ := template.ParseFiles("templates/userlogin.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
-		fmt.Println(ads)
 		t.Execute(response, ads)
 
 	} else if len(request.PostForm) > 0 {
@@ -270,33 +342,31 @@ func decryptUser(encryptedUser model.User) model.User {
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		encryptedUser, err := GetUserAsUser(response, request)
-
+		SetChoo(emptyChoose, response)
 		if err != nil {
 			response.Write([]byte(`<script>window.location.href = "/login";</script>`))
-			reset()
 		} else {
 			user := decryptUser(encryptedUser)
 			var tUser model.User // for only adding the actual prayers, not past ones
 			tUser = user
 			var regP []model.RegisteredPrayer
 			tUser.RegisteredPrayers = regP
-			reachedToday := false
 			var mosque model.Mosque
 			collection, _ := repos.GetDBCollection(1)
 			for _, reg := range user.RegisteredPrayers {
 				collection.FindOne(context.TODO(), bson.M{"Name": reg.MosqueName}).Decode(&mosque)
 				if mosque.Active { // only show registrations if mosque is active
-					regT := strings.Split(reg.Date, ".")
-					m, _ := strconv.Atoi(regT[1])
-					d, _ := strconv.Atoi(regT[0])
-					regT[1] = fmt.Sprintf("%02d", m)
-					regT[0] = fmt.Sprintf("%02d", d)
-					regToday, _ := time.Parse(time.RFC3339, regT[2]+"-"+regT[1]+"-"+regT[0]+"T23:59:59Z")
-					if regToday.After(time.Now()) {
-						reachedToday = true
-					}
-					if reachedToday {
-						regP = append(regP, reg)
+					if reg.Date != "" { // delöte this later
+						regT := strings.Split(reg.Date, ".")
+						m, _ := strconv.Atoi(regT[1])
+						d, _ := strconv.Atoi(regT[0])
+						regT[1] = fmt.Sprintf("%02d", m)
+						regT[0] = fmt.Sprintf("%02d", d)
+						regToday, _ := time.Parse(time.RFC3339, regT[2]+"-"+regT[1]+"-"+regT[0]+"T23:59:59Z")
+						timeNow := time.Now()
+						if regToday.After(timeNow) {
+							regP = append(regP, reg)
+						}
 					}
 				}
 			}
@@ -318,29 +388,32 @@ func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 func Choose(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		mosque := request.URL.Query().Get("mosque")
+		var choo = emptyChoose
 		if mosque == "" {
-			choo.Mosques = getMosques(response, request, false)
+			mosquesList = getMosques(response, request, false)
+			choo.Mosques = mosquesList
 			t, _ := template.ParseFiles("templates/choose.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 			t.Execute(response, choo)
-			choo.SetMosque = true
+			choo.Mosques = *new([]model.Mosque)
+			SetChoo(choo, response)
 		} else {
 			choo.Name = mosque
-			if len(choo.Mosques) > 0 && choo.Name != "" {
-				for _, mosq := range choo.Mosques {
+			if len(mosquesList) > 0 && choo.Name != "" {
+				for _, mosq := range mosquesList {
 					if mosq.Name == mosque {
-						choosenMosque = mosq
 						choo.MaxFutureDate = mosq.MaxFutureDate
 						choo.Street = mosq.Street
 						choo.PLZ = mosq.PLZ
 						choo.City = mosq.City
 						t, _ := template.ParseFiles("templates/chooseDate.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-						t.Execute(response, choo)
+						SetChoo(choo, response)
+						t.Execute(response, getMosque(mosque))
 						return
 					}
 				}
 			} else {
-				reset()
-				Choose(response, request)
+				SetChoo(emptyChoose, response)
+				response.Write([]byte(`<script>window.location.href = "/";</script>`))
 			}
 		}
 	} else {
@@ -351,55 +424,15 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 
 func Choosen(response http.ResponseWriter, request *http.Request) {
 	mosque := request.URL.Query().Get("mosque")
-	collection, _ := repos.GetDBCollection(1)
-	collection.FindOne(context.TODO(),
-		bson.D{
-			{"Name", mosque},
-		}).Decode(&choosenMosque)
 	t, _ := template.ParseFiles("templates/chooseDate.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-	t.Execute(response, choosenMosque)
-	//http.Redirect(response, request, "/chooseDate", 302)
-}
-
-func getMosques(response http.ResponseWriter, request *http.Request, all bool) mosques {
-	mosquess := []model.Mosque{}
-	dataBase, err := repos.GetDBCollection(1)
-	t := check(response, request, err)
-	if t != nil {
-		t.Execute(response, errors.New(dbConnectionError))
-		return nil
-	}
-	cur, _ := dataBase.Find(context.TODO(), bson.D{})
-	for cur.Next(context.TODO()) {
-		var mosque model.Mosque
-		cur.Decode(&mosque)
-		if all || mosque.Active {
-			mosquess = append(mosquess, mosque)
-		}
-	}
-	return mosquess
-}
-
-func getUsers(response http.ResponseWriter, request *http.Request) users {
-	var users []model.User
-	dataBase, err := repos.GetDBCollection(0)
-	t := check(response, request, err)
-	if t != nil {
-		t.Execute(response, errors.New(dbConnectionError))
-		return nil
-	}
-	cur, _ := dataBase.Find(context.TODO(), bson.D{})
-	for cur.Next(context.TODO()) {
-		var user model.User
-		cur.Decode(&user)
-		users = append(users, decryptUser(user))
-	}
-	return users
+	t.Execute(response, getMosque(mosque))
 }
 
 func ChooseDate(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		date := request.PostFormValue("date")
+		choosenMosque := getMosque(request.PostFormValue("mosque"))
+		var choo = GetChoo(request)
 		index := 0
 		for i, dates := range choosenMosque.Date {
 			if date == strings.Split(dates.Date.String(), " ")[0] {
@@ -412,7 +445,7 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 		user, err := GetUserAsUser(response, request)
 		if err != nil {
 			http.Redirect(response, request, "/login", 302)
-			reset()
+			SetChoo(emptyChoose, response)
 			return
 		}
 		male := user.Sex == "Men"
@@ -433,25 +466,19 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 			}
 		}
 		t, _ := template.ParseFiles("templates/choosePrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+		SetChoo(choo, response)
 		t.Execute(response, choo)
-		choo.SetDate = true
-		choo.Prayer = []TempPrayer{}
 	} else {
 		http.Redirect(response, request, "/login", 401)
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
 
-// TODO: test invalid prayer as query
 func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		prayer, _ := strconv.Atoi(request.URL.Query().Get("prayer"))
-		choo.SetPrayer = prayer != 0
-		for _, prayers := range choo.Prayer {
-			if int(prayers.Name) == prayer {
-				choo.SetPrayer = true
-			}
-		}
+		var choo = GetChoo(request)
+		choo.SetPrayer = prayer > 0 && prayer < 8
 		if choo.SetPrayer {
 			switch prayer {
 			case 1:
@@ -469,10 +496,14 @@ func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
 			case 7:
 				choo.PrayerName = "Bayram"
 			}
+			date := choo.Date.Date
+			choo.DateString = strconv.Itoa(date.Day()) + "." + strconv.Itoa(int(date.Month())) + "." + strconv.Itoa(date.Year())
+			t, _ := template.ParseFiles("templates/confirm.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+			SetChoo(choo, response)
+			t.Execute(response, choo)
+		} else {
+			http.Error(response, "no valid prayer selected", 402)
 		}
-		choo.DateString = choo.Date.Date.Format(time.RFC3339)
-		t, _ := template.ParseFiles("templates/confirm.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-		t.Execute(response, choo)
 	} else {
 		http.Redirect(response, request, "/login", 401)
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
@@ -483,6 +514,8 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		if request.URL.Query().Get("confirm") == "yes" {
 			collection, _ := repos.GetDBCollection(1)
+			var choo = GetChoo(request)
+			choosenMosque := getMosque(choo.Name)
 			prayer := 0
 			switch choo.PrayerName {
 			case "Sabah":
@@ -541,7 +574,6 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 				if error != nil {
 					http.Redirect(response, request, "/404", 302)
 				}
-
 				tempUser := user
 				tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
 				collection.UpdateOne(context.TODO(),
@@ -563,15 +595,14 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 				collection.UpdateOne(context.TODO(),
 					bson.M{"Phone": encP}, bson.M{
 						"$push": bson.M{"RegisteredPrayers": registered}})
-				choo = *new(choose)
+				SetChoo(emptyChoose, response)
 				http.Redirect(response, request, "/", 302)
 			} else {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 				t.Execute(response, errors.New("Bu namaz icin gecerli bir kayidiniz bulunmakta! Sie besitzen bereits eine gültige Anmeldung für dieses Gebet"))
 			}
 		} else {
-			//TODO delete all temp files method
-			reset()
+			SetChoo(emptyChoose, response)
 			http.Redirect(response, request, "/", 302)
 		}
 	} else {
@@ -621,12 +652,45 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func SetChoo(choosenMosque choose, response http.ResponseWriter) {
+	choose, err := json.Marshal(chooseToCookie(choosenMosque))
+	if err != nil {
+		panic(err)
+	}
+	cookie := &http.Cookie{
+		Name:  "choosenMosque",
+		Value: repos.Encode(choose),
+		Path:  "/",
+	}
+	http.SetCookie(response, cookie)
+}
+
+func GetChoo(request *http.Request) choose {
+	var choosenOne chooseCookie
+	cookie, err := request.Cookie("choosenMosque")
+	if err != nil {
+		panic(err)
+	}
+	json.Unmarshal([]byte(repos.Decode(cookie.Value)), &choosenOne)
+	return cookieToChoose(choosenOne)
+}
+
 // Function for setting the Cookie
 func SetCookie(user string, response http.ResponseWriter) {
 	cookie := &http.Cookie{
 		Name:  "cookie",
 		Value: user,
 		Path:  "/",
+	}
+	http.SetCookie(response, cookie)
+}
+
+func ClearMosque(response http.ResponseWriter) {
+	cookie := &http.Cookie{
+		Name:   "mosque",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
 	}
 	http.SetCookie(response, cookie)
 }
@@ -700,12 +764,58 @@ func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.U
 	return user, err
 }
 
+func getMosques(response http.ResponseWriter, request *http.Request, all bool) mosques {
+	mosquess := []model.Mosque{}
+	collection, err := repos.GetDBCollection(1)
+	t := check(response, request, err)
+	if t != nil {
+		t.Execute(response, errors.New(dbConnectionError))
+		return nil
+	}
+	cur, _ := collection.Find(context.TODO(), bson.D{})
+	for cur.Next(context.TODO()) {
+		var mosque model.Mosque
+		cur.Decode(&mosque)
+		if all || mosque.Active {
+			mosquess = append(mosquess, mosque)
+		}
+	}
+	return mosquess
+}
+
+func getUsers(response http.ResponseWriter, request *http.Request) users {
+	var users []model.User
+	dataBase, err := repos.GetDBCollection(0)
+	t := check(response, request, err)
+	if t != nil {
+		t.Execute(response, errors.New(dbConnectionError))
+		return nil
+	}
+	cur, _ := dataBase.Find(context.TODO(), bson.D{})
+	for cur.Next(context.TODO()) {
+		var user model.User
+		cur.Decode(&user)
+		users = append(users, decryptUser(user))
+	}
+	return users
+}
+
+func getMosque(name string) model.Mosque {
+	var mosque model.Mosque
+	collection, _ := repos.GetDBCollection(1)
+	collection.FindOne(context.TODO(),
+		bson.D{
+			{"Name", name},
+		}).Decode(&mosque)
+	return mosque
+}
+
 func check(response http.ResponseWriter, request *http.Request, err error) *template.Template {
 	if err != nil {
 		t, _ := template.ParseFiles("templates/errorpage.html")
 		http.Redirect(response, request, "/error", 402)
 		response.Write([]byte(`<script>window.location.href = "/error"</script>`))
-		reset()
+		SetChoo(emptyChoose, response)
 		return t
 	}
 	return nil
@@ -746,9 +856,4 @@ func loggedin(response http.ResponseWriter, request *http.Request) bool {
 		return false
 	}
 	return true
-}
-
-func reset() {
-	choo = *new(choose)
-	choosenMosque = *new(model.Mosque)
 }
