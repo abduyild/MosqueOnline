@@ -55,7 +55,7 @@ func chooseToCookie(choo choose) chooseCookie {
 	var cookie chooseCookie
 	cookie.N = choo.Name
 	cookie.S = choo.SetPrayer
-	for i := 0; i < choo.MaxFutureDate; i++ {
+	for i := 0; i <= choo.MaxFutureDate; i++ {
 		if strings.Split(choo.Date.Date.String(), " ")[0] == strings.Split(time.Now().AddDate(0, 0, i).String(), " ")[0] {
 			cookie.D = i
 			break
@@ -167,7 +167,7 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	// Check if fields are not empty
 	if _firstName && _lastName && _email && _phone {
 		// Look if the entered Username is already used
-		err := collection.FindOne(context.TODO(), bson.D{{"Phone", phone}})
+		err := collection.FindOne(context.TODO(), bson.D{{"Phone", repos.Encrypt(phone)}})
 		// If not found (throws exception/error) then we can proceed
 		if err != nil {
 			// Generate the hashed password with 14 as salt
@@ -202,11 +202,9 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			// Change redirect target to LoginPage
 			http.Redirect(response, request, "/", 302)
 		} else {
-			// TODO: checkError
 			fmt.Fprintln(response, "User already exists")
 		}
 	} else {
-		// TODO: checkError
 		fmt.Fprintln(response, "This fields can not be blank!")
 	}
 }
@@ -245,10 +243,6 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/register", 302)
 			}
 			decE := repos.Decrypt(user.Email)
-			fmt.Println(user.Email)
-			fmt.Println(email)
-			fmt.Println(repos.Encrypt(email))
-			fmt.Println(decE)
 			if email != decE {
 				http.Redirect(response, request, "/register", 302)
 			}
@@ -560,9 +554,8 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			}
 			collection, _ = repos.GetDBCollection(0)
 			registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
-			encP := repos.Encrypt(user.Phone)
 			result := collection.FindOne(context.TODO(), bson.D{
-				{"Phone", encP},
+				{"Phone", user.Phone},
 				{"RegisteredPrayers.RpId", registered.RpId}})
 			if result.Err() != nil {
 				collection, _ = repos.GetDBCollection(1)
