@@ -767,7 +767,7 @@ func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.U
 func getMosques(response http.ResponseWriter, request *http.Request, all bool) mosques {
 	mosquess := []model.Mosque{}
 	collection, err := repos.GetDBCollection(1)
-	fmt.Println(collection)
+	fmt.Println("found this: ", collection)
 	t := check(response, request, err)
 	if t != nil {
 		t.Execute(response, errors.New(dbConnectionError))
