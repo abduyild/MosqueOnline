@@ -244,8 +244,8 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 			if err != nil {
 				http.Redirect(response, request, "/register", 302)
 			}
-			encE := repos.Encrypt(email)
-			if user.Email != encE {
+			decE := repos.Decrypt(user.Email)
+			if email != decE {
 				http.Redirect(response, request, "/register", 302)
 			}
 			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
