@@ -242,10 +242,12 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 
 			err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
 			if err != nil {
+				fmt.Println(err, "***", encP, phone)
 				http.Redirect(response, request, "/register", 302)
 			}
 			encE := repos.Encrypt(email)
 			if user.Email != encE {
+				fmt.Println("email: ***", encE, user.Email)
 				http.Redirect(response, request, "/register", 302)
 			}
 			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
