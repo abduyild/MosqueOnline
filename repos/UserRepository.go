@@ -24,7 +24,7 @@ var IV = []byte("1234567812345678")
 
 func GetDBCollection(i int) (*mongo.Collection, error) {
 	// Define Address of Database
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	clientOptions := options.Client().ApplyURI("mongodb://0.0.0.0:27017")
 	// Try to connect to Database, save error if one is thrown
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	// If there was an error connecting to the DB (DB not running, wrong URI, ...) return the error

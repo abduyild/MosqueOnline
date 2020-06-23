@@ -63,6 +63,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 			plz, _ := strconv.Atoi(request.FormValue("plz"))
 			street := request.FormValue("street")
 			city := request.FormValue("city")
+			maxdate, _ := strconv.Atoi(request.FormValue("maxdate"))
 			cap_m, _ := strconv.Atoi(request.FormValue("cap-m"))
 			cap_w, _ := strconv.Atoi(request.FormValue("cap-w"))
 
@@ -81,6 +82,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 			cumaSet := false
 			bayramSet := false
 			form := request.Form["prayer"]
+			mosque := *new(Mosque)
 			for i := 1; i < 8; i++ {
 				switch i {
 				case 1:
@@ -95,8 +97,10 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 					prayer.Available = containString(form, "ishaa")
 				case 6:
 					cumaSet = containString(form, "cuma")
+					mosque.Cuma = cumaSet
 				case 7:
 					bayramSet = containString(form, "bayram")
+					mosque.Bayram = bayramSet
 				}
 				prayer.Name = model.PrayerName(i)
 				prayers = append(prayers, prayer)
@@ -120,7 +124,6 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 				date.Prayer = prayers
 				datesToAdd[i] = date
 			}
-			mosque := *new(Mosque)
 			mosque.Name = name
 			mosque.PLZ = plz
 			mosque.Street = street
@@ -129,6 +132,11 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 			mosque.MaxCapM = cap_m
 			mosque.MaxCapW = cap_w
 			mosque.Active = true
+			if maxdate == 0 {
+				maxdate = 5
+			}
+			mosque.MaxFutureDate = maxdate
+			mosque.Ads = []model.Ad{}
 			collection.InsertOne(context.TODO(), mosque)
 			for _, i := range fridayIndices {
 				collection.UpdateOne(context.TODO(),
