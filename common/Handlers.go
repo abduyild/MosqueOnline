@@ -193,7 +193,6 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 				fmt.Println("encE")
 			}
 			encP := repos.Encrypt(phone)
-			fmt.Println("registeredPhone:", encP)
 			if encP == "" {
 				fmt.Println("encP")
 			}
@@ -375,7 +374,6 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 			t.Execute(response, tUser)
 		}
 	} else {
-		fmt.Println("error logging in")
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
 }
