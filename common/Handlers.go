@@ -245,6 +245,10 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/register", 302)
 			}
 			decE := repos.Decrypt(user.Email)
+			fmt.Println(user.Email)
+			fmt.Println(email)
+			fmt.Println(repos.Encrypt(email))
+			fmt.Println(decE)
 			if email != decE {
 				http.Redirect(response, request, "/register", 302)
 			}
