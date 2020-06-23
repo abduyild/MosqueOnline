@@ -767,13 +767,14 @@ func GetUserAsUser(response http.ResponseWriter, request *http.Request) (model.U
 func getMosques(response http.ResponseWriter, request *http.Request, all bool) mosques {
 	mosquess := []model.Mosque{}
 	collection, err := repos.GetDBCollection(1)
-	fmt.Println(collection)
+	fmt.Println("found this: ", collection)
 	t := check(response, request, err)
 	if t != nil {
 		t.Execute(response, errors.New(dbConnectionError))
 		return nil
 	}
-	cur, _ := collection.Find(context.TODO(), bson.D{})
+	cur, err := collection.Find(context.TODO(), bson.D{})
+	fmt.Println("i found an error: ", err)
 	for cur.Next(context.TODO()) {
 		var mosque model.Mosque
 		cur.Decode(&mosque)
