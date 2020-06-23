@@ -21,7 +21,6 @@ func main() {
 	router.HandleFunc("/index", common.IndexPageHandler)
 	router.HandleFunc("/", common.IndexPageHandler)
 	router.HandleFunc("/chooseMosque", common.Choose)
-	router.HandleFunc("/choose", common.Choosen)
 	router.HandleFunc("/chooseDate", common.ChooseDate)
 	router.HandleFunc("/choosePrayer", common.ChoosePrayer)
 	router.HandleFunc("/submit", common.SubmitPrayer)
@@ -51,5 +50,5 @@ func main() {
 	http.Handle("/banner/", http.StripPrefix("/banner", http.FileServer(http.Dir("./banner"))))
 	http.Handle("/", router)
 	fmt.Println("Server is up and running at Port :8080")
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe("0.0.0.0:8080", nil)
 }

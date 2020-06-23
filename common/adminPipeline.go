@@ -25,16 +25,10 @@ type AdminPipeline struct {
 	Mosques      []model.Mosque
 }
 
-var mosque model.Mosque
-
-var fridayIndices []int
-
 type Date struct { // custom date type for easier templating and format of date
 	Date   string
 	Prayer []model.Prayer
 }
-
-var dates []Date
 
 func AdminHandler(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
@@ -63,91 +57,104 @@ func AdminHandler(response http.ResponseWriter, request *http.Request) {
 func AddMosque(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		request.ParseForm()
-
 		if len(request.PostForm) > 0 {
 			name := R(request.FormValue("name"))
-			plz, _ := strconv.Atoi(request.FormValue("plz"))
-			street := request.FormValue("street")
-			city := request.FormValue("city")
-			cap_m, _ := strconv.Atoi(request.FormValue("cap-m"))
-			cap_w, _ := strconv.Atoi(request.FormValue("cap-w"))
+			mosque := getMosque(name)
+			if mosque.Name != "" {
+				http.Error(response, "Moschee existiert bereits", 402)
+			} else {
+				plz, _ := strconv.Atoi(request.FormValue("plz"))
+				street := request.FormValue("street")
+				city := request.FormValue("city")
+				maxdate, _ := strconv.Atoi(request.FormValue("maxdate"))
+				cap_m, _ := strconv.Atoi(request.FormValue("cap-m"))
+				cap_w, _ := strconv.Atoi(request.FormValue("cap-w"))
 
-			collection, err := repos.GetDBCollection(1)
-			t := check(response, request, err)
-			if t != nil {
-				t.Execute(response, errors.New(dbConnectionError))
-				return
-			}
-			addDates := 100 // set how many dates you want to add to the future
-			var prayer model.Prayer
-			var prayers []model.Prayer
-			prayer.CapacityMen = cap_m
-			prayer.CapacityWomen = cap_w
-			prayer.Users = []model.User{}
-			cumaSet := false
-			bayramSet := false
-			form := request.Form["prayer"]
-			for i := 1; i < 8; i++ {
-				switch i {
-				case 1:
-					prayer.Available = containString(form, "fajr")
-				case 2:
-					prayer.Available = containString(form, "dhuhr")
-				case 3:
-					prayer.Available = containString(form, "asr")
-				case 4:
-					prayer.Available = containString(form, "maghrib")
-				case 5:
-					prayer.Available = containString(form, "ishaa")
-				case 6:
-					cumaSet = containString(form, "cuma")
-				case 7:
-					bayramSet = containString(form, "bayram")
+				collection, err := repos.GetDBCollection(1)
+				t := check(response, request, err)
+				if t != nil {
+					t.Execute(response, errors.New(dbConnectionError))
+					return
 				}
-				prayer.Name = model.PrayerName(i)
-				prayers = append(prayers, prayer)
-				prayer.Available = false
-			}
-			var indicesBayram []int
-			datesToAdd := make([]model.Date, addDates)
-			fridayIndices = []int{}
-			for i := 0; i < addDates; i++ {
-				var date model.Date
-				currentDate := time.Now().AddDate(0, 0, i).Format(time.RFC3339)
-				weekday := time.Now().AddDate(0, 0, i).Weekday()
-				if cumaSet && int(weekday) == 5 { // cuma
-					fridayIndices = append(fridayIndices, i)
+				addDates := 100 // set how many dates you want to add to the future
+				var prayer model.Prayer
+				var prayers []model.Prayer
+				prayer.CapacityMen = cap_m
+				prayer.CapacityWomen = cap_w
+				prayer.Users = []model.User{}
+				cumaSet := false
+				bayramSet := false
+				form := request.Form["prayer"]
+				mosque := *new(Mosque)
+				for i := 1; i < 8; i++ {
+					switch i {
+					case 1:
+						prayer.Available = containString(form, "fajr")
+					case 2:
+						prayer.Available = containString(form, "dhuhr")
+					case 3:
+						prayer.Available = containString(form, "asr")
+					case 4:
+						prayer.Available = containString(form, "maghrib")
+					case 5:
+						prayer.Available = containString(form, "ishaa")
+					case 6:
+						cumaSet = containString(form, "cuma")
+					case 7:
+						bayramSet = containString(form, "bayram")
+					}
+					prayer.Name = model.PrayerName(i)
+					prayers = append(prayers, prayer)
+					prayer.Available = false
 				}
-				if bayramSet && containString(model.GetBayrams(), strings.Split(currentDate, "T")[0]) {
-					indicesBayram = append(indicesBayram, i)
+				var indicesBayram []int
+				datesToAdd := make([]model.Date, addDates)
+				fridayIndices := []int{}
+				for i := 0; i < addDates; i++ {
+					var date model.Date
+					currentDate := time.Now().AddDate(0, 0, i).Format(time.RFC3339)
+					weekday := time.Now().AddDate(0, 0, i).Weekday()
+					if cumaSet && int(weekday) == 5 { // cuma
+						fridayIndices = append(fridayIndices, i)
+					}
+					eids := repos.GetEids()
+					if bayramSet && containString(eids, strings.Split(currentDate, "T")[0]) {
+						indicesBayram = append(indicesBayram, i)
+					}
+					date.Date, _ = time.Parse(time.RFC3339, currentDate)
+					date.Prayer = prayers
+					datesToAdd[i] = date
 				}
-				date.Date, _ = time.Parse(time.RFC3339, currentDate)
-				date.Prayer = prayers
-				datesToAdd[i] = date
+				mosque.Name = name
+				mosque.PLZ = plz
+				mosque.Street = street
+				mosque.City = city
+				mosque.Date = datesToAdd
+				mosque.MaxCapM = cap_m
+				mosque.MaxCapW = cap_w
+				mosque.Active = true
+				mosque.Cuma = cumaSet
+				mosque.Bayram = bayramSet
+				if maxdate == 0 {
+					maxdate = 5
+				}
+				mosque.MaxFutureDate = maxdate
+				mosque.Ads = []model.Ad{}
+				collection.InsertOne(context.TODO(), mosque)
+				for _, i := range fridayIndices {
+					collection.UpdateOne(context.TODO(),
+						bson.M{"Name": name},
+						bson.M{"$set": bson.M{
+							"Date." + strconv.Itoa(i) + ".Prayer.1.Available": false,
+							"Date." + strconv.Itoa(i) + ".Prayer.5.Available": true}})
+				}
+				for _, i := range indicesBayram {
+					collection.UpdateOne(context.TODO(),
+						bson.M{"Name": name},
+						bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
+				}
+				http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 			}
-			mosque := *new(Mosque)
-			mosque.Name = name
-			mosque.PLZ = plz
-			mosque.Street = street
-			mosque.City = city
-			mosque.Date = datesToAdd
-			mosque.MaxCapM = cap_m
-			mosque.MaxCapW = cap_w
-			mosque.Active = true
-			collection.InsertOne(context.TODO(), mosque)
-			for _, i := range fridayIndices {
-				collection.UpdateOne(context.TODO(),
-					bson.M{"Name": name},
-					bson.M{"$set": bson.M{
-						"Date." + strconv.Itoa(i) + ".Prayer.1.Available": false,
-						"Date." + strconv.Itoa(i) + ".Prayer.5.Available": true}})
-			}
-			for _, i := range indicesBayram {
-				collection.UpdateOne(context.TODO(),
-					bson.M{"Name": name},
-					bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
-			}
-			http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 		} else {
 			http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 		}
@@ -185,16 +192,12 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		mosqueName := request.URL.Query().Get("mosque")
 		confirm := false
-		if request.URL.Query().Get("confirm") == "yes" {
+		var mosque model.Mosque
+		if request.PostFormValue("confirm") == "yes" {
 			confirm = true
 		}
-		request.ParseForm()
 		if mosqueName != "" {
-			collection, _ := repos.GetDBCollection(1)
-			collection.FindOne(context.TODO(),
-				bson.D{
-					{"Name", mosqueName},
-				}).Decode(&mosque)
+			mosque = getMosque(mosqueName)
 			var dates []Date
 			type tMos struct {
 				Name   string
@@ -237,9 +240,11 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 			t, _ := template.ParseFiles("templates/show-hide.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
 			t.Execute(response, newMosque)
 		} else if confirm {
-			mosque.Active = !mosque.Active
+			mosqueName := request.PostFormValue("mosque")
+			mosque = getMosque(mosqueName)
+			active := !mosque.Active
 			collection, _ := repos.GetDBCollection(1)
-			collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Active": mosque.Active}})
+			collection.UpdateOne(context.TODO(), bson.M{"Name": mosqueName}, bson.M{"$set": bson.M{"Active": active}})
 			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 			mosque = *new(model.Mosque)
 		} else {
@@ -302,7 +307,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 func AddBayram(response http.ResponseWriter, request *http.Request) {
 	date := request.URL.Query().Get("date")
 	if date != "" {
-		model.SetBayrams(append(model.GetBayrams(), date))
+		repos.AddEid(date)
 		collection, _ := repos.GetDBCollection(1)
 		cur, _ := collection.Find(context.TODO(), bson.M{})
 		for cur.Next(context.TODO()) {
@@ -316,6 +321,7 @@ func AddBayram(response http.ResponseWriter, request *http.Request) {
 				}
 			}
 		}
+		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	}
 }
 
@@ -334,6 +340,7 @@ func ChangeDate(response http.ResponseWriter, request *http.Request) {
 func EditPrayers(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		name := request.URL.Query().Get("mosque")
+		mosque := getMosque(name)
 		if name == "" {
 			tod := time.Now().Format(time.RFC3339)
 			today, _ := time.Parse(time.RFC3339, tod)
@@ -362,7 +369,8 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 				}
 			} else if prayer == "6" { // bayram
 				for i, date := range dates {
-					if containString(model.GetBayrams(), strings.Split(date.Date.String(), " ")[0]) {
+					eids := repos.GetEids()
+					if containString(eids, strings.Split(date.Date.String(), " ")[0]) {
 						collection.UpdateOne(context.TODO(),
 							bson.M{"Name": name},
 							bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": available}})
@@ -370,7 +378,7 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 				}
 			} else {
 				collection.UpdateMany(context.TODO(),
-					bson.M{"Name": mosquePipe.Mosque.Name, "Date.Date": bson.M{"$gt": fromDate}},
+					bson.M{"Name": name, "Date.Date": bson.M{"$gt": fromDate}},
 					bson.M{"$set": bson.M{"Date.$[].Prayer." + prayer + ".Available": available}})
 			}
 			mosque = *new(model.Mosque)
@@ -405,7 +413,8 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 						setF = true
 					}
 				}
-				if !reachedBayram && containString(model.GetBayrams(), strings.Split(date.Date.String(), " ")[0]) {
+				eids := repos.GetEids()
+				if !reachedBayram && containString(eids, strings.Split(date.Date.String(), " ")[0]) {
 					reachedBayram = true
 					if date.Prayer[6].Available {
 						setB = true
@@ -436,6 +445,7 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 func EditCapacity(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		mosqueName := request.URL.Query().Get("mosque")
+		mosque := getMosque(mosqueName)
 		if mosqueName == "" {
 			capm := request.URL.Query().Get("capm")
 			capw := request.URL.Query().Get("capw")

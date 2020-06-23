@@ -1,13 +1,10 @@
 package model
 
 import (
-	"fmt"
 	"time"
 )
 
 type PrayerName int
-
-var bayramList = []string{"2020-07-30"}
 
 const (
 	Sabah  PrayerName = iota //1
@@ -30,13 +27,4 @@ type Prayer struct {
 	CapacityMen   int        `bson:"CapacityMen"`
 	CapacityWomen int        `bson:"CapacityWomen"`
 	Users         []User     `bson:"Users"`
-}
-
-func GetBayrams() []string { // just add new bayrams here
-	return bayramList
-}
-
-func SetBayrams(input []string) {
-	bayramList = input
-	fmt.Println(bayramList)
 }

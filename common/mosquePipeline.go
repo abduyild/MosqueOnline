@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"html/template"
 	"net/http"
 	"pi-software/model"
@@ -35,9 +34,7 @@ type tempMosque struct {
 	Date Date
 }
 
-var prayerB prayerBool
-
-var mosquePipe MosquePipeline
+//var mosquePipe MosquePipeline
 
 func decryptPrayer(prayer model.Prayer) model.Prayer {
 	dP := prayer
@@ -70,7 +67,7 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 		var tmpDate Date
 		tmpDate.Date = today
 		tmpDate.Prayer = prayers
-		mosquePipe = MosquePipeline{mosque, tmpDate, false, false, false}
+		mosquePipe := MosquePipeline{mosque, tmpDate, false, false, false}
 		t, _ := template.ParseFiles("templates/mosque.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, mosquePipe)
 	} else {
@@ -86,7 +83,11 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 		if dateG != "" {
 			var choosenDate Date
 			var prayers []model.Prayer
-			mosque := mosquePipe.Mosque
+			mosqueName, err := GetPhoneFromCookie(request)
+			if err != nil {
+				http.Error(response, err.Error(), 402)
+			}
+			mosque := getMosque(mosqueName)
 			dates := mosque.Date
 			for _, date := range dates {
 				if dateG == strings.Split(date.Date.String(), " ")[0] {
@@ -109,7 +110,6 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 					}
 				}
 			}
-			fmt.Println(prayers)
 			choosenDate.Prayer = prayers
 			tmpDate := make([]Date, 1)
 			tmpDate[0].Date = dateG
@@ -121,7 +121,12 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 		} else { // For all dates
 			var datesMosque []Date
 			var prayers []model.Prayer
-			for _, date := range mosquePipe.Mosque.Date {
+			mosqueName, err := GetPhoneFromCookie(request)
+			if err != nil {
+				http.Error(response, err.Error(), 402)
+			}
+			mosque := getMosque(mosqueName)
+			for _, date := range mosque.Date {
 				for _, prayer := range date.Prayer {
 					if len(prayer.Users) > 0 {
 						nprayer := prayer
@@ -136,7 +141,6 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 						}
 					}
 				}
-				fmt.Println(prayers)
 				if len(prayers) > 0 {
 					var dat Date
 					dateS := strconv.Itoa(date.Date.Day()) + "." + strconv.Itoa(int(date.Date.Month())) + "." + strconv.Itoa(date.Date.Year())
@@ -158,13 +162,19 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "mosque") {
 		request.ParseForm()
 		visitors := request.Form["visitor"]
+		mosqueName, err := GetPhoneFromCookie(request)
+		if err != nil {
+			http.Error(response, err.Error(), 402)
+		}
+		mosque := getMosque(mosqueName)
 		if len(visitors) > 0 {
 			if request.URL.Query().Get("type") == "add" {
 				data := strings.Split(request.URL.Query().Get("data"), "!")
 				for _, phone := range visitors {
 					today := strings.Split(time.Now().String(), " ")[0]
 					index := 0
-					for i, dateI := range mosquePipe.Mosque.Date {
+
+					for i, dateI := range mosque.Date {
 						if today == strings.Split(dateI.Date.String(), " ")[0] {
 							index = i
 						}
@@ -183,7 +193,7 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 				for _, phone := range visitors {
 					today := strings.Split(time.Now().String(), " ")[0]
 					index := 0
-					for i, dateI := range mosquePipe.Mosque.Date {
+					for i, dateI := range mosque.Date {
 						if today == strings.Split(dateI.Date.String(), " ")[0] {
 							index = i
 						}
