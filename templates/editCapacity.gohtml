@@ -4,9 +4,10 @@
   Ändere Kapazität
 {{end}}
 {{define "main"}}
-  <form action="/editCapacity">
+  <form action="/edit" method="post">
     <div class="row">
       <div class="col">
+        <input type="hidden" name="mosque" value="{{.Name}}">
         <input type="number" name="capm" class="form-control" min={{.MinM}}>
         <label class="form-check-label" for="capm">Önceki beylere Kapasite | Vorherige Maximale Kapazität für Männer:
           {{.CurrentM}}.<br>

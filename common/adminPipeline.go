@@ -442,57 +442,59 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func Edit(response http.ResponseWriter, request *http.Request) {
+	fmt.Println("edit")
+	if mosqueName := request.PostFormValue("mosque"); mosqueName != "" {
+		mosque := getMosque(mosqueName)
+		capm := request.PostFormValue("capm")
+		capw := request.PostFormValue("capw")
+		capmI := 0
+		capwI := 0
+		pM := mosque.MaxCapM // previous capacity
+		pW := mosque.MaxCapW
+		if capm == "" && capw == "" {
+			return
+		}
+		if capm == "" {
+			capmI = pM
+		} else {
+			capmI, _ = strconv.Atoi(capm)
+		}
+		if capw == "" {
+			capwI = pW
+		} else {
+			capwI, _ = strconv.Atoi(capw)
+		}
+		collection, _ := repos.GetDBCollection(1)
+		collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"MaxCapM": capmI, "MaxCapW": capwI}})
+		for i, date := range mosque.Date { // check and update only if no registrations were made that day
+			for j, prayer := range date.Prayer {
+				newCapM := capmI - (pM - prayer.CapacityMen)
+				newCapW := capwI - (pW - prayer.CapacityWomen)
+				collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityMen": newCapM}})
+				collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityWomen": newCapW}})
+			}
+		}
+	}
+	response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
+}
+
 func EditCapacity(response http.ResponseWriter, request *http.Request) {
+	fmt.Println("editcap")
 	if adminLoggedin(response, request, "admin") {
 		mosqueName := request.URL.Query().Get("mosque")
-		mosque := getMosque(mosqueName)
-		if mosqueName == "" {
-			capm := request.URL.Query().Get("capm")
-			capw := request.URL.Query().Get("capw")
-			capmI := 0
-			capwI := 0
-			pM := mosque.MaxCapM // previous capacity
-			pW := mosque.MaxCapW
-			if capm == "" && capw == "" {
-				return
-			}
-			if capm == "" {
-				capmI = pM
-			} else {
-				capmI, _ = strconv.Atoi(capm)
-			}
-			if capw == "" {
-				capwI = pW
-			} else {
-				capwI, _ = strconv.Atoi(capw)
-			}
-			collection, _ := repos.GetDBCollection(1)
-			collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"MaxCapM": capmI, "MaxCapW": capwI}})
-			var nmosque model.Mosque
-			collection.FindOne(context.TODO(), bson.M{"Name": mosque.Name}).Decode(&nmosque)
-			for i, date := range nmosque.Date { // check and update only if no registrations were made that day
-				for j, prayer := range date.Prayer {
-					newCapM := capmI - (pM - prayer.CapacityMen)
-					fmt.Println(newCapM)
-					newCapW := capwI - (pW - prayer.CapacityWomen)
-					fmt.Println(newCapW)
-					collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityMen": newCapM}})
-					collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityWomen": newCapW}})
-				}
-			}
-			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
-			mosque = *new(model.Mosque)
-		} else {
+		if mosqueName != "" {
+			mosque := getMosque(mosqueName)
 			type nMosque struct {
+				Name     string
 				CurrentM int
 				CurrentW int
 				MinM     int
 				MinW     int
 			}
-			collection, _ := repos.GetDBCollection(1)
-			collection.FindOne(context.TODO(), bson.M{"Name": mosqueName}).Decode(&mosque)
 
 			var newMosque nMosque
+			newMosque.Name = mosque.Name
 			newMosque.CurrentM = mosque.MaxCapM
 			newMosque.CurrentW = mosque.MaxCapW
 			minM := 0
@@ -514,7 +516,8 @@ func EditCapacity(response http.ResponseWriter, request *http.Request) {
 			newMosque.MinW = minW
 			t, _ := template.ParseFiles("templates/editCapacity.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
 			t.Execute(response, newMosque)
-
+		} else {
+			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		}
 	}
 }
@@ -593,6 +596,7 @@ func AddBanner(response http.ResponseWriter, request *http.Request) {
 	ad.Link = link
 	collection, _ := repos.GetDBCollection(1)
 	collection.UpdateOne(context.TODO(), bson.M{"Name": name}, bson.M{"$push": bson.M{"Ads": ad}})
+	response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 }
 
 func getAdmins() []model.Admin {

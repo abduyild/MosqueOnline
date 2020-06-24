@@ -36,6 +36,7 @@ func main() {
 	router.HandleFunc("/changeFutureDate", common.ChangeDate)
 	router.HandleFunc("/editPrayers", common.EditPrayers)
 	router.HandleFunc("/editCapacity", common.EditCapacity)
+	router.HandleFunc("/edit", common.Edit)
 	router.HandleFunc("/show-mosques", common.ShowAllMosques)
 	router.HandleFunc("/show-admins", common.ShowAdmins)
 	router.HandleFunc("/changeAdmin", common.ChangeAdmin)

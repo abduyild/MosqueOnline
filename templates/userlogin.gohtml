@@ -4,6 +4,15 @@
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      if (window.location.href.indexOf("?wrong") > -1) {
+        document.getElementById('#wrong').style.display = '';
+      } else {
+        document.getElementById('#wrong').style.display = 'none';
+      }
+    });
+  </script>
 {{end}}
 
 {{define "title"}}
@@ -11,6 +20,10 @@
 {{end}}
 
 {{define "main"}}
+
+  <div id="wrong" class="alert alert-danger" role="alert" style="display: none;">
+    Yanlis Giris kombinasyonu girdiniz! | Sie haben eine falsche Anmeldedaten Kombination eingegeben
+  </div>
   <div class="card">
     <div class="card-header" id="User">
       <h2 class="mb-0">
@@ -26,7 +39,7 @@
 
         <label for="phone">Telefon Numarasi | Telefon Nummer</label>
         <br>
-        <input type="text" id="phone" name="phone">
+        <input type="number" id="phone" name="phone" min=0>
         <br><br><br>
         <input type="hidden" name="type" value="user">
         <button type="submit" class="btn btn-outline-dark">Giris Yap | Anmelden</button>

@@ -105,9 +105,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 							nprayer.Users = append(nprayer.Users, user)
 						}
 					}
-					if len(nprayer.Users) > 0 {
-						prayers = append(prayers, decryptPrayer(nprayer))
-					}
+					prayers = append(prayers, decryptPrayer(nprayer))
 				}
 			}
 			choosenDate.Prayer = prayers
@@ -136,9 +134,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 								nprayer.Users = append(nprayer.Users, user)
 							}
 						}
-						if len(nprayer.Users) > 0 {
-							prayers = append(prayers, decryptPrayer(nprayer))
-						}
+						prayers = append(prayers, decryptPrayer(nprayer))
 					}
 				}
 				if len(prayers) > 0 {

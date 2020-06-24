@@ -220,7 +220,6 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		ads := mosqueM.Ads
 		t, _ := template.ParseFiles("templates/userlogin.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 		t.Execute(response, ads)
-
 	} else if len(request.PostForm) > 0 {
 		if request.FormValue("type") == "admin" {
 			adminLogin(response, request)
@@ -240,15 +239,15 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 
 			err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
 			if err != nil {
-				http.Redirect(response, request, "/register", 302)
+				http.Redirect(response, request, "/login?wrong", 302)
 			}
 			decE := repos.Decrypt(user.Email)
 			if email != decE {
-				http.Redirect(response, request, "/register", 302)
+				http.Redirect(response, request, "/login?wrong", 302)
 			}
 			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
 			if err != nil {
-				fmt.Println(err.Error())
+				http.Redirect(response, request, "/login?wrong", 302)
 			}
 			cookie := R(email+"?"+phone+"&"+string(userCredentials)) + "!"
 			SetCookie(cookie, response)
@@ -282,7 +281,7 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 
 			// if there was no error getting the table, te program does these operations
 			if err != nil {
-				http.Redirect(response, request, "/register", 302)
+				http.Redirect(response, request, "/login?wrong", 302)
 			}
 			var admin model.Admin
 			// Checking if typed in Username exists, if not redirect to register page
@@ -290,12 +289,12 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 			err = collection.FindOne(context.TODO(), bson.D{{Key: "Email", Value: encE}}).Decode(&admin)
 			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
 			if err != nil {
-				http.Redirect(response, request, "/register", 302)
+				http.Redirect(response, request, "/login?wrong", 302)
 			}
 
 			err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password))
 			if err != nil {
-				http.Redirect(response, request, "/register", 302)
+				http.Redirect(response, request, "/login?wrong", 302)
 			}
 
 			name := admin.Name

@@ -31,22 +31,37 @@
               Gebet: Bayram | Eid
             {{end}}
           </h3>
-          <h4>Angemeldete Benutzer:</h4>
-          <ul class="list-group m-3">
-            {{range .Users}}
-              <li class="list-group-item">
-                {{.FirstName}}
-                {{.LastName}},
-                {{.Phone}},
-                {{.Email}}
-                {{if .Attended}}
-                  &#9745;
-                {{else}}
-                  &#9746;
-                {{end}}
+          {{if not .Users}}
+            <p>
+              <b>Es sind Anmeldungen vorhanden, werden jedoch aus Datenschutzgründen nicht angezeigt. |
+                <br>
+                Kayitlar bulunmakta, ama veri gizliligi icin gösterilmemekte.</b>
+            </p>
+            <p>
+              <b>Kapazität | Kapasite:
+              </b>
+              Männer | Bay:
+              {{.CapacityMen}}, Frauen | Bayan:
+              {{.CapacityWomen}}</p>
+
+          {{else}}
+            <h4>Angemeldete Benutzer:</h4>
+            <ul class="list-group m-3">
+              {{range .Users}}
+                <li class="list-group-item">
+                  {{.FirstName}}
+                  {{.LastName}},
+                  {{.Phone}},
+                  {{.Email}}
+                  {{if .Attended}}
+                    &#9745;
+                  {{else}}
+                    &#9746;
+                  {{end}}
+                </li>
               {{end}}
-            </li>
-          </ul>
+            </ul>
+          {{end}}
         {{end}}
       {{end}}
     {{end}}
