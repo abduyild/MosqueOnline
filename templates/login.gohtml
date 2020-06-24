@@ -35,33 +35,34 @@
           <input class="btn btn-outline-dark" id="submit" type="submit" value="Eintragen">
         </form>
       </div>
-      <div class="card">
-        <div class="card-header" id="Admin">
-          <h2 class="mb-0">
-            <button class="btn btn-block text-left btn-light" type="button" data-toggle="collapse" data-target="#collapseAdmin" aria-expanded="false" aria-controls="collapseAdmin">
-              Yöneticiler icin Giris
-            </button>
-          </h2>
-        </div>
-        <div id="collapseAdmin" class="collapse" aria-labelledby="Admin" data-parent="#login">
-          <div class="card-body">
-            <form method="post" action="/login">
-              <label for="email">E-Mail Adresi | E-Mail Adresse</label>
-              <br>
-              <input type="email" id="email" name="email">
-              <br><br><br>
+    </div>
+    <div class="card">
+      <div class="card-header" id="Admin">
+        <h2 class="mb-0">
+          <button class="btn btn-block text-left btn-light" type="button" data-toggle="collapse" data-target="#collapseAdmin" aria-expanded="false" aria-controls="collapseAdmin">
+            Yöneticiler icin Giris
+          </button>
+        </h2>
+      </div>
+      <div id="collapseAdmin" class="collapse" aria-labelledby="Admin" data-parent="#login">
+        <div class="card-body">
+          <form method="post" action="/login">
+            <label for="email">E-Mail Adresi | E-Mail Adresse</label>
+            <br>
+            <input type="email" id="email" name="email">
+            <br><br><br>
 
-              <label for="password">Sifre | Passwort</label>
-              <br>
-              <input type="password" id="password" name="password">
-              <br><br><br>
+            <label for="password">Sifre | Passwort</label>
+            <br>
+            <input type="password" id="password" name="password">
+            <br><br><br>
 
-              <input type="hidden" name="type" value="admin">
-              <button type="submit" class="btn btn-outline-dark">Giris Yap | Anmelden</button>
-              <br>
-            </form>
-          </div>
+            <input type="hidden" name="type" value="admin">
+            <button type="submit" class="btn btn-outline-dark">Giris Yap | Anmelden</button>
+            <br>
+          </form>
         </div>
       </div>
     </div>
-  {{end}}
+  </div>
+{{end}}
