@@ -11,6 +11,7 @@ import (
 	"pi-software/model"
 	"pi-software/repos"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -353,19 +354,16 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 				collection.FindOne(context.TODO(), bson.M{"Name": reg.MosqueName}).Decode(&mosque)
 				if mosque.Active { // only show registrations if mosque is active
 					if reg.Date != "" { // delöte this later
-						regT := strings.Split(reg.Date, ".")
-						m, _ := strconv.Atoi(regT[1])
-						d, _ := strconv.Atoi(regT[0])
-						regT[1] = fmt.Sprintf("%02d", m)
-						regT[0] = fmt.Sprintf("%02d", d)
-						regToday, _ := time.Parse(time.RFC3339, regT[2]+"-"+regT[1]+"-"+regT[0]+"T23:59:59Z")
 						timeNow := time.Now()
-						if regToday.After(timeNow) {
+						if stringToTime(reg.Date).After(timeNow) {
 							regP = append(regP, reg)
 						}
 					}
 				}
 			}
+			sort.Slice(regP, func(i int, j int) bool {
+				return stringToTime(regP[i].Date).Before(stringToTime(regP[j].Date))
+			})
 			tUser.RegisteredPrayers = regP
 			t, _ := template.ParseFiles("templates/index.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 			t.Execute(response, tUser)
@@ -373,6 +371,16 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	} else {
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))
 	}
+}
+
+func stringToTime(date string) time.Time {
+	regT := strings.Split(date, ".")
+	m, _ := strconv.Atoi(regT[1])
+	d, _ := strconv.Atoi(regT[0])
+	regT[1] = fmt.Sprintf("%02d", m)
+	regT[0] = fmt.Sprintf("%02d", d)
+	regToday, _ := time.Parse(time.RFC3339, regT[2]+"-"+regT[1]+"-"+regT[0]+"T23:59:59Z")
+	return regToday
 }
 
 func LogoutHandler(response http.ResponseWriter, request *http.Request) {
@@ -428,41 +436,45 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 		date := request.PostFormValue("date")
 		choosenMosque := getMosque(request.PostFormValue("mosque"))
 		var choo = GetChoo(request)
-		index := 0
-		for i, dates := range choosenMosque.Date {
-			if date == strings.Split(dates.Date.String(), " ")[0] {
-				index = i
-				choo.Date.Date = dates.Date
-				break
-			}
-		}
-		cap := 0
-		user, err := GetUserAsUser(response, request)
-		if err != nil {
-			http.Redirect(response, request, "/login", 302)
-			SetChoo(emptyChoose, response)
-			return
-		}
-		male := user.Sex == "Men"
-		for _, prayer := range choosenMosque.Date[index].Prayer {
-			if prayer.Available {
-				if male {
-					cap = prayer.CapacityMen
-				} else {
-					cap = prayer.CapacityWomen
-				}
-				if cap != 0 {
-					pray := *new(TempPrayer)
-					pray.Name = prayer.Name
-					pray.Capacity = cap
-					pray.Available = true
-					choo.Prayer = append(choo.Prayer, pray)
+		if choo.Name != "" {
+			index := 0
+			for i, dates := range choosenMosque.Date {
+				if date == strings.Split(dates.Date.String(), " ")[0] {
+					index = i
+					choo.Date.Date = dates.Date
+					break
 				}
 			}
+			cap := 0
+			user, err := GetUserAsUser(response, request)
+			if err != nil {
+				http.Redirect(response, request, "/login", 302)
+				SetChoo(emptyChoose, response)
+				return
+			}
+			male := user.Sex == "Men"
+			for _, prayer := range choosenMosque.Date[index].Prayer {
+				if prayer.Available {
+					if male {
+						cap = prayer.CapacityMen
+					} else {
+						cap = prayer.CapacityWomen
+					}
+					if cap != 0 {
+						pray := *new(TempPrayer)
+						pray.Name = prayer.Name
+						pray.Capacity = cap
+						pray.Available = true
+						choo.Prayer = append(choo.Prayer, pray)
+					}
+				}
+			}
+			t, _ := template.ParseFiles("templates/choosePrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+			SetChoo(choo, response)
+			t.Execute(response, choo)
+		} else {
+			response.Write([]byte(`<script>window.location.href = "/";</script>`))
 		}
-		t, _ := template.ParseFiles("templates/choosePrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-		SetChoo(choo, response)
-		t.Execute(response, choo)
 	} else {
 		http.Redirect(response, request, "/login", 401)
 		response.Write([]byte(`<script>window.location.href = "/login";</script>`))

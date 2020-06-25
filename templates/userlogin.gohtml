@@ -39,7 +39,7 @@
 
         <label for="phone">Telefon Numarasi | Telefon Nummer</label>
         <br>
-        <input type="number" id="phone" name="phone" min=0>
+        <input type="number" id="phone" name="phone" min="0">
         <br><br><br>
         <input type="hidden" name="type" value="user">
         <button type="submit" class="btn btn-outline-dark">Giris Yap | Anmelden</button>
@@ -47,7 +47,10 @@
       </form>
     </div>
   </div>
-  <div class="container">
+  <div class="container m-3">
+    <h5>Reklaminizi burda görmek istiyorsaniz, caminiz ile iletisime gecin! |
+      <br>
+      Wenn Sie Ihre Werbung hier sehen möchten, kontaktieren Sie Ihre Moschee!</h5>
     <div class="row m-3">
       {{range .}}
         <div class="card m-1" style="width: 15rem;">
