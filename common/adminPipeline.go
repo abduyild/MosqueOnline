@@ -49,7 +49,7 @@ func AdminHandler(response http.ResponseWriter, request *http.Request) {
 		t, _ := template.ParseFiles(target, "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, adminPipe)
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -61,7 +61,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 			name := R(request.FormValue("name"))
 			mosque := getMosque(name)
 			if mosque.Name != "" {
-				t, _ := template.ParseFiles("errorpage.gohtml")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError("Camii Mevcut | Moschee bereits vorhanden", "/admin"))
 			} else {
 				plz, _ := strconv.Atoi(request.FormValue("plz"))
@@ -70,18 +70,18 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 				maxdate, _ := strconv.Atoi(request.FormValue("maxdate"))
 				cap_m, err := strconv.Atoi(request.FormValue("cap-m"))
 				if err != nil {
-					t, _ := template.ParseFiles("errorpage.gohtml")
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
 					t.Execute(response, GetError("Yanlis sayi boyutu | Falsches Zahlenformat", "/admin"))
 				}
 				cap_w, err := strconv.Atoi(request.FormValue("cap-w"))
 				if err != nil {
-					t, _ := template.ParseFiles("errorpage.gohtml")
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
 					t.Execute(response, GetError("Yanlis sayi boyutu | Falsches Zahlenformat", "/admin"))
 				}
 
 				collection, err := repos.GetDBCollection(1)
 				if err != nil {
-					t, _ := template.ParseFiles("errorpage.gohtml")
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
 					t.Execute(response, GetError(dbConnectionError, "/admin"))
 					return
 				}
@@ -168,7 +168,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 			http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -178,14 +178,14 @@ func DeleteMosque(response http.ResponseWriter, request *http.Request) {
 		mosque := request.URL.Query().Get("mosque")
 		collection, err := repos.GetDBCollection(1)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError(dbConnectionError, "/admin"))
 			return
 		}
 		collection.DeleteOne(context.TODO(), bson.M{"Name": mosque})
 		collection, err = repos.GetDBCollection(0)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError(dbConnectionError, "/admin"))
 			return
 		}
@@ -193,7 +193,7 @@ func DeleteMosque(response http.ResponseWriter, request *http.Request) {
 		collection.UpdateMany(context.TODO(), bson.M{}, update)
 		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -255,7 +255,7 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 			active := !mosque.Active
 			collection, err := repos.GetDBCollection(1)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.gohtml")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/admin"))
 				return
 			}
@@ -267,7 +267,7 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 			http.Redirect(response, request, "/admin", 300)
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -282,7 +282,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		collection, err := repos.GetDBCollection(2)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError(dbConnectionError, "/admin"))
 			return
 		}
@@ -312,12 +312,12 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 			// Change redirect target to LoginPage
 			http.Redirect(response, request, "/admin", 302)
 		} else {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Yönetici mevcut | Verwalter bereits vorhanden", "/admin"))
 			return
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -328,7 +328,7 @@ func AddBayram(response http.ResponseWriter, request *http.Request) {
 		repos.AddEid(date)
 		collection, err := repos.GetDBCollection(1)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError(dbConnectionError, "/admin"))
 			return
 		}
@@ -356,7 +356,7 @@ func ChangeDate(response http.ResponseWriter, request *http.Request) {
 		if mosque != "" {
 			collection, err := repos.GetDBCollection(1)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.gohtml")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/admin"))
 				return
 			}
@@ -380,13 +380,13 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 			value := strings.Split(path, "=")[1]
 			collection, err := repos.GetDBCollection(1)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.gohtml")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/admin"))
 				return
 			}
 			available, err := strconv.ParseBool(value)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.gohtml")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError("Yanlis boyut, yine deneyin | Falsches Format, versuchen Sie es erneut", "/admin"))
 				return
 			}
@@ -422,7 +422,7 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 			var mosqueC model.Mosque
 			collection, err := repos.GetDBCollection(1)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.gohtml")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/admin"))
 				return
 			}
@@ -478,7 +478,7 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 			t.Execute(response, status)
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -509,7 +509,7 @@ func Edit(response http.ResponseWriter, request *http.Request) {
 			}
 			collection, err := repos.GetDBCollection(1)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.gohtml")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/admin"))
 				return
 			}
@@ -523,12 +523,12 @@ func Edit(response http.ResponseWriter, request *http.Request) {
 				}
 			}
 		} else {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Camii ismi gecerli degil | Moscheename ungültig", "/admin"))
 			return
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Camii ismi gecerli degil | Moscheename ungültig", "/admin"))
 		return
 	}
@@ -575,7 +575,7 @@ func EditCapacity(response http.ResponseWriter, request *http.Request) {
 			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -592,7 +592,7 @@ func ShowAdmins(response http.ResponseWriter, request *http.Request) {
 		}
 		t.Execute(response, admins)
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -614,7 +614,7 @@ func ChangeAdmin(response http.ResponseWriter, request *http.Request) {
 		var adminModel model.Admin
 		collection, err := repos.GetDBCollection(2)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError(dbConnectionError, "/admin"))
 			return
 		}
@@ -635,7 +635,7 @@ func ChangeAdmin(response http.ResponseWriter, request *http.Request) {
 		collection.ReplaceOne(context.TODO(), bson.M{"Email": encOe}, newAdmin)
 		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -650,7 +650,7 @@ func AddBanner(response http.ResponseWriter, request *http.Request) {
 		link := request.PostFormValue("link")
 		//replace file with the key your sent your image with
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Fotograf yüklenilemedi, birdaha deneyin | Foto konnte nicht geladen werden, versuchen Sie es erneut", "/admin"))
 		}
 
@@ -667,14 +667,14 @@ func AddBanner(response http.ResponseWriter, request *http.Request) {
 		ad.Link = link
 		collection, err := repos.GetDBCollection(1)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.gohtml")
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError(dbConnectionError, "/admin"))
 			return
 		}
 		collection.UpdateOne(context.TODO(), bson.M{"Name": name}, bson.M{"$push": bson.M{"Ads": ad}})
 		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -686,7 +686,7 @@ func RemoveBanner(response http.ResponseWriter, request *http.Request) {
 		if path != "" {
 			collection, err := repos.GetDBCollection(1)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.gohtml")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/admin"))
 				return
 			}
@@ -705,7 +705,7 @@ func RemoveBanner(response http.ResponseWriter, request *http.Request) {
 			t.Execute(response, ads)
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.gohtml")
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
