@@ -41,6 +41,7 @@ func main() {
 	router.HandleFunc("/show-admins", common.ShowAdmins)
 	router.HandleFunc("/changeAdmin", common.ChangeAdmin)
 	router.HandleFunc("/addBanner", common.AddBanner)
+	router.HandleFunc("/removeBanner", common.RemoveBanner)
 
 	router.HandleFunc("/mosqueIndex", common.MosqueHandler)
 	router.HandleFunc("/getRegistrations", common.GetRegistrations)

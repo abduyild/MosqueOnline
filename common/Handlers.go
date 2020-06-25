@@ -319,8 +319,6 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 			t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 			t.Execute(response, nil)
 		}
-		// function for redirecting
-		http.Redirect(response, request, redirectTarget, 302)
 	} else {
 		t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 		t.Execute(response, nil)

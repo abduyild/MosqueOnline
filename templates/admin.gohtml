@@ -20,7 +20,7 @@
 {{end}}
 
 {{define "main"}}
-  <div class="accordion" id="adminAction">
+  <div class="accordion" id="adminMosqueAction">
     <h2>Camii | Moschee</h2>
     <div class="card">
       <div class="card-header" id="AddMosque">
@@ -31,7 +31,7 @@
         </h2>
       </div>
 
-      <div id="colAddM" class="collapse" aria-labelledby="AddMosque" data-parent="#adminAction">
+      <div id="colAddM" class="collapse" aria-labelledby="AddMosque" data-parent="#adminMosqueAction">
         <div class="card-body">
           <form method="post" action="/addMosque">
             <div class="form-group row">
@@ -145,7 +145,7 @@
           </button>
         </h2>
       </div>
-      <div id="changeD" class="collapse" aria-labelledby="changeDate" data-parent="#adminAction">
+      <div id="changeD" class="collapse" aria-labelledby="changeDate" data-parent="#adminMosqueAction">
         <div class="card-body">
           <h5 class="card-title">Kayitpenceresi icin maksimum günleri degistir | Ändere Anzahl Tage für Anmeldefenster
           </h5>
@@ -153,16 +153,16 @@
             <div class="row" style="height: 300px;">
               <div class="col">
                 <input type="number" name="days" min="0"><br><br>
-                <select id="mosque" class="selectpicker" data-width="75%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
+                <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
                   <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
                   {{ range .Mosques}}
                     <option value="{{.Name}}">{{.Name}}, Ort:
                       {{.City}}</option>
                   {{ end }}
                 </select>
+                <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
               </div>
             </div>
-            <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
           </form>
         </div>
       </div>
@@ -175,23 +175,23 @@
           </button>
         </h2>
       </div>
-      <div id="editP" class="collapse" aria-labelledby="editPrayers" data-parent="#adminAction">
+      <div id="editP" class="collapse" aria-labelledby="editPrayers" data-parent="#adminMosqueAction">
         <div class="card-body">
           <h5 class="card-title">Kayitpenceresi icin maksimum günleri degistir | Ändere Anzahl Tage für Anmeldefenster
           </h5>
           <form action="/editPrayers">
             <div class="row" style="height: 300px;">
               <div class="col">
-                <select id="mosque" class="selectpicker" data-width="75%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
+                <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
                   <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
                   {{ range .Mosques}}
                     <option value="{{.Name}}">{{.Name}}, Ort:
                       {{.City}}</option>
                   {{ end }}
                 </select>
+                <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
               </div>
             </div>
-            <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
           </form>
         </div>
       </div>
@@ -204,23 +204,23 @@
           </button>
         </h2>
       </div>
-      <div id="editC" class="collapse" aria-labelledby="editCapacity" data-parent="#adminAction">
+      <div id="editC" class="collapse" aria-labelledby="editCapacity" data-parent="#adminMosqueAction">
         <div class="card-body">
           <h5 class="card-title">Camii icin kapasiteyi degistir | Ändere Kapazität für eine Moschee
           </h5>
           <form action="/editCapacity">
             <div class="row" style="height: 300px;">
-              <div class="col">
-                <select id="mosque" class="selectpicker" data-width="75%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
+              <div class="col m-1">
+                <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
                   <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
                   {{ range .Mosques}}
                     <option value="{{.Name}}">{{.Name}}, Ort:
                       {{.City}}</option>
                   {{ end }}
                 </select>
+                <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
               </div>
             </div>
-            <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
           </form>
         </div>
       </div>
@@ -234,7 +234,7 @@
           </button>
         </h2>
       </div>
-      <div id="addBan" class="collapse" aria-labelledby="addBanner" data-parent="#adminAction">
+      <div id="addBan" class="collapse" aria-labelledby="addBanner" data-parent="#adminMosqueAction">
         <div class="card-body">
           <h5 class="card-title">Camii icin Reklam ekle | Füge Werbung für eine Moschee hinzu
           </h5>
@@ -248,16 +248,41 @@
                       {{.City}}</option>
                   {{ end }}
                 </select><br>
-                <input
-                  type="url"
-                  name="link"
-                  placeholder="http://www.example.com"
-                  pattern="http(s?)(:\/\/)((www.)?)(([^.]+)\.)?(\S)*"
-                  required="required"><br>
-                <input type="file" name="file" required="required">
+                <input type="url" name="link" placeholder="http://www.example.com" pattern="http(s?)(:\/\/)((www.)?)(([^.]+)\.)?(\S)*" required="required"><br>
+                <input type="file" accept="image/*" name="file" required="required">
               </div>
             </div>
             <button type="submit" class="btn btn-outline-dark">Yükle | Hochladen</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" id="removeBanner">
+        <h2>
+          <button class="btn btn-outline-dark btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#remBan" aria-expanded="false" aria-controls="remBan">
+            Camii icin Reklam sil | Entferne Werbung für eine Moschee
+          </button>
+        </h2>
+      </div>
+      <div id="remBan" class="collapse" aria-labelledby="removeBanner" data-parent="#adminMosqueAction">
+        <div class="card-body">
+          <h5 class="card-title">Camii icin Reklam sil | Entferne Werbung für eine Moschee
+          </h5>
+          <form action="/removeBanner" method="post">
+            <div class="row" style="height: 300px;">
+              <div class="col">
+                <select id="mosque" class="selectpicker" data-width="75%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off" required="required">
+                  <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+                  {{ range .Mosques}}
+                    <option value="{{.Name}}">{{.Name}}, Ort:
+                      {{.City}}</option>
+                  {{ end }}
+                </select><br>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
           </form>
         </div>
       </div>
@@ -269,6 +294,8 @@
         </h2>
       </div>
     </div>
+  </div>
+  <div class="accordion" id="adminMosqueAction">
     <h2>Yöneticiler | Verwalter / Admins</h2>
     <div class="card">
       <div class="card-header" id="show-admins">

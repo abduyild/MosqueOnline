@@ -1,0 +1,30 @@
+{{template "base" .}}
+
+{{define "scripts"}}{{end}}
+
+{{define "title"}}
+  Login
+{{end}}
+
+{{define "main"}}
+  <div class="container m-3">
+    <h2>Silmek istediginiz reklama tiklayin! |
+      <br>
+      Klciken Sie auf die Werbung, die Sie entfernen möchten!</h2>
+    <div class="row m-3">
+      <form action="/removeBanner" method="POST">
+        {{$name := .Name}}
+        {{range .Ads}}
+          <div class="card m-1" style="width: 15rem;">
+            <img class="card-img-top" src="/banner/{{.Path}}" alt="{{.Path}}">
+            <a>Link:
+              {{.Link}}</a>
+            <input type="hidden" name="path" value="{{.Path}}">
+            <input type="hidden" name="mosque" value="{{$name}}">
+            <input type="submit" class="btn btn-outline-danger" value="Sil | Entfernen">
+          </div>
+        {{end}}
+      </form>
+    </div>
+  </div>
+{{end}}

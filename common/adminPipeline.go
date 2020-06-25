@@ -599,6 +599,27 @@ func AddBanner(response http.ResponseWriter, request *http.Request) {
 	response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 }
 
+func RemoveBanner(response http.ResponseWriter, request *http.Request) {
+	path := request.PostFormValue("path")
+	name := request.PostFormValue("mosque")
+	if path != "" {
+		collection, _ := repos.GetDBCollection(1)
+		collection.UpdateOne(context.TODO(), bson.M{"Name": name}, bson.M{"$pull": bson.M{"Ads": bson.M{"Path": path}}})
+		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
+	} else {
+		var mosque = getMosque(name)
+		type adM struct {
+			Ads  []model.Ad
+			Name string
+		}
+		var ads adM
+		ads.Ads = mosque.Ads
+		ads.Name = name
+		t, _ := template.ParseFiles("templates/removeBanner.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
+		t.Execute(response, ads)
+	}
+}
+
 func getAdmins() []model.Admin {
 	var admins []model.Admin
 	collection, _ := repos.GetDBCollection(2)
