@@ -49,14 +49,14 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "mosque") {
 		collection, err := repos.GetDBCollection(1)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
 			return
 		}
 		var mosque model.Mosque
 		name, err := GetPhoneFromCookie(request)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError(err.Error(), "/login"))
 			return
 		}
@@ -81,7 +81,7 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 		t, _ := template.ParseFiles("templates/mosque.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, mosquePipe)
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -96,7 +96,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			var prayers []model.Prayer
 			mosqueName, err := GetPhoneFromCookie(request)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError(err.Error(), "/login"))
 				return
 			}
@@ -134,7 +134,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			var prayers []model.Prayer
 			mosqueName, err := GetPhoneFromCookie(request)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError(err.Error(), "/login"))
 				return
 			}
@@ -165,12 +165,12 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 				t, _ := template.ParseFiles("templates/getRegistrations.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
 				t.Execute(response, datesMosque)
 			} else {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError("Camii bulunamadi | Moschee konnte nicht gefunden werden", "/mosqueIndex"))
 			}
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -181,7 +181,7 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 		visitors := request.Form["visitor"]
 		mosqueName, err := GetPhoneFromCookie(request)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError(err.Error(), "/login"))
 			return
 		}
@@ -200,7 +200,7 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 						}
 						collection, err := repos.GetDBCollection(1)
 						if err != nil {
-							t, _ := template.ParseFiles("errorpage.html")
+							t, _ := template.ParseFiles("errorpage.gohtml")
 							t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
 							return
 						}
@@ -224,13 +224,13 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 						}
 						collection, err := repos.GetDBCollection(1)
 						if err != nil {
-							t, _ := template.ParseFiles("errorpage.html")
+							t, _ := template.ParseFiles("errorpage.gohtml")
 							t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
 							return
 						}
 						in, err := strconv.Atoi(data[1])
 						if err != nil {
-							t, _ := template.ParseFiles("errorpage.html")
+							t, _ := template.ParseFiles("errorpage.gohtml")
 							t.Execute(response, GetError("Sayi dönüsümde hata | Fehler beim umwandeln", "/mosqueIndex"))
 							return
 						}
@@ -246,11 +246,11 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 				response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
 			}
 		} else {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError("Camii bulunamadi | Moschee konnte nicht gefunden werden", "/mosqueIndex"))
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }

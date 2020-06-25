@@ -151,7 +151,7 @@ func RegisterPageHandler(response http.ResponseWriter, request *http.Request) {
 func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	collection, err := repos.GetDBCollection(0)
 	if err != nil {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError(dbConnectionError, "/register"))
 		return
 	}
@@ -208,11 +208,11 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			// Change redirect target to LoginPage
 			http.Redirect(response, request, "/", 302)
 		} else {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError("Kullanici mevcut | Benutzer existiert bereits", "/register"))
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Alanlar bos kalamaz | Felder dürfen nicht leer sein", "/register"))
 	}
 }
@@ -239,7 +239,7 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 		if len(email) != 0 && len(phone) != 0 {
 			collection, err := repos.GetDBCollection(0)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/login"))
 				return
 			}
@@ -293,7 +293,7 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 
 			// if there was no error getting the table, te program does these operations
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/"))
 			}
 			var admin model.Admin
@@ -353,7 +353,7 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 		encryptedUser, err := GetUserAsUser(response, request)
 		SetChoo(emptyChoose, response)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/login"))
 			return
 		} else {
@@ -366,7 +366,7 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 			collection, err := repos.GetDBCollection(1)
 
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/"))
 				return
 			}
@@ -390,7 +390,7 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 			t.Execute(response, tUser)
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -439,12 +439,12 @@ func Choose(response http.ResponseWriter, request *http.Request) {
 				}
 			} else {
 				SetChoo(emptyChoose, response)
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError("Camii secilmedi | Keine Moschee asugewählt", "/"))
 			}
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -472,7 +472,7 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 			cap := 0
 			user, err := GetUserAsUser(response, request)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/login"))
 				return
 			}
@@ -497,11 +497,11 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 			SetChoo(choo, response)
 			t.Execute(response, choo)
 		} else {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError("Camii secilmedi | Keine Moschee asugewählt", "/"))
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -536,19 +536,19 @@ func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
 					SetChoo(choo, response)
 					t.Execute(response, choo)
 				} else {
-					t, _ := template.ParseFiles("errorpage.html")
+					t, _ := template.ParseFiles("errorpage.gohtml")
 					t.Execute(response, GetError("Tarih secilmedi | Kein Datum ausgewählt", "/"))
 				}
 			} else {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError("Gecerli Tarih secilmedi | Kein gültiges Gebet asugewählt", "/"))
 			}
 		} else {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError("Camii secilmedi | Keine Moschee asugewählt", "/"))
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -558,7 +558,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 		if request.URL.Query().Get("confirm") == "yes" {
 			collection, err := repos.GetDBCollection(0)
 			if err != nil {
-				t, _ := template.ParseFiles("errorpage.html")
+				t, _ := template.ParseFiles("errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/"))
 				return
 			}
@@ -585,7 +585,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 					}
 					user, err := GetUserAsUser(response, request)
 					if err != nil {
-						t, _ := template.ParseFiles("errorpage.html")
+						t, _ := template.ParseFiles("errorpage.gohtml")
 						t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/login"))
 						return
 					}
@@ -611,7 +611,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 						registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
 						collection, err = repos.GetDBCollection(1)
 						if err != nil {
-							t, _ := template.ParseFiles("errorpage.html")
+							t, _ := template.ParseFiles("errorpage.gohtml")
 							t.Execute(response, GetError(dbConnectionError, "/"))
 							return
 						}
@@ -628,13 +628,13 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 						user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
 						collection, err = repos.GetDBCollection(0)
 						if err != nil {
-							t, _ := template.ParseFiles("errorpage.html")
+							t, _ := template.ParseFiles("errorpage.gohtml")
 							t.Execute(response, GetError(dbConnectionError, "/"))
 							return
 						}
 						phone, err := GetPhoneFromCookie(request)
 						if err != nil {
-							t, _ := template.ParseFiles("errorpage.html")
+							t, _ := template.ParseFiles("errorpage.gohtml")
 							t.Execute(response, GetError(err.Error(), "/login"))
 							return
 						}
@@ -661,7 +661,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			http.Redirect(response, request, "/", 302)
 		}
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
@@ -674,7 +674,7 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		phone := request.FormValue("phone")
 		prayerN, err := strconv.Atoi(prayer)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError("Bir hata olustu, birdaha deneyin | Ein Fehler ist aufgetreten, versuchen Sie es erneut", "/"))
 			return
 		}
@@ -686,7 +686,7 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 			bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": encP}}})
 		user, err := GetUserAsUser(response, request)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/login"))
 			return
 		}
@@ -698,7 +698,7 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 			}})
 		collection, err = repos.GetDBCollection(0)
 		if err != nil {
-			t, _ := template.ParseFiles("errorpage.html")
+			t, _ := template.ParseFiles("errorpage.gohtml")
 			t.Execute(response, GetError(dbConnectionError, "/"))
 			return
 		}
@@ -708,7 +708,7 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		collection.UpdateOne(context.TODO(), filter, update)
 		http.Redirect(response, request, "/", 302)
 	} else {
-		t, _ := template.ParseFiles("errorpage.html")
+		t, _ := template.ParseFiles("errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
