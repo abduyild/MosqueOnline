@@ -57,7 +57,7 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 		name, err := GetPhoneFromCookie(request)
 		if err != nil {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
-			t.Execute(response, GetError(err.Error(), "/login"))
+			t.Execute(response, GetError(err.Error(), "/"))
 			return
 		}
 		collection.FindOne(context.TODO(), bson.M{"Name": name}).Decode(&mosque)
@@ -82,7 +82,7 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 		t.Execute(response, mosquePipe)
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -97,7 +97,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			mosqueName, err := GetPhoneFromCookie(request)
 			if err != nil {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(err.Error(), "/login"))
+				t.Execute(response, GetError(err.Error(), "/"))
 				return
 			}
 			mosque := getMosque(mosqueName)
@@ -135,7 +135,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			mosqueName, err := GetPhoneFromCookie(request)
 			if err != nil {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(err.Error(), "/login"))
+				t.Execute(response, GetError(err.Error(), "/"))
 				return
 			}
 			mosque := getMosque(mosqueName)
@@ -171,7 +171,7 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -182,7 +182,7 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 		mosqueName, err := GetPhoneFromCookie(request)
 		if err != nil {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
-			t.Execute(response, GetError(err.Error(), "/login"))
+			t.Execute(response, GetError(err.Error(), "/"))
 			return
 		}
 		mosque := getMosque(mosqueName)
@@ -251,6 +251,6 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }

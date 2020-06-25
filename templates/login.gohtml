@@ -35,7 +35,7 @@
           </div>
           <div id="collapseUser" class="collapse show m-2" aria-labelledby="User" data-parent="#login">
             <div class="card-body" style="height: 300px;">
-              <form action="/login">
+              <form action="/">
                 <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
                   <option value="" selected="selected" disabled="disabled">Camiinizi secin / Moscheeauswahl</option>
                   {{ range .}}
@@ -60,7 +60,7 @@
           </div>
           <div id="collapseAdmin" class="collapse" aria-labelledby="Admin" data-parent="#login">
             <div class="card-body">
-              <form method="post" action="/login">
+              <form method="post" action="/">
                 <label for="email">
                   E-Mail Adresi | E-Mail Adresse
                   <br>

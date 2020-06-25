@@ -50,7 +50,7 @@ func AdminHandler(response http.ResponseWriter, request *http.Request) {
 		t.Execute(response, adminPipe)
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -169,7 +169,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -194,7 +194,7 @@ func DeleteMosque(response http.ResponseWriter, request *http.Request) {
 		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -268,7 +268,7 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -318,7 +318,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -479,7 +479,7 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -576,7 +576,7 @@ func EditCapacity(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -593,7 +593,7 @@ func ShowAdmins(response http.ResponseWriter, request *http.Request) {
 		t.Execute(response, admins)
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -636,7 +636,7 @@ func ChangeAdmin(response http.ResponseWriter, request *http.Request) {
 		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -675,7 +675,7 @@ func AddBanner(response http.ResponseWriter, request *http.Request) {
 		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -706,7 +706,7 @@ func RemoveBanner(response http.ResponseWriter, request *http.Request) {
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
