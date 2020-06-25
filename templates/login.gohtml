@@ -23,7 +23,7 @@
 
 {{define "main"}}
   <div id="wrong" class="alert alert-danger" role="alert" style="display: none;">
-    Yanlis Giris kombinasyonu girdiniz! | Sie haben eine falsche Anmeldedaten Kombination eingegeben
+    Yanlis Giris kombinasyonu girdiniz! | Sie haben eine falsche Anmeldedaten Kombination eingegeben!
   </div>
   <div class="accordion" id="login">
     <div class="row">
@@ -38,14 +38,14 @@
           </div>
           <div id="collapseUser" class="collapse show m-2" aria-labelledby="User" data-parent="#login" style="height: 300px;">
             <form action="/login">
-              <select id="mosque" class="selectpicker" data-width="75%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
+              <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
                 <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
                 {{ range .}}
                   <option value="{{.Name}}">{{.Name}}, Ort:
                     {{.City}}</option>
                 {{ end }}
               </select>
-              <input type="button" class="btn btn-outline-dark" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input>
+              <input type="button" class="btn btn-outline-dark" id="btnClear" value="Secenegi Sil | Auswahl löschen"></input><br>
               <input class="btn btn-outline-dark" id="submit" type="submit" value="Eintragen">
             </form>
           </div>
