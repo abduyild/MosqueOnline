@@ -37,7 +37,7 @@
             <div class="card-body" style="height: 300px;">
               <form action="/login">
                 <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
-                  <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
+                  <option value="" selected="selected" disabled="disabled">Camiinizi secin / Moscheeauswahl</option>
                   {{ range .}}
                     <option value="{{.Name}}">{{.Name}}, Ort:
                       {{.City}}</option>

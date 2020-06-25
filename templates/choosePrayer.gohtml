@@ -1,5 +1,8 @@
 {{template "base" .}}
 {{define "scripts"}}
+  <script src="static/js/jquery-3.5.1.slim.min.js"></script>
+  <script src="static/js/selectize.min.js"></script>
+  <link rel="stylesheet" href="static/css/selectize.default.css">
   <script>
     $(document).ready(function () {
       var $select = $("#prayer").selectize({
@@ -24,20 +27,20 @@
 
   <h3>Secdiginiz Camii | Ausgewählte Moschee</h3>
 
-    <div class="card m-2" style="width: 18rem;">
-      <div class="card-body">
-        <h5 class="card-title">{{.Name}}</h5>
-        <p class="card-text">
-          {{.Street}}
-          <br>
-          {{.PLZ}},
-          {{.City}}
-        </p>
-      </div>
+  <div class="card m-2" style="width: 18rem;">
+    <div class="card-body">
+      <h5 class="card-title">{{.Name}}</h5>
+      <p class="card-text">
+        {{.Street}}
+        <br>
+        {{.PLZ}},
+        {{.City}}
+      </p>
     </div>
+  </div>
   <label for="prayer">Vakit secin / Wähle Gebet:</label>
   <select name="prayer" id="prayer">
-    <option value>Vakit secin / Wähle Gebet:</option>
+    <option value="value">Vakit secin / Wähle Gebet:</option>
     {{range .Prayer}}
       {{if .Available}}
         <option value="{{.Name}}">

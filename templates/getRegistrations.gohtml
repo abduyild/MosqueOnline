@@ -45,6 +45,12 @@
               {{.CapacityWomen}}</p>
 
           {{else}}
+            <p>
+              <b>Kapazität | Kapasite:
+              </b>
+              Männer | Bay:
+              {{.CapacityMen}}, Frauen | Bayan:
+              {{.CapacityWomen}}</p>
             <h4>Angemeldete Benutzer:</h4>
             <ul class="list-group m-3">
               {{range .Users}}

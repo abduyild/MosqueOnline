@@ -1,6 +1,6 @@
 {{template "base" .}}
 {{define "scripts"}}
-  <script src="static/jquery-3.5.1.slim.min.js>"></script>
+  <script src="static/js/jquery-3.5.1.slim.min.js"></script>
   <script src="static/js/bootstrap.bundle.min.js"></script>
   <script>
     $(document).ready(function () {
@@ -111,6 +111,8 @@
                       <form action="/confirmVisitors">
                         <input type="hidden" id="type" name="type" value="del">
                         <div class="form-check">
+                          <p>Sadece onaylanmis kayitlar silinebilir! | Es können nur bestätigte Anmeldungen zurückgesetzt werden!</p>
+                          <p>Eger bos ise, onaylanmis kayitlar bulunmamakta | Sofern leer, existieren keine bestätigten Anmeldungen</p>
                           {{range .Users}}
                             {{if .Attended}}
                               <input type="hidden" name="data" value="{{$name}}!{{$prayer}}">
