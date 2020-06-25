@@ -249,17 +249,17 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 
 			err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
 			if err != nil {
-				http.Redirect(response, request, "/login?wrong", 302)
+				http.Redirect(response, request, "/?wrong", 302)
 				return
 			}
 			decE := repos.Decrypt(user.Email)
 			if email != decE {
-				http.Redirect(response, request, "/login?wrong", 302)
+				http.Redirect(response, request, "/?wrong", 302)
 				return
 			}
 			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
 			if err != nil {
-				http.Redirect(response, request, "/login?wrong", 302)
+				http.Redirect(response, request, "/?wrong", 302)
 				return
 			}
 			cookie := R(email+"?"+phone+"&"+string(userCredentials)) + "!"
