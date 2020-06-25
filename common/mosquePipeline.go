@@ -47,9 +47,19 @@ func decryptPrayer(prayer model.Prayer) model.Prayer {
 
 func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "mosque") {
-		collection, _ := repos.GetDBCollection(1)
+		collection, err := repos.GetDBCollection(1)
+		if err != nil {
+			t, _ := template.ParseFiles("errorpage.html")
+			t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+			return
+		}
 		var mosque model.Mosque
-		name, _ := GetPhoneFromCookie(request)
+		name, err := GetPhoneFromCookie(request)
+		if err != nil {
+			t, _ := template.ParseFiles("errorpage.html")
+			t.Execute(response, GetError(err.Error(), "/login"))
+			return
+		}
 		collection.FindOne(context.TODO(), bson.M{"Name": name}).Decode(&mosque)
 		date := time.Now()
 		today := strconv.Itoa(date.Day()) + "." + strconv.Itoa(int(date.Month())) + "." + strconv.Itoa(date.Year())
@@ -71,7 +81,8 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 		t, _ := template.ParseFiles("templates/mosque.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, mosquePipe)
 	} else {
-		accessError(response, request)
+		t, _ := template.ParseFiles("errorpage.html")
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
 
@@ -85,7 +96,9 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			var prayers []model.Prayer
 			mosqueName, err := GetPhoneFromCookie(request)
 			if err != nil {
-				http.Error(response, err.Error(), 402)
+				t, _ := template.ParseFiles("errorpage.html")
+				t.Execute(response, GetError(err.Error(), "/login"))
+				return
 			}
 			mosque := getMosque(mosqueName)
 			dates := mosque.Date
@@ -121,36 +134,44 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			var prayers []model.Prayer
 			mosqueName, err := GetPhoneFromCookie(request)
 			if err != nil {
-				http.Error(response, err.Error(), 402)
+				t, _ := template.ParseFiles("errorpage.html")
+				t.Execute(response, GetError(err.Error(), "/login"))
+				return
 			}
 			mosque := getMosque(mosqueName)
-			for _, date := range mosque.Date {
-				for _, prayer := range date.Prayer {
-					if len(prayer.Users) > 0 {
-						nprayer := prayer
-						nprayer.Users = []model.User{}
-						for _, user := range prayer.Users {
-							if user.Attended {
-								nprayer.Users = append(nprayer.Users, user)
+			if mosque.Name != "" {
+				for _, date := range mosque.Date {
+					for _, prayer := range date.Prayer {
+						if len(prayer.Users) > 0 {
+							nprayer := prayer
+							nprayer.Users = []model.User{}
+							for _, user := range prayer.Users {
+								if user.Attended {
+									nprayer.Users = append(nprayer.Users, user)
+								}
 							}
+							prayers = append(prayers, decryptPrayer(nprayer))
 						}
-						prayers = append(prayers, decryptPrayer(nprayer))
+					}
+					if len(prayers) > 0 {
+						var dat Date
+						dateS := strconv.Itoa(date.Date.Day()) + "." + strconv.Itoa(int(date.Date.Month())) + "." + strconv.Itoa(date.Date.Year())
+						dat.Date = dateS
+						dat.Prayer = prayers
+						prayers = []model.Prayer{}
+						datesMosque = append(datesMosque, dat)
 					}
 				}
-				if len(prayers) > 0 {
-					var dat Date
-					dateS := strconv.Itoa(date.Date.Day()) + "." + strconv.Itoa(int(date.Date.Month())) + "." + strconv.Itoa(date.Date.Year())
-					dat.Date = dateS
-					dat.Prayer = prayers
-					prayers = []model.Prayer{}
-					datesMosque = append(datesMosque, dat)
-				}
+				t, _ := template.ParseFiles("templates/getRegistrations.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
+				t.Execute(response, datesMosque)
+			} else {
+				t, _ := template.ParseFiles("errorpage.html")
+				t.Execute(response, GetError("Camii bulunamadi | Moschee konnte nicht gefunden werden", "/mosqueIndex"))
 			}
-			t, _ := template.ParseFiles("templates/getRegistrations.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
-			t.Execute(response, datesMosque)
 		}
 	} else {
-		accessError(response, request)
+		t, _ := template.ParseFiles("errorpage.html")
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
 
@@ -160,54 +181,76 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 		visitors := request.Form["visitor"]
 		mosqueName, err := GetPhoneFromCookie(request)
 		if err != nil {
-			http.Error(response, err.Error(), 402)
+			t, _ := template.ParseFiles("errorpage.html")
+			t.Execute(response, GetError(err.Error(), "/login"))
+			return
 		}
 		mosque := getMosque(mosqueName)
-		if len(visitors) > 0 {
-			if request.URL.Query().Get("type") == "add" {
-				data := strings.Split(request.URL.Query().Get("data"), "!")
-				for _, phone := range visitors {
-					today := strings.Split(time.Now().String(), " ")[0]
-					index := 0
-
-					for i, dateI := range mosque.Date {
-						if today == strings.Split(dateI.Date.String(), " ")[0] {
-							index = i
+		if mosque.Name != "" {
+			if len(visitors) > 0 {
+				if request.URL.Query().Get("type") == "add" {
+					data := strings.Split(request.URL.Query().Get("data"), "!")
+					for _, phone := range visitors {
+						today := strings.Split(time.Now().String(), " ")[0]
+						index := 0
+						for i, dateI := range mosque.Date {
+							if today == strings.Split(dateI.Date.String(), " ")[0] {
+								index = i
+							}
 						}
+						collection, err := repos.GetDBCollection(1)
+						if err != nil {
+							t, _ := template.ParseFiles("errorpage.html")
+							t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+							return
+						}
+						in, _ := strconv.Atoi(data[1])
+						ind := strconv.Itoa(in - 1)
+						encP := repos.Encrypt(phone)
+						collection.UpdateOne(context.TODO(),
+							bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": encP},
+							bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.$.Attended": true}})
+						response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
 					}
-					collection, _ := repos.GetDBCollection(1)
-					in, _ := strconv.Atoi(data[1])
-					ind := strconv.Itoa(in - 1)
-					encP := repos.Encrypt(phone)
-					collection.UpdateOne(context.TODO(),
-						bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": encP},
-						bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.$.Attended": true}})
-					response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
+				} else {
+					data := strings.Split(request.URL.Query().Get("data"), "!")
+					for _, phone := range visitors {
+						today := strings.Split(time.Now().String(), " ")[0]
+						index := 0
+						for i, dateI := range mosque.Date {
+							if today == strings.Split(dateI.Date.String(), " ")[0] {
+								index = i
+							}
+						}
+						collection, err := repos.GetDBCollection(1)
+						if err != nil {
+							t, _ := template.ParseFiles("errorpage.html")
+							t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+							return
+						}
+						in, err := strconv.Atoi(data[1])
+						if err != nil {
+							t, _ := template.ParseFiles("errorpage.html")
+							t.Execute(response, GetError("Sayi dönüsümde hata | Fehler beim umwandeln", "/mosqueIndex"))
+							return
+						}
+						ind := strconv.Itoa(in - 1)
+						encP := repos.Encrypt(phone)
+						collection.UpdateOne(context.TODO(),
+							bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": encP},
+							bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.$.Attended": false}})
+						response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
+					}
 				}
 			} else {
-				data := strings.Split(request.URL.Query().Get("data"), "!")
-				for _, phone := range visitors {
-					today := strings.Split(time.Now().String(), " ")[0]
-					index := 0
-					for i, dateI := range mosque.Date {
-						if today == strings.Split(dateI.Date.String(), " ")[0] {
-							index = i
-						}
-					}
-					collection, _ := repos.GetDBCollection(1)
-					in, _ := strconv.Atoi(data[1])
-					ind := strconv.Itoa(in - 1)
-					encP := repos.Encrypt(phone)
-					collection.UpdateOne(context.TODO(),
-						bson.M{"Name": data[0], "Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.Phone": encP},
-						bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + ind + ".Users.$.Attended": false}})
-					response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
-				}
+				response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
 			}
 		} else {
-			response.Write([]byte(`<script>window.location.href = "/mosqueIndex";</script>`))
+			t, _ := template.ParseFiles("errorpage.html")
+			t.Execute(response, GetError("Camii bulunamadi | Moschee konnte nicht gefunden werden", "/mosqueIndex"))
 		}
 	} else {
-		accessError(response, request)
+		t, _ := template.ParseFiles("errorpage.html")
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/login"))
 	}
 }
