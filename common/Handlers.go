@@ -383,6 +383,7 @@ func stringToTime(date string) time.Time {
 
 func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 	ClearCookie(response)
+	ClearMosque(response)
 	http.Redirect(response, request, "/", 302)
 }
 
@@ -701,7 +702,7 @@ func SetCookie(user string, response http.ResponseWriter) {
 
 func ClearMosque(response http.ResponseWriter) {
 	cookie := &http.Cookie{
-		Name:   "mosque",
+		Name:   "choosenMosque",
 		Value:  "",
 		Path:   "/",
 		MaxAge: -1,
