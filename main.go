@@ -50,11 +50,9 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/banner/", http.StripPrefix("/banner", http.FileServer(http.Dir("./banner"))))
 	http.Handle("/", router)
-	go http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/camii.online/fullchain.pem", "/etc/letsencrypt/live/camii.online/privkey.pem", nil)
-	http.ListenAndServe(":8080", http.HandlerFunc(redirectToHttps))
+	log.Fatal(http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/camii.online/fullchain.pem", "/etc/letsencrypt/live/camii.online/privkey.pem", nil))
+	go http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
+	}))
 	log.Println("Started")
-}
-
-func redirectToHttps(response http.ResponseWriter, request *http.Request) {
-	http.Redirect(response, request, "https://127.0.0.1:443"+request.RequestURI, http.StatusMovedPermanently)
 }
