@@ -52,5 +52,5 @@ func main() {
 	http.Handle("/banner/", http.StripPrefix("/banner", http.FileServer(http.Dir("./banner"))))
 	http.Handle("/", router)
 	log.Println("Server is up and running at Port :8080")
-	http.ListenAndServe("0.0.0.0:8080", nil)
+	http.ListenAndServe("localhost:8080", nil)
 }
