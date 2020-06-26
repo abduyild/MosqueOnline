@@ -206,7 +206,7 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage
-			http.Redirect(response, request, "/index", 302)
+			http.Redirect(response, request, "/", 302)
 		} else {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Kullanici mevcut | Benutzer existiert bereits", "/register"))

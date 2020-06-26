@@ -44,13 +44,13 @@ func main() {
 
 	router.HandleFunc("/mosqueIndex", common.MosqueHandler)
 	router.HandleFunc("/getRegistrations", common.GetRegistrations)
-
 	router.HandleFunc("/confirmVisitors", common.ConfirmVisitors)
 
 	router.HandleFunc("/logout", common.LogoutHandler)
+
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/banner/", http.StripPrefix("/banner", http.FileServer(http.Dir("./banner"))))
 	http.Handle("/", router)
 	log.Println("Server is up and running at Port :8080")
-	http.ListenAndServe("localhost:8080", nil)
+	http.ListenAndServe("0.0.0.0:8080", nil)
 }
