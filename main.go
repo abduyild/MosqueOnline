@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"pi-software/common"
 	"pi-software/repos"
@@ -51,6 +52,7 @@ func main() {
 	http.Handle("/", router)
 	go http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/camii.online/fullchain.pem", "/etc/letsencrypt/live/camii.online/privkey.pem", nil)
 	http.ListenAndServe(":8080", http.HandlerFunc(redirectToHttps))
+	log.Println("Started")
 }
 
 func redirectToHttps(response http.ResponseWriter, request *http.Request) {
