@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"pi-software/common"
 	"pi-software/repos"
@@ -47,10 +46,13 @@ func main() {
 	router.HandleFunc("/confirmVisitors", common.ConfirmVisitors)
 
 	router.HandleFunc("/logout", common.LogoutHandler)
-
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.Handle("/banner/", http.StripPrefix("/banner", http.FileServer(http.Dir("./banner"))))
 	http.Handle("/", router)
-	log.Println("Server is up and running at Port :8080")
-	http.ListenAndServe("0.0.0.0:8080", nil)
+	go http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/camii.online/fullchain.pem", "/etc/letsencrypt/live/camii.online/privkey.pem", nil)
+	http.ListenAndServe(":8080", http.HandlerFunc(redirectToHttps))
+}
+
+func redirectToHttps(response http.ResponseWriter, request *http.Request) {
+	http.Redirect(response, request, "https://127.0.0.1:443"+request.RequestURI, http.StatusMovedPermanently)
 }
