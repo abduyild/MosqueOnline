@@ -51,8 +51,5 @@ func main() {
 	http.Handle("/banner/", http.StripPrefix("/banner", http.FileServer(http.Dir("./banner"))))
 	http.Handle("/", router)
 	log.Println("All handlers set and ready to listen")
-	go http.ListenAndServe(":8080", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "https://"+"cami.online"+r.URL.String(), http.StatusMovedPermanently)
-	}))
 	log.Fatal(http.ListenAndServeTLS(":443", "/etc/letsencrypt/live/camii.online/fullchain.pem", "/etc/letsencrypt/live/camii.online/privkey.pem", nil))
 }
