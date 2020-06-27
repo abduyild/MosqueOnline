@@ -2,11 +2,6 @@
 {{define "scripts"}}
   <script>
     window.addEventListener("pageshow", function (event) {
-      var historyTraversal = event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2);
-      if (historyTraversal) {
-        // Handle page restore.
-        window.location.reload();
-      }
       var today = new Date();
       var dd = today.getDate();
       var mm = today.getMonth() + 1; //January is 0!

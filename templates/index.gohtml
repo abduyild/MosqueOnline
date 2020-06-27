@@ -2,26 +2,6 @@
 
 {{define "scripts"}}
   <script>
-    window.addEventListener("pageshow", function (event) {
-      var historyTraversal = event.persisted || (typeof window.performance != "undefined" && window.performance.navigation.type === 2);
-      if (historyTraversal) {
-        // Handle page restore.
-        window.location.reload();
-      }
-    });
-  </script>
-  <script>
-    function check() {
-      var message = "Silmeyi onayliyormusunuz? Secilen Camii " + value + "\nBestätigen Sie die Löschung? Ausgewählte Moschee " + value;
-      var ok = window.confirm(message);
-      if (ok) {
-        window.location.href = '/deleteMosque?=' + value;
-      } else {
-        window.location.reload();
-      }
-    }
-  </script>
-  <script>
     $(document).ready(function () {
       if (window.location.href.indexOf("?success") > -1) {
         document.getElementById('ok').style.display = '';
@@ -75,4 +55,16 @@
     </div>
 
   {{end}}
+
+  <script>
+    function check() {
+      var message = "Silmeyi onayliyormusunuz? \nBestätigen Sie die Löschung?";
+      var ok = window.confirm(message);
+      if (ok) {
+        window.location.href = '/deleteMosque?=' + value;
+      } else {
+        window.location.reload();
+      }
+    }
+  </script>
 {{end}}
