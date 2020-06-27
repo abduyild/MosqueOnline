@@ -302,13 +302,13 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 			err = collection.FindOne(context.TODO(), bson.D{{Key: "Email", Value: encE}}).Decode(&admin)
 			// If there was an error getting an entry with matching username (no user with this username) redirect to faultpage
 			if err != nil {
-				http.Redirect(response, request, "/login?wrong", 302)
+				http.Redirect(response, request, "/?wrong", 302)
 				return
 			}
 
 			err = bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(password))
 			if err != nil {
-				http.Redirect(response, request, "/login?wrong", 302)
+				http.Redirect(response, request, "/?wrong", 302)
 				return
 			}
 
