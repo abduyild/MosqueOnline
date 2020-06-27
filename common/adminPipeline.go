@@ -303,7 +303,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 		// Look if the entered Username is already used
 		err = collection.FindOne(context.TODO(), bson.D{{"Email", encE}}).Decode(&adminM)
 		// If not found (throws exception/error) then we can proceed, or if found but found one is not same admintype as found one we proceed
-		if err != nil || adminM.Admin != admin {
+		if err != nil {
 			// Generate the hashed password with 14 as salt
 			hash, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
 			newAdmin := model.Admin{name, encE, string(hash), admin}
