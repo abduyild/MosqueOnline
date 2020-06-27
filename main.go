@@ -27,6 +27,7 @@ func main() {
 	router.HandleFunc("/chooseDate", common.ChooseDate)
 	router.HandleFunc("/choosePrayer", common.ChoosePrayer)
 	router.HandleFunc("/submit", common.SubmitPrayer)
+	router.HandleFunc("/deleteUser", common.DeleteUser)
 	router.HandleFunc("/signOut", common.SignOutPrayer)
 
 	router.HandleFunc("/admin", common.AdminHandler)
@@ -36,6 +37,7 @@ func main() {
 	router.HandleFunc("/registerAdmin", common.RegisterAdmin)
 	router.HandleFunc("/registerMosqueAdmin", common.RegisterAdmin)
 	router.HandleFunc("/addBayram", common.AddBayram)
+	router.HandleFunc("/removeBayram", common.RemoveBayram)
 	router.HandleFunc("/changeFutureDate", common.ChangeDate)
 	router.HandleFunc("/editPrayers", common.EditPrayers)
 	router.HandleFunc("/editCapacity", common.EditCapacity)
@@ -44,7 +46,8 @@ func main() {
 	router.HandleFunc("/show-admins", common.ShowAdmins)
 	router.HandleFunc("/changeAdmin", common.ChangeAdmin)
 	router.HandleFunc("/addBanner", common.AddBanner)
-	router.HandleFunc("/removeBanner", common.RemoveBanner)
+	router.HandleFunc("/editBanner", common.EditBanner)
+	router.HandleFunc("/deleteAdmin", common.DeleteAdmin)
 
 	router.HandleFunc("/mosqueIndex", common.MosqueHandler)
 	router.HandleFunc("/getRegistrations", common.GetRegistrations)

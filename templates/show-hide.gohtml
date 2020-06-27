@@ -5,6 +5,8 @@
 {{end}}
 
 {{define "main"}}
+  {{$maxm := .MaxCapM}}
+  {{$maxw := .MaxCapW}}
   <h3>Secdiginiz Camii | Ausgewählte Moschee</h3>
   <div class="card m-2">
     <div class="card-body">
@@ -68,9 +70,22 @@
                     <dl class="row">
                       <dt class="col-sm-4">Angemeldete Benutzer</dt>
                       <dd class="col-sm-8">
-                        {{range .Users}}
-                          <p>{{.FirstName}}
-                            {{.LastName}}</p>
+                        {{ if eq .CapacityMen $maxm}}
+                          Männer: Keine Anmeldungen vorhanden
+                        {{else}}
+                          Männer:
+                          {{.CapacityMen}}
+                          - Maximal:
+                          {{$maxm}}
+                        {{end}}
+                        <br>
+                        {{ if eq .CapacityWomen $maxw}}
+                          Frauen: Keine Anmeldungen vorhanden
+                        {{else}}
+                          Frauen:
+                          {{.CapacityWomen}}
+                          - Maximal:
+                          {{$maxw}}
                         {{end}}
                       </dd>
                     </dl>

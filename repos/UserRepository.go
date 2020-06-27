@@ -61,11 +61,9 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	if i == 0 {
 		return users, nil
 	} else if i == 1 {
-		// Get The Mosques Table with the entries of the Mosques
-		return mosques, nil
+		return db.Collection("mosques"), nil
 	} else if i == 2 {
-		// Get The Mosques Table with the entries of the Mosques
-		return admins, nil
+		return db.Collection("admins"), nil
 	} else if i == 3 {
 		return eids, nil
 	}
@@ -171,4 +169,9 @@ func AddEid(input string) {
 	collection, _ := GetDBCollection(3)
 	eid := eidStruct{Date: input}
 	collection.InsertOne(context.TODO(), eid)
+}
+
+func RemoveEid(input string) {
+	collection, _ := GetDBCollection(3)
+	collection.DeleteOne(context.TODO(), bson.M{"Date": input})
 }
