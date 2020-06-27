@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	b64 "encoding/base64"
+	"errors"
 	"log"
 	"pi-software/model"
 	"strings"
@@ -24,7 +25,7 @@ var IV = []byte("1234567812345678")
 
 func GetDBCollection(i int) (*mongo.Collection, error) {
 	// Define Address of Database
-	clientOptions := options.Client().ApplyURI("mongodb://0.0.0.0:27017").SetAuth(options.Credential{AuthSource: "admin", Username: "mosquo", Password: "-MosqueOnline202066+"})
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(options.Credential{AuthSource: "admin", Username: "mosquo", Password: "-MosqueOnline202066+"})
 	// Try to connect to Database, save error if one is thrown
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	// If there was an error connecting to the DB (DB not running, wrong URI, ...) return the error
@@ -53,7 +54,7 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	} else if i == 3 {
 		return db.Collection("eids"), nil
 	}
-	return nil, nil
+	return nil, errors.New("Veribankada hata olusdu, birdaha deneyin | Datenbankfehler, versuchen Sie es erneut")
 }
 
 func createCipher() cipher.Block {
