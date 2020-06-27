@@ -2,6 +2,25 @@
 {{define "scripts"}}
   <script src="static/js/bootstrap-select.min.js"></script>
   <link rel="stylesheet" href="static/css/bootstrap-select.min.css">
+  <script>
+    $(document).ready(function () {
+      if (window.location.href.indexOf("?bayramFault") > -1) {
+        document.getElementById('bayramFault').style.display = '';
+      } else {
+        document.getElementById('bayramFault').style.display = 'none';
+      }
+      if (window.location.href.indexOf("?bayramNF") > -1) {
+        document.getElementById('bayramNF').style.display = '';
+      } else {
+        document.getElementById('bayramNF').style.display = 'none';
+      }
+      if (window.location.href.indexOf("?deleted") > -1) {
+        document.getElementById('deleted').style.display = '';
+      } else {
+        document.getElementById('deleted').style.display = 'none';
+      }
+    });
+  </script>
 {{end}}
 
 {{define "title"}}
@@ -9,6 +28,15 @@
 {{end}}
 
 {{define "main"}}
+  <div id="bayramFault" class="alert alert-danger" role="alert" style="display: none;">
+    Bayram bulunmakta, eklenmedi! | Eid ist vorhanden, nicht hinzugefügt!
+  </div>
+  <div id="bayramNF" class="alert alert-danger" role="alert" style="display: none;">
+    Bayram bulunmamakta, silinemedi! | Eid ist nicht vorhanden, konnte nicht gelöscht werden!
+  </div>
+  <div id="deleted" class="alert alert-success" role="alert" style="display: none;">
+    Yönetici silindi! | Verwalter erfolgreich gelöscht!
+  </div>
   <div class="accordion m-3" id="adminMosqueAction">
     <h2>Camii | Moschee</h2>
     <div class="card">
@@ -19,7 +47,6 @@
           </button>
         </h2>
       </div>
-
       <div id="colAddM" class="collapse" aria-labelledby="AddMosque" data-parent="#adminMosqueAction">
         <div class="card-body">
           <form method="post" action="/addMosque">
@@ -171,6 +198,7 @@
           <form action="/editPrayers">
             <div class="row" style="height: 300px;">
               <div class="col">
+                <input type="hidden" name="type" value="select">
                 <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
                   <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
                   {{ range .Mosques}}
@@ -248,18 +276,18 @@
     </div>
 
     <div class="card">
-      <div class="card-header" id="removeBanner">
+      <div class="card-header" id="editBanner">
         <h2>
-          <button class="btn btn-outline-dark btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#remBan" aria-expanded="false" aria-controls="remBan">
-            Camii icin Reklam sil | Entferne Werbung für eine Moschee
+          <button class="btn btn-outline-dark btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#editBan" aria-expanded="false" aria-controls="editBan">
+            Camii icin Reklam degistir | Bearbeite Werbung für eine Moschee
           </button>
         </h2>
       </div>
-      <div id="remBan" class="collapse" aria-labelledby="removeBanner" data-parent="#adminMosqueAction">
+      <div id="editBan" class="collapse" aria-labelledby="editBanner" data-parent="#adminMosqueAction">
         <div class="card-body">
-          <h5 class="card-title">Camii icin Reklam sil | Entferne Werbung für eine Moschee
+          <h5 class="card-title">Camii icin Reklam degistir | Bearbeite Werbung für eine Moschee
           </h5>
-          <form action="/removeBanner" method="post">
+          <form action="/editBanner" method="post">
             <div class="row" style="height: 300px;">
               <div class="col">
                 <select id="mosque" class="selectpicker" data-width="75%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off" required="required">
@@ -297,7 +325,6 @@
             <div class="col">
               <a class="btn btn-outline-dark btn-block text-left collapsed" href="/show-admins?admin=true" role="button">Adminleri göster | Zeige alle Admins</a>
             </div>
-
           </div>
         </h2>
       </div>
@@ -379,6 +406,13 @@
       </div>
     </div>
     <div class="card">
+      <div class="card-header" id="deleteAdmin">
+        <h2 class="mb-0">
+              <a class="btn btn-outline-dark btn-block text-left collapsed" href="/deleteAdmin" role="button">Yönetici sil | Lösche Verwalter</a>
+        </h2>
+      </div>
+    </div>
+    <div class="card">
       <div class="card-header" id="addBayram">
         <h2 class="mb-0">
           <button class="btn btn-outline-dark btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#addB" aria-expanded="false" aria-controls="addB">
@@ -387,20 +421,60 @@
         </h2>
       </div>
       <div id="addB" class="collapse" aria-labelledby="addBayram" data-parent="#adminAction">
-        <div class="card-body">
-          <h5 class="card-title">Bayram tarihi ekle | Füge Eid hinzu
-          </h5>
-          <form action="/addBayram">
-            <div class="row">
-              <div class="col">
-                <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'><br><br>
+        <h5>Kayitli Bayramlar</h5>
+        <div class="card-group">
+          {{ range .Eids}}
+            <div class="card">
+              <div class="card-body">
+                {{.}}
               </div>
             </div>
-            <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
-          </form>
+          {{end}}
         </div>
+        <h5 class="card-title">Bayram tarihi ekle | Füge Eid hinzu
+        </h5>
+        <form action="/addBayram">
+          <div class="row">
+            <div class="col">
+              <input type="date" id="date" name="date" min='2020-01-01' max='2021-08-01' required="required"><br><br>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-outline-dark">Sec | Auswählen</button>
+        </form>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" id="removeBayram">
+        <h2 class="mb-0">
+          <button class="btn btn-outline-dark btn-block text-left collapsed" type="button" data-toggle="collapse" data-target="#remB" aria-expanded="false" aria-controls="remB">
+            Bayram tarihi sil | Lösche Eid
+          </button>
+        </h2>
+      </div>
+      <div id="remB" class="collapse" aria-labelledby="removeBayram" data-parent="#adminAction">
+        <h5>Kayitli Bayramlar</h5>
+        <div class="card-group">
+          {{ range .Eids}}
+            <div class="card">
+              <div class="card-body">
+                {{.}}
+              </div>
+            </div>
+          {{end}}
+        </div>
+        <h5 class="card-title">Bayram tarihi sil | Lösche Eid
+        </h5>
+        <form action="/removeBayram">
+          <div class="row">
+            <div class="col">
+              <input type="date" id="date" name="date" min='2020-01-01' max='2021-08-01' required="required"><br><br>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-outline-dark">Sil | Löschen</button>
+        </form>
       </div>
     </div>
   </div>
+</div>
 
 {{end}}

@@ -173,9 +173,9 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 	// Check if fields are not empty
 	if _firstName && _lastName && _email && _phone {
 		// Look if the entered Username is already used
-		err := collection.FindOne(context.TODO(), bson.D{{"Phone", repos.Encrypt(phone)}})
+		result := collection.FindOne(context.TODO(), bson.D{{"Phone", repos.Encrypt(phone)}})
 		// If not found (throws exception/error) then we can proceed
-		if err != nil {
+		if result.Err() != nil {
 			// Generate the hashed password with 14 as salt
 
 			//use hash if you want
@@ -188,32 +188,36 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			//usr := model.User{firstName, email, string(hash)}
 			encF := repos.Encrypt(firstName)
 			if encF == "" {
-				fmt.Println("encF")
+				http.Redirect(response, request, "/register?format", 302)
+				return
 			}
 			encL := repos.Encrypt(lastName)
 			if encL == "" {
-				fmt.Println("encL")
+				http.Redirect(response, request, "/register?format", 302)
+				return
 			}
 			encE := repos.Encrypt(email)
 			if encE == "" {
-				fmt.Println("encE")
+				http.Redirect(response, request, "/register?format", 302)
+				return
 			}
 			encP := repos.Encrypt(phone)
 			if encP == "" {
-				fmt.Println("encP")
+				http.Redirect(response, request, "/register?format", 302)
+				return
 			}
 			usr := model.User{sex, encF, encL, encE, encP, false, []model.RegisteredPrayer{}}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage
-			http.Redirect(response, request, "/", 302)
+			http.Redirect(response, request, "/?success", 302)
 		} else {
-			t, _ := template.ParseFiles("templates/errorpage.gohtml")
-			t.Execute(response, GetError("Kullanici mevcut | Benutzer existiert bereits", "/register"))
+			http.Redirect(response, request, "/register?wrong", 302)
+			return
 		}
 	} else {
-		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Alanlar bos kalamaz | Felder dürfen nicht leer sein", "/register"))
+		http.Redirect(response, request, "/register?empty", 302)
+		return
 	}
 }
 
@@ -637,7 +641,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 							bson.M{"Phone": encP}, bson.M{
 								"$push": bson.M{"RegisteredPrayers": registered}})
 						SetChoo(emptyChoose, response)
-						http.Redirect(response, request, "/index", 302)
+						http.Redirect(response, request, "/index?success", 302)
 					} else {
 						t, _ := template.ParseFiles("templates/templates/")
 						t.Execute(response, GetError("Bu namaz icin gecerli bir kayidiniz bulunmakta! Sie besitzen bereits eine gültige Anmeldung für dieses Gebet", "/index"))
@@ -673,7 +677,12 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		prayer1 := strconv.Itoa(prayerN - 1)
-		collection, _ := repos.GetDBCollection(1)
+		collection, err := repos.GetDBCollection(1)
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(dbConnectionError, "/index"))
+			return
+		}
 		encP := repos.Encrypt(phone)
 		collection.UpdateOne(context.TODO(),
 			bson.M{"Name": name},
@@ -701,6 +710,46 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
 		collection.UpdateOne(context.TODO(), filter, update)
 		http.Redirect(response, request, "/index", 302)
+	} else {
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
+	}
+}
+
+func DeleteUser(response http.ResponseWriter, request *http.Request) {
+	if loggedin(response, request) {
+		user, err := GetUserAsUser(response, request)
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(err.Error(), "/"))
+			return
+		}
+		phone := user.Phone
+		collection, err := repos.GetDBCollection(1)
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(dbConnectionError, "/index"))
+			return
+		}
+		for _, regP := range user.RegisteredPrayers {
+			name := regP.MosqueName
+			date := strconv.Itoa(regP.DateIndex)
+			prayer := strconv.Itoa(regP.PrayerIndex - 1)
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Name": name},
+				bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer + ".Users": bson.M{"Phone": phone}}})
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Name": name},
+				bson.M{"$inc": bson.M{"Date." + date + ".Prayer." + prayer + ".Capacity" + user.Sex: 1}})
+		}
+		collection, err = repos.GetDBCollection(0)
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(dbConnectionError, "/index"))
+			return
+		}
+		collection.DeleteOne(context.TODO(), bson.M{"Phone": user.Phone})
+		response.Write([]byte(`<script>window.location.href = "/?deleted";</script>`))
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))

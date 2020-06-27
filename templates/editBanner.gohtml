@@ -3,7 +3,7 @@
 {{define "scripts"}}{{end}}
 
 {{define "title"}}
-  Login
+  Bearbeite Banner
 {{end}}
 
 {{define "main"}}
@@ -11,12 +11,9 @@
     <div class="row m-3">
       {{$name := .Name}}
       {{if not .Ads}}
-        <h3>Reklamlar bulunmamakta | Es exisiteren keine Werbungen</h3>
+        <h3>Reklamlar bulunmamakta | Es exisiteren keine Werbungen</h3><br>
       {{else}}
-        <h3>Silmek istediginiz reklama tiklayin! |
-          <br>
-          Klicken Sie auf die Werbung, die Sie entfernen möchten!</h3>
-        <form action="/removeBanner" method="POST">
+        <br><form action="/editBanner" method="POST">
           {{range .Ads}}
             <div class="card m-1" style="width: 15rem;">
               <img class="card-img-top" src="/banner/{{.Path}}" alt="{{.Path}}">
@@ -24,7 +21,9 @@
                 {{.Link}}</a>
               <input type="hidden" name="path" value="{{.Path}}">
               <input type="hidden" name="mosque" value="{{$name}}">
-              <input type="submit" class="btn btn-outline-danger" value="Sil | Entfernen">
+              <input type="url" name="link" placeholder="{{.Link}}" pattern="http(s?)(:\/\/)((www.)?)(([^.]+)\.)?(\S)*"><br>
+              <input type="submit" name="submit" class="btn btn-outline-dark" value="Degistir | Bearbeiten"><br><br>
+              <input type="submit" name="submit" class="btn btn-outline-danger" value="Sil | Entfernen">
             </div>
           {{end}}
         </form>

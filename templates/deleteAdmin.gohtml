@@ -1,0 +1,53 @@
+{{template "base" .}}
+{{define "scripts"}}
+  <script>
+    $(document).ready(function () {
+      $('#adminSearch').keyup(function () {
+        var value = $(this).val().toLowerCase();
+        $(".card").filter(function () {
+          $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+      })
+    });
+  </script>
+{{end}}
+{{define "title"}}
+  Lösche Verwalter
+{{end}}
+{{define "main"}}
+  {{if not .}}
+    <h2>Yöneticiler bulunmamakta | Es sind keine Verwalter vorhanden</h2>
+  {{else}}
+    <input type="text" autocomplete="off" id="adminSearch" placeholder="Suche nach Verwalter.."><br><br>
+    <div class="container">
+      <h2 class="mb-0">Yönetici sil | Lösche Verwalter</h2>
+      <div class="row">
+        {{range .}}
+          <div class="card m-1">
+            <div class="card-header">
+              <h5>{{.Name}}</h5>
+            </div>
+            <div class="card-body">
+              <form action="/deleteAdmin">
+                <div class="form-group row">
+                  <label for="name" class="col-sm-3 col-form-label">Isim | Name</label>
+                  <div class="col-sm-9">
+                  <input type="text" class="form-control" placeholder="{{.Name}}" readonly="readonly">
+                  </div>
+                </div>
+                <div class="form-group row">
+                  <label for="email" class="col-sm-3 col-form-label">Email</label>
+                  <div class="col-sm-9">
+                    <input type="hidden" name="email" value="{{.Email}}">
+                    <input id="email" type="text" class="form-control" placeholder="{{.Email}}" readonly="readonly">
+                  </div>
+                </div>
+                <input class="btn btn-outline-danger" id="submit" type="submit" value="Sil | Löschen">
+              </form>
+            </div>
+          </div>
+        {{end}}
+      </div>
+    </div>
+  {{end}}
+{{end}}

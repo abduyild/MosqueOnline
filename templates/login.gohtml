@@ -8,7 +8,17 @@
       if (window.location.href.indexOf("?wrong") > -1) {
         document.getElementById('wrong').style.display = '';
       } else {
-        document.getElementById('#rong').style.display = 'none';
+        document.getElementById('wrong').style.display = 'none';
+      }
+      if (window.location.href.indexOf("?success") > -1) {
+        document.getElementById('ok').style.display = '';
+      } else {
+        document.getElementById('ok').style.display = 'none';
+      }
+      if (window.location.href.indexOf("?deleted") > -1) {
+        document.getElementById('deleted').style.display = '';
+      } else {
+        document.getElementById('deleted').style.display = 'none';
       }
     });
   </script>
@@ -21,6 +31,12 @@
 {{define "main"}}
   <div id="wrong" class="alert alert-danger" role="alert" style="display: none;">
     Yanlis Giris kombinasyonu girdiniz! | Sie haben eine falsche Anmeldedaten Kombination eingegeben!
+  </div>
+  <div id="ok" class="alert alert-success" role="alert" style="display: none;">
+    Kayidiniz yapildi, giris yapabilirsiniz! | Ihr Konto wurde erfolgreich angelegt, Sie können sich anmelden!
+  </div>
+  <div id="deleted" class="alert alert-success" role="alert" style="display: none;">
+    Hesabiniz silindi! | Ihr Konto wurde erfolgreich gelöscht!
   </div>
   <div class="accordion" id="login">
     <div class="row">

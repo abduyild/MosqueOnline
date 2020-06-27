@@ -22,6 +22,7 @@ type AdminPipeline struct {
 	DeleteMosque bool
 	ShowMosque   bool
 	Mosques      []model.Mosque
+	Eids         []string
 }
 
 type Date struct { // custom date type for easier templating and format of date
@@ -45,7 +46,7 @@ func AdminHandler(response http.ResponseWriter, request *http.Request) {
 				target = "templates/adminAction.gohtml"
 			}
 		}
-		adminPipe := AdminPipeline{delM, showM, getMosques(response, request, true)}
+		adminPipe := AdminPipeline{delM, showM, getMosques(response, request, true), repos.GetEids()}
 		t, _ := template.ParseFiles(target, "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, adminPipe)
 	} else {
@@ -210,12 +211,14 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 			mosque = getMosque(mosqueName)
 			var dates []Date
 			type tMos struct {
-				Name   string
-				Date   []Date
-				Active bool
-				PLZ    int
-				Street string
-				City   string
+				Name    string
+				Date    []Date
+				Active  bool
+				PLZ     int
+				Street  string
+				City    string
+				MaxCapM int
+				MaxCapW int
 			}
 			var newMosque tMos
 			newMosque.Name = mosque.Name
@@ -223,6 +226,8 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 			newMosque.PLZ = mosque.PLZ
 			newMosque.Street = mosque.Street
 			newMosque.City = mosque.City
+			newMosque.MaxCapM = mosque.MaxCapM
+			newMosque.MaxCapW = mosque.MaxCapW
 			if mosque.Active {
 				reachedToday := false
 				today := strings.Split(time.Now().String(), " ")[0]
@@ -303,7 +308,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 		// Look if the entered Username is already used
 		err = collection.FindOne(context.TODO(), bson.D{{"Email", encE}}).Decode(&adminM)
 		// If not found (throws exception/error) then we can proceed, or if found but found one is not same admintype as found one we proceed
-		if err != nil || adminM.Admin != admin {
+		if err != nil {
 			// Generate the hashed password with 14 as salt
 			hash, _ := bcrypt.GenerateFromPassword([]byte(password), 14)
 			newAdmin := model.Admin{name, encE, string(hash), admin}
@@ -325,6 +330,11 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 func AddBayram(response http.ResponseWriter, request *http.Request) {
 	date := request.URL.Query().Get("date")
 	if date != "" {
+		eids := repos.GetEids()
+		if containString(eids, date) {
+			http.Redirect(response, request, "/admin?bayramFault", 302)
+			return
+		}
 		repos.AddEid(date)
 		collection, err := repos.GetDBCollection(1)
 		if err != nil {
@@ -340,6 +350,37 @@ func AddBayram(response http.ResponseWriter, request *http.Request) {
 				if date == strings.Split(dateM.Date.String(), " ")[0] {
 					if mosque.Bayram {
 						collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
+					}
+				}
+			}
+		}
+		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
+	}
+}
+
+func RemoveBayram(response http.ResponseWriter, request *http.Request) {
+	date := request.URL.Query().Get("date")
+	if date != "" {
+		eids := repos.GetEids()
+		if !containString(eids, date) {
+			http.Redirect(response, request, "/admin?bayramNF", 302)
+			return
+		}
+		repos.RemoveEid(date)
+		collection, err := repos.GetDBCollection(1)
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(dbConnectionError, "/admin"))
+			return
+		}
+		cur, _ := collection.Find(context.TODO(), bson.M{})
+		for cur.Next(context.TODO()) {
+			var mosque model.Mosque
+			cur.Decode(&mosque)
+			for i, dateM := range mosque.Date {
+				if date == strings.Split(dateM.Date.String(), " ")[0] {
+					if mosque.Bayram {
+						collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": false}})
 					}
 				}
 			}
@@ -368,8 +409,9 @@ func ChangeDate(response http.ResponseWriter, request *http.Request) {
 func EditPrayers(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		name := request.URL.Query().Get("mosque")
+		soc := request.URL.Query().Get("type")
 		mosque := getMosque(name)
-		if name == "" {
+		if soc == "" {
 			tod := time.Now().Format(time.RFC3339)
 			today, _ := time.Parse(time.RFC3339, tod)
 			fromDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
@@ -377,7 +419,7 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 			path := pathUrl.Encode()
 			prayer := strings.Split(path, "=")[0]
 			// TODO: If prayer = 6/7 attention! only activate on fridays/bayrams, see: adminPipieline line 150+
-			value := strings.Split(path, "=")[1]
+			value := request.URL.Query().Get(prayer)
 			collection, err := repos.GetDBCollection(1)
 			if err != nil {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -419,63 +461,91 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 			mosque = *new(model.Mosque)
 			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		} else {
-			var mosqueC model.Mosque
-			collection, err := repos.GetDBCollection(1)
-			if err != nil {
-				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(dbConnectionError, "/admin"))
-				return
-			}
-			collection.FindOne(context.TODO(), bson.M{"Name": name}).Decode(&mosqueC)
-			mosque = mosqueC
-			dates := mosqueC.Date
-			var status [7]string
-			reachedToday := false
-			reachedFriday := false
-			reachedBayram := false
-			setF := false
-			setB := false
-			today := strings.Split(time.Now().String(), " ")[0]
-			for _, date := range dates {
-				if !reachedToday && today == strings.Split(date.Date.String(), " ")[0] {
-					reachedToday = true
-					for i, prayer := range date.Prayer {
-						if prayer.Available {
-							status[i] = "Acik | Offen"
-						} else {
-							status[i] = "Kapali | Geschlossen"
+			if mosque.Name != "" {
+				dates := mosque.Date
+				type format struct {
+					PrayerName string
+					Status     string
+				}
+				type formats struct {
+					Name    string
+					Street  string
+					CityPLZ string
+					Formats []format
+				}
+				var status formats
+				status.Formats = make([]format, 7)
+				status.Name = name
+				status.Street = mosque.Street
+				status.CityPLZ = strconv.Itoa(mosque.PLZ) + ", " + mosque.City
+				reachedToday := false
+				reachedFriday := false
+				reachedBayram := false
+				setF := false
+				setB := false
+				today := strings.Split(time.Now().String(), " ")[0]
+				for _, date := range dates {
+					if !reachedToday && today == strings.Split(date.Date.String(), " ")[0] {
+						reachedToday = true
+						for i, prayer := range date.Prayer {
+							prayerName := ""
+							switch int(prayer.Name) {
+							case 1:
+								prayerName = "Sabah"
+							case 2:
+								prayerName = "Ögle"
+							case 3:
+								prayerName = "Ikindi"
+							case 4:
+								prayerName = "Aksam"
+							case 5:
+								prayerName = "Yatsi"
+							case 6:
+								prayerName = "Cuma"
+							case 7:
+								prayerName = "Bayram"
+							}
+							status.Formats[i].PrayerName = prayerName
+							if prayer.Available {
+								status.Formats[i].Status = "Acik | Offen"
+							} else {
+								status.Formats[i].Status = "Kapali | Geschlossen"
+							}
 						}
 					}
-				}
-				if !reachedFriday && int(date.Date.Weekday()) == 5 {
-					reachedFriday = true
-					if date.Prayer[5].Available {
-						setF = true
+					if !reachedFriday && int(date.Date.Weekday()) == 5 {
+						reachedFriday = true
+						if date.Prayer[5].Available {
+							setF = true
+						}
+					}
+					eids := repos.GetEids()
+					if !reachedBayram && containString(eids, strings.Split(date.Date.String(), " ")[0]) {
+						reachedBayram = true
+						if date.Prayer[6].Available {
+							setB = true
+						}
+					}
+					if reachedToday && reachedFriday && reachedBayram {
+						break
 					}
 				}
-				eids := repos.GetEids()
-				if !reachedBayram && containString(eids, strings.Split(date.Date.String(), " ")[0]) {
-					reachedBayram = true
-					if date.Prayer[6].Available {
-						setB = true
-					}
+				if setF {
+					status.Formats[5].Status = "Acik | Offen"
+				} else {
+					status.Formats[5].Status = "Kapali | Geschlossen"
 				}
-				if reachedToday && reachedFriday && reachedBayram {
-					break
+				if setB {
+					status.Formats[6].Status = "Acik | Offen"
+				} else {
+					status.Formats[6].Status = "Kapali | Geschlossen"
 				}
-			}
-			if setF {
-				status[5] = "Acik | Offen"
+				t, _ := template.ParseFiles("templates/editPrayers.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
+				t.Execute(response, status)
 			} else {
-				status[5] = "Kapali | Geschlossen"
+				t, _ := template.ParseFiles("templates/templates/")
+				t.Execute(response, GetError("Camii bulunamadi! Es konnte keine Moschee gefunden werden", "/index"))
 			}
-			if setB {
-				status[6] = "Acik | Offen"
-			} else {
-				status[6] = "Kapali | Geschlossen"
-			}
-			t, _ := template.ParseFiles("templates/editPrayers.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
-			t.Execute(response, status)
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -640,6 +710,34 @@ func ChangeAdmin(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
+func DeleteAdmin(response http.ResponseWriter, request *http.Request) {
+	if adminLoggedin(response, request, "admin") {
+		email := request.URL.Query().Get("email")
+		fmt.Println(email)
+		if email != "" {
+			collection, err := repos.GetDBCollection(2)
+			if err != nil {
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
+				t.Execute(response, GetError(dbConnectionError, "/admin"))
+				return
+			}
+			_, err = collection.DeleteOne(context.TODO(), bson.M{"Email": repos.Encrypt(email)})
+			if err != nil {
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
+				t.Execute(response, GetError("Verwalter konnte nicht gelöscht werden: "+err.Error(), "/admin"))
+				return
+			}
+			response.Write([]byte(`<script>window.location.href = "/admin?deleted";</script>`))
+		} else {
+			t, _ := template.ParseFiles("templates/deleteAdmin.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
+			t.Execute(response, getMosqueAdmins())
+		}
+	} else {
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
+	}
+}
+
 func AddBanner(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		// Parse our multipart form, 10 << 20 specifies a maximum
@@ -679,19 +777,32 @@ func AddBanner(response http.ResponseWriter, request *http.Request) {
 	}
 }
 
-func RemoveBanner(response http.ResponseWriter, request *http.Request) {
+func EditBanner(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		path := request.PostFormValue("path")
 		name := request.PostFormValue("mosque")
-		if path != "" {
+		link := request.PostFormValue("link")
+		action := request.PostFormValue("submit")
+		if action == "Degistir | Bearbeiten" {
 			collection, err := repos.GetDBCollection(1)
 			if err != nil {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/admin"))
 				return
 			}
-			collection.UpdateOne(context.TODO(), bson.M{"Name": name}, bson.M{"$pull": bson.M{"Ads": bson.M{"Path": path}}})
+			collection.UpdateOne(context.TODO(), bson.M{"Name": name, "Path": path}, bson.M{"Ads": bson.M{"Link": link}})
 			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
+		} else if action == "Sil | Entfernen" {
+			if path != "" {
+				collection, err := repos.GetDBCollection(1)
+				if err != nil {
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
+					t.Execute(response, GetError(dbConnectionError, "/admin"))
+					return
+				}
+				collection.UpdateOne(context.TODO(), bson.M{"Name": name}, bson.M{"$pull": bson.M{"Ads": bson.M{"Path": path}}})
+				response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
+			}
 		} else {
 			var mosque = getMosque(name)
 			type adM struct {
@@ -701,7 +812,7 @@ func RemoveBanner(response http.ResponseWriter, request *http.Request) {
 			var ads adM
 			ads.Ads = mosque.Ads
 			ads.Name = name
-			t, _ := template.ParseFiles("templates/removeBanner.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
+			t, _ := template.ParseFiles("templates/editBanner.gohtml", "templates/base_adminloggedin.tmpl", "templates/footer.tmpl")
 			t.Execute(response, ads)
 		}
 	} else {

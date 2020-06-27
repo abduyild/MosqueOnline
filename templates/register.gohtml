@@ -1,11 +1,40 @@
 {{template "base" .}}
-{{define "scripts"}}{{end}}
+{{define "scripts"}}
+  <script>
+    $(document).ready(function () {
+      if (window.location.href.indexOf("?wrong") > -1) {
+        document.getElementById('wrong').style.display = '';
+      } else {
+        document.getElementById('wrong').style.display = 'none';
+      }
+      if (window.location.href.indexOf("?format") > -1) {
+        document.getElementById('format').style.display = '';
+      } else {
+        document.getElementById('format').style.display = 'none';
+      }
+      if (window.location.href.indexOf("?empty") > -1) {
+        document.getElementById('empty').style.display = '';
+      } else {
+        document.getElementById('empty').style.display = 'none';
+      }
+    });
+  </script>
+{{end}}
 
 {{define "title"}}
   Registrieren
 {{end}}
 
 {{define "main"}}
+  <div id="wrong" class="alert alert-danger" role="alert" style="display: none;">
+    Verilen numara ile Kayit bulunmakta! | Es existiert bereits ein Konto mit der eingegebenen Nummer!
+  </div>
+  <div id="format" class="alert alert-danger" role="alert" style="display: none;">
+    Girdiginiz verilerde hata olusdu, yine deneyin! | Es trat ein Feher mit Ihren Eingaben auf, versuchen Sie es erneut!
+  </div>
+  <div id="empty" class="alert alert-danger" role="alert" style="display: none;">
+    Alanlar bos olamaz! | Felder dürfen nicht leer sein!
+  </div>
   <form method="post">
     <fieldset class="form-group">
       <div class="row">
@@ -27,12 +56,12 @@
       </div>
     </fieldset>
     <div class="form-group row">
-        <label for="phone" class="col-sm-2 col-form-label">Isim | Vorname</label>
-          <div class="col">
+      <label for="phone" class="col-sm-2 col-form-label">Isim | Vorname</label>
+      <div class="col">
         <input type="text" class="form-control" name="firstname" id="firstname">
       </div>
-        <label for="phone" class="col-sm-2 col-form-label">Soyisim | Nachname</label>
-        <div class="col">
+      <label for="phone" class="col-sm-2 col-form-label">Soyisim | Nachname</label>
+      <div class="col">
         <input type="text" class="form-control" name="lastname" id="lastname">
       </div>
     </div>
