@@ -13,6 +13,10 @@ var router = mux.NewRouter()
 
 // Functions for handling pagecalls like localhost:8080/login
 func main() {
+	if err := repos.InitDB(); err != nil {
+		log.Fatal("Error initializing the Database, error:" + err.Error())
+		return
+	}
 	repos.StartCronjob()
 	router.HandleFunc("/register", common.RegisterPageHandler).Methods("GET")
 	router.HandleFunc("/register", common.RegisterHandler).Methods("POST")

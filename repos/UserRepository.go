@@ -23,24 +23,31 @@ var key = []byte{11, 108, 111, 57, 116, 83, 193, 127, 59, 57, 245, 188, 171, 59,
 
 var IV = []byte("1234567812345678")
 
-func GetDBCollection(i int) (*mongo.Collection, error) {
+var clientOptions *options.ClientOptions
+var db *mongo.Database
+
+func InitDB() error {
 	// Define Address of Database
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(options.Credential{AuthSource: "admin", Username: "mosquo", Password: "-MosqueOnline202066+"})
+	clientOptions = options.Client().ApplyURI("mongodb://localhost:27017").SetAuth(options.Credential{AuthSource: "admin", Username: "mosquo", Password: "-MosqueOnline202066+"})
 	// Try to connect to Database, save error if one is thrown
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	// If there was an error connecting to the DB (DB not running, wrong URI, ...) return the error
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Check if connection could be established to running DB
 
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	// Define the name of the Database as PPT, change this if you want to name your DB otherwise
-	db := client.Database("MosqueOnline")
+
+	db = client.Database("MosqueOnline")
+	return nil
+}
+
+func GetDBCollection(i int) (*mongo.Collection, error) {
 	// Working with int for extensibility, you can just add another else if and check for another value if you want to add another table
 	// Get the Users Table
 	if i == 0 {
