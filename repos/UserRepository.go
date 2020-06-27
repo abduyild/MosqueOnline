@@ -48,6 +48,10 @@ func InitDB() error {
 	}
 
 	db = client.Database("MosqueOnline")
+	users = db.Collection("users")
+	mosques = db.Collection("mosques")
+	admins = db.Collection("admins")
+	eids = db.Collection("eids")
 	return nil
 }
 
