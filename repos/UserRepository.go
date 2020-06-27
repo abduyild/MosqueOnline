@@ -25,6 +25,10 @@ var IV = []byte("1234567812345678")
 
 var clientOptions *options.ClientOptions
 var db *mongo.Database
+var users *mongo.Collection
+var mosques *mongo.Collection
+var admins *mongo.Collection
+var eids *mongo.Collection
 
 func InitDB() error {
 	// Define Address of Database
@@ -51,15 +55,15 @@ func GetDBCollection(i int) (*mongo.Collection, error) {
 	// Working with int for extensibility, you can just add another else if and check for another value if you want to add another table
 	// Get the Users Table
 	if i == 0 {
-		return db.Collection("users"), nil
+		return users, nil
 	} else if i == 1 {
 		// Get The Mosques Table with the entries of the Mosques
-		return db.Collection("mosques"), nil
+		return mosques, nil
 	} else if i == 2 {
 		// Get The Mosques Table with the entries of the Mosques
-		return db.Collection("admins"), nil
+		return admins, nil
 	} else if i == 3 {
-		return db.Collection("eids"), nil
+		return eids, nil
 	}
 	return nil, errors.New("Veribankada hata olusdu, birdaha deneyin | Datenbankfehler, versuchen Sie es erneut")
 }
