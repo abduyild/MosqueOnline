@@ -188,35 +188,35 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 			//usr := model.User{firstName, email, string(hash)}
 			encF := repos.Encrypt(firstName)
 			if encF == "" {
-				http.Redirect(response, request, "/register?format", 302)
+				http.Redirect(response, request, "/register?format", 406)
 				return
 			}
 			encL := repos.Encrypt(lastName)
 			if encL == "" {
-				http.Redirect(response, request, "/register?format", 302)
+				http.Redirect(response, request, "/register?format", 406)
 				return
 			}
 			encE := repos.Encrypt(email)
 			if encE == "" {
-				http.Redirect(response, request, "/register?format", 302)
+				http.Redirect(response, request, "/register?format", 406)
 				return
 			}
 			encP := repos.Encrypt(phone)
 			if encP == "" {
-				http.Redirect(response, request, "/register?format", 302)
+				http.Redirect(response, request, "/register?format", 406)
 				return
 			}
 			usr := model.User{sex, encF, encL, encE, encP, false, []model.RegisteredPrayer{}}
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), usr)
 			// Change redirect target to LoginPage
-			http.Redirect(response, request, "/?success", 302)
+			http.Redirect(response, request, "/?success", 200)
 		} else {
-			http.Redirect(response, request, "/register?wrong", 302)
+			http.Redirect(response, request, "/register?wrong", 406)
 			return
 		}
 	} else {
-		http.Redirect(response, request, "/register?empty", 302)
+		http.Redirect(response, request, "/register?empty", 406)
 		return
 	}
 }
@@ -253,24 +253,24 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 
 			err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
 			if err != nil {
-				http.Redirect(response, request, "/?wrong", 302)
+				http.Redirect(response, request, "/?wrong", 406)
 				return
 			}
 			decE := repos.Decrypt(user.Email)
 			if email != decE {
-				http.Redirect(response, request, "/?wrong", 302)
+				http.Redirect(response, request, "/?wrong", 406)
 				return
 			}
 			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
 			if err != nil {
-				http.Redirect(response, request, "/?wrong", 302)
+				http.Redirect(response, request, "/?wrong", 406)
 				return
 			}
 			cookie := R(email+"?"+phone+"&"+string(userCredentials)) + "!"
 			SetCookie(cookie, response)
 			redirectTarget = "/index"
 		}
-		http.Redirect(response, request, redirectTarget, 302)
+		http.Redirect(response, request, redirectTarget, 200)
 	} else {
 		t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 		t.Execute(response, getMosques(response, request, false))
@@ -332,7 +332,7 @@ func adminLogin(response http.ResponseWriter, request *http.Request) {
 			// If the admin tries to login, change the redirect to the Adminpage
 
 			// function for redirecting
-			http.Redirect(response, request, redirectTarget, 302)
+			http.Redirect(response, request, redirectTarget, 200)
 		} else {
 			t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
 			t.Execute(response, nil)
@@ -641,7 +641,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 							bson.M{"Phone": encP}, bson.M{
 								"$push": bson.M{"RegisteredPrayers": registered}})
 						SetChoo(emptyChoose, response)
-						http.Redirect(response, request, "/index?success", 302)
+						http.Redirect(response, request, "/index?success", 200)
 					} else {
 						t, _ := template.ParseFiles("templates/templates/")
 						t.Execute(response, GetError("Bu namaz icin gecerli bir kayidiniz bulunmakta! Sie besitzen bereits eine gültige Anmeldung für dieses Gebet", "/index"))
@@ -656,7 +656,7 @@ func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
 			}
 		} else {
 			SetChoo(emptyChoose, response)
-			http.Redirect(response, request, "/index", 302)
+			http.Redirect(response, request, "/index", 200)
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -709,7 +709,7 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		filter := bson.D{{Key: "Phone", Value: encP}}
 		update := bson.D{{Key: "$pull", Value: bson.D{{Key: "RegisteredPrayers", Value: bson.D{{Key: "RpId", Value: rpid}}}}}}
 		collection.UpdateOne(context.TODO(), filter, update)
-		http.Redirect(response, request, "/index", 302)
+		http.Redirect(response, request, "/index", 200)
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
@@ -759,7 +759,7 @@ func DeleteUser(response http.ResponseWriter, request *http.Request) {
 func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 	ClearCookie(response)
 	ClearMosque(response)
-	http.Redirect(response, request, "/", 302)
+	http.Redirect(response, request, "/", 200)
 }
 
 func SetChoo(choosenMosque choose, response http.ResponseWriter) {
