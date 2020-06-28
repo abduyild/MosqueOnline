@@ -355,7 +355,6 @@ func AddBayram(response http.ResponseWriter, request *http.Request) {
 					}
 				}
 			}
-			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		}
 		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
@@ -392,8 +391,8 @@ func RemoveBayram(response http.ResponseWriter, request *http.Request) {
 					}
 				}
 			}
-			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		}
+		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
@@ -415,6 +414,7 @@ func ChangeDate(response http.ResponseWriter, request *http.Request) {
 				}
 				collection.UpdateOne(context.TODO(), bson.M{"Name": mosque}, bson.M{"$set": bson.M{"MaxFutureDate": daysI}})
 			}
+			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		} else {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Maksimum 3 hafta olabilir | Maximal 3 Wochen sind erlaubt", "/admin"))
@@ -611,17 +611,15 @@ func Edit(response http.ResponseWriter, request *http.Request) {
 						collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityWomen": newCapW}})
 					}
 				}
+				response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 			} else {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError("Camii ismi gecerli degil | Moscheename ungültig", "/admin"))
-				return
 			}
 		} else {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Camii ismi gecerli degil | Moscheename ungültig", "/admin"))
-			return
 		}
-		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
