@@ -168,7 +168,7 @@
           <form action="/changeFutureDate">
             <div class="row" style="height: 300px;">
               <div class="col">
-                <input type="number" name="days" min="0"><br><br>
+                <input type="number" name="days" min="1" max="21" required="required"><br><br>
                 <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
                   <option value="" selected="selected" disabled="disabled">Camiinizi secin / Wählen Sie Ihre Moschee aus</option>
                   {{ range .Mosques}}
@@ -193,7 +193,7 @@
       </div>
       <div id="editP" class="collapse" aria-labelledby="editPrayers" data-parent="#adminMosqueAction">
         <div class="card-body">
-          <h5 class="card-title">Kayitpenceresi icin maksimum günleri degistir | Ändere Anzahl Tage für Anmeldefenster
+          <h5 class="card-title">Camii icin sunulan namaz vakitleri degistir | Bearbeite angebotene Gebete für eine Moschee
           </h5>
           <form action="/editPrayers">
             <div class="row" style="height: 300px;">
@@ -408,7 +408,7 @@
     <div class="card">
       <div class="card-header" id="deleteAdmin">
         <h2 class="mb-0">
-              <a class="btn btn-outline-dark btn-block text-left collapsed" href="/deleteAdmin" role="button">Yönetici sil | Lösche Verwalter</a>
+          <a class="btn btn-outline-dark btn-block text-left collapsed" href="/deleteAdmin" role="button">Yönetici sil | Lösche Verwalter</a>
         </h2>
       </div>
     </div>

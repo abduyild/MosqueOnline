@@ -86,7 +86,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 					t.Execute(response, GetError(dbConnectionError, "/admin"))
 					return
 				}
-				addDates := 20 // set how many dates you want to add to the future
+				addDates := 35
 				var prayer model.Prayer
 				var prayers []model.Prayer
 				prayer.CapacityMen = cap_m
@@ -328,64 +328,75 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 }
 
 func AddBayram(response http.ResponseWriter, request *http.Request) {
-	date := request.URL.Query().Get("date")
-	if date != "" {
-		eids := repos.GetEids()
-		if containString(eids, date) {
-			http.Redirect(response, request, "/admin?bayramFault", 406)
-			return
-		}
-		repos.AddEid(date)
-		collection, err := repos.GetDBCollection(1)
-		if err != nil {
-			t, _ := template.ParseFiles("templates/errorpage.gohtml")
-			t.Execute(response, GetError(dbConnectionError, "/admin"))
-			return
-		}
-		cur, _ := collection.Find(context.TODO(), bson.M{})
-		for cur.Next(context.TODO()) {
-			var mosque model.Mosque
-			cur.Decode(&mosque)
-			for i, dateM := range mosque.Date {
-				if date == strings.Split(dateM.Date.String(), " ")[0] {
-					if mosque.Bayram {
-						collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
+	if adminLoggedin(response, request, "admin") {
+		date := request.URL.Query().Get("date")
+		if date != "" {
+			eids := repos.GetEids()
+			if containString(eids, date) {
+				http.Redirect(response, request, "/admin?bayramFault", 406)
+				return
+			}
+			repos.AddEid(date)
+			collection, err := repos.GetDBCollection(1)
+			if err != nil {
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
+				t.Execute(response, GetError(dbConnectionError, "/admin"))
+				return
+			}
+			cur, _ := collection.Find(context.TODO(), bson.M{})
+			for cur.Next(context.TODO()) {
+				var mosque model.Mosque
+				cur.Decode(&mosque)
+				for i, dateM := range mosque.Date {
+					if date == strings.Split(dateM.Date.String(), " ")[0] {
+						if mosque.Bayram {
+							collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
+						}
 					}
 				}
 			}
+			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		}
 		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
+	} else {
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
 func RemoveBayram(response http.ResponseWriter, request *http.Request) {
-	date := request.URL.Query().Get("date")
-	if date != "" {
-		eids := repos.GetEids()
-		if !containString(eids, date) {
-			http.Redirect(response, request, "/admin?bayramNF", 406)
-			return
-		}
-		repos.RemoveEid(date)
-		collection, err := repos.GetDBCollection(1)
-		if err != nil {
-			t, _ := template.ParseFiles("templates/errorpage.gohtml")
-			t.Execute(response, GetError(dbConnectionError, "/admin"))
-			return
-		}
-		cur, _ := collection.Find(context.TODO(), bson.M{})
-		for cur.Next(context.TODO()) {
-			var mosque model.Mosque
-			cur.Decode(&mosque)
-			for i, dateM := range mosque.Date {
-				if date == strings.Split(dateM.Date.String(), " ")[0] {
-					if mosque.Bayram {
-						collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": false}})
+	if adminLoggedin(response, request, "admin") {
+		date := request.URL.Query().Get("date")
+		if date != "" {
+			eids := repos.GetEids()
+			if !containString(eids, date) {
+				http.Redirect(response, request, "/admin?bayramNF", 406)
+				return
+			}
+			repos.RemoveEid(date)
+			collection, err := repos.GetDBCollection(1)
+			if err != nil {
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
+				t.Execute(response, GetError(dbConnectionError, "/admin"))
+				return
+			}
+			cur, _ := collection.Find(context.TODO(), bson.M{})
+			for cur.Next(context.TODO()) {
+				var mosque model.Mosque
+				cur.Decode(&mosque)
+				for i, dateM := range mosque.Date {
+					if date == strings.Split(dateM.Date.String(), " ")[0] {
+						if mosque.Bayram {
+							collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": false}})
+						}
 					}
 				}
 			}
+			response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 		}
-		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
+	} else {
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -394,7 +405,7 @@ func ChangeDate(response http.ResponseWriter, request *http.Request) {
 		days := request.URL.Query().Get("days")
 		mosque := request.URL.Query().Get("mosque")
 		daysI, _ := strconv.Atoi(days)
-		if daysI < 21 {
+		if daysI < 22 {
 			if mosque != "" {
 				collection, err := repos.GetDBCollection(1)
 				if err != nil {
@@ -408,6 +419,9 @@ func ChangeDate(response http.ResponseWriter, request *http.Request) {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Maksimum 3 hafta olabilir | Maximal 3 Wochen sind erlaubt", "/admin"))
 		}
+	} else {
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
 
@@ -559,55 +573,59 @@ func EditPrayers(response http.ResponseWriter, request *http.Request) {
 }
 
 func Edit(response http.ResponseWriter, request *http.Request) {
-	fmt.Println("edit")
-	if mosqueName := request.PostFormValue("mosque"); mosqueName != "" {
-		mosque := getMosque(mosqueName)
-		if mosque.Name != "" {
-			capm := request.PostFormValue("capm")
-			capw := request.PostFormValue("capw")
-			capmI := 0
-			capwI := 0
-			pM := mosque.MaxCapM // previous capacity
-			pW := mosque.MaxCapW
-			if capm == "" && capw == "" {
-				return
-			}
-			if capm == "" {
-				capmI = pM
-			} else {
-				capmI, _ = strconv.Atoi(capm)
-			}
-			if capw == "" {
-				capwI = pW
-			} else {
-				capwI, _ = strconv.Atoi(capw)
-			}
-			collection, err := repos.GetDBCollection(1)
-			if err != nil {
-				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(dbConnectionError, "/admin"))
-				return
-			}
-			collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"MaxCapM": capmI, "MaxCapW": capwI}})
-			for i, date := range mosque.Date { // check and update only if no registrations were made that day
-				for j, prayer := range date.Prayer {
-					newCapM := capmI - (pM - prayer.CapacityMen)
-					newCapW := capwI - (pW - prayer.CapacityWomen)
-					collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityMen": newCapM}})
-					collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityWomen": newCapW}})
+	if adminLoggedin(response, request, "admin") {
+		if mosqueName := request.PostFormValue("mosque"); mosqueName != "" {
+			mosque := getMosque(mosqueName)
+			if mosque.Name != "" {
+				capm := request.PostFormValue("capm")
+				capw := request.PostFormValue("capw")
+				capmI := 0
+				capwI := 0
+				pM := mosque.MaxCapM // previous capacity
+				pW := mosque.MaxCapW
+				if capm == "" && capw == "" {
+					return
 				}
+				if capm == "" {
+					capmI = pM
+				} else {
+					capmI, _ = strconv.Atoi(capm)
+				}
+				if capw == "" {
+					capwI = pW
+				} else {
+					capwI, _ = strconv.Atoi(capw)
+				}
+				collection, err := repos.GetDBCollection(1)
+				if err != nil {
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
+					t.Execute(response, GetError(dbConnectionError, "/admin"))
+					return
+				}
+				collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"MaxCapM": capmI, "MaxCapW": capwI}})
+				for i, date := range mosque.Date { // check and update only if no registrations were made that day
+					for j, prayer := range date.Prayer {
+						newCapM := capmI - (pM - prayer.CapacityMen)
+						newCapW := capwI - (pW - prayer.CapacityWomen)
+						collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityMen": newCapM}})
+						collection.UpdateMany(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer." + strconv.Itoa(j) + ".CapacityWomen": newCapW}})
+					}
+				}
+			} else {
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
+				t.Execute(response, GetError("Camii ismi gecerli degil | Moscheename ungültig", "/admin"))
+				return
 			}
 		} else {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Camii ismi gecerli degil | Moscheename ungültig", "/admin"))
 			return
 		}
+		response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Camii ismi gecerli degil | Moscheename ungültig", "/admin"))
-		return
+		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
-	response.Write([]byte(`<script>window.location.href = "/admin";</script>`))
 }
 
 func EditCapacity(response http.ResponseWriter, request *http.Request) {
