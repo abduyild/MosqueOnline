@@ -91,10 +91,11 @@ func Decode(input string) []byte {
 }
 
 func StartCronjob() {
-	gocron.Every(2).Weeks().Do(overwrite)
+	gocron.Every(2).Weeks().At("03:00").Do(overwrite)
 	gocron.Start()
 }
 
+// instead of deleting data delete elements, dont forget to iterate through all users and adjust index etc.
 func overwrite() {
 	collection, err := GetDBCollection(1)
 	if err != nil {
@@ -120,16 +121,69 @@ func overwrite() {
 			for j := range date.Prayer {
 				newMosque.Date[i].Prayer[j].Users = []model.User{}
 			}
-
-			/* previous version:
-			for j, prayer := range date.Prayer {
-				for k := range prayer.Users {
-					newMosque.Date[i].Prayer[j].Users[k] = emptyUser
-				}
-			}
-			*/
 		}
 		collection.ReplaceOne(context.TODO(), bson.M{"Name": mosq.Name}, newMosque)
+	}
+	addDates()
+}
+
+func addDates() {
+	collection, err := GetDBCollection(1)
+	if err != nil {
+		panic(err.Error())
+	}
+	cur, _ := collection.Find(context.TODO(), bson.M{})
+	for cur.Next(context.TODO()) {
+		var mosque model.Mosque
+		cur.Decode(&mosque)
+
+		var prayer model.Prayer
+		var prayers = make([]model.Prayer, 7)
+		prayer.CapacityMen = mosque.MaxCapM
+		prayer.CapacityWomen = mosque.MaxCapW
+		prayer.Users = []model.User{}
+		cumaSet := mosque.Cuma
+		bayramSet := mosque.Bayram
+		for i := 1; i < 6; i++ {
+			switch i {
+			case 1:
+				prayer.Available = mosque.Date[0].Prayer[0].Available
+			case 2:
+				prayer.Available = mosque.Date[0].Prayer[1].Available
+			case 3:
+				prayer.Available = mosque.Date[0].Prayer[2].Available
+			case 4:
+				prayer.Available = mosque.Date[0].Prayer[3].Available
+			case 5:
+				prayer.Available = mosque.Date[0].Prayer[4].Available
+			}
+			prayer.Name = model.PrayerName(i)
+			prayers[i-1] = prayer
+			prayer.Available = false
+		}
+		length := len(mosque.Date)
+		for i := 1; i < 15; i++ {
+			mosqueDate := mosque.Date[length-1].Date
+
+			var date model.Date
+			currentDate := mosqueDate.AddDate(0, 0, i).Format(time.RFC3339)
+			weekday := mosqueDate.AddDate(0, 0, i).Weekday()
+			if cumaSet && int(weekday) == 5 { // cuma
+				prayers[5].Available = true
+			}
+			eids := GetEids()
+			if bayramSet && containString(eids, strings.Split(currentDate, "T")[0]) {
+				prayers[6].Available = true
+			}
+			date.Date, _ = time.Parse(time.RFC3339, currentDate)
+			date.Prayer = prayers
+
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Name": mosque.Name},
+				bson.M{"$push": bson.M{"Date": date}})
+			prayers[5].Available = false
+			prayers[6].Available = false
+		}
 	}
 }
 
@@ -158,4 +212,13 @@ func AddEid(input string) {
 func RemoveEid(input string) {
 	collection, _ := GetDBCollection(3)
 	collection.DeleteOne(context.TODO(), bson.M{"Date": input})
+}
+
+func containString(slice []string, item string) bool {
+	set := make(map[string]struct{}, len(slice))
+	for _, s := range slice {
+		set[s] = struct{}{}
+	}
+	_, ok := set[item]
+	return ok
 }

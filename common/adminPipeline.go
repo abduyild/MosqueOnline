@@ -86,7 +86,7 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 					t.Execute(response, GetError(dbConnectionError, "/admin"))
 					return
 				}
-				addDates := 100 // set how many dates you want to add to the future
+				addDates := 20 // set how many dates you want to add to the future
 				var prayer model.Prayer
 				var prayers []model.Prayer
 				prayer.CapacityMen = cap_m
@@ -163,10 +163,10 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 						bson.M{"Name": name},
 						bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
 				}
-				http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
+				http.Redirect(response, request, "/admin", 200) // redirect back to Adminpage
 			}
 		} else {
-			http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
+			http.Redirect(response, request, "/admin", 406) // redirect back to Adminpage
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -269,7 +269,7 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 			mosque = *new(model.Mosque)
 		} else {
 			mosque = *new(model.Mosque)
-			http.Redirect(response, request, "/admin", 300)
+			http.Redirect(response, request, "/admin", 406)
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -315,7 +315,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), newAdmin)
 			// Change redirect target to LoginPage
-			http.Redirect(response, request, "/admin", 302)
+			http.Redirect(response, request, "/admin", 200)
 		} else {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Yönetici mevcut | Verwalter bereits vorhanden", "/admin"))
@@ -332,7 +332,7 @@ func AddBayram(response http.ResponseWriter, request *http.Request) {
 	if date != "" {
 		eids := repos.GetEids()
 		if containString(eids, date) {
-			http.Redirect(response, request, "/admin?bayramFault", 302)
+			http.Redirect(response, request, "/admin?bayramFault", 406)
 			return
 		}
 		repos.AddEid(date)
@@ -363,7 +363,7 @@ func RemoveBayram(response http.ResponseWriter, request *http.Request) {
 	if date != "" {
 		eids := repos.GetEids()
 		if !containString(eids, date) {
-			http.Redirect(response, request, "/admin?bayramNF", 302)
+			http.Redirect(response, request, "/admin?bayramNF", 406)
 			return
 		}
 		repos.RemoveEid(date)
@@ -394,14 +394,19 @@ func ChangeDate(response http.ResponseWriter, request *http.Request) {
 		days := request.URL.Query().Get("days")
 		mosque := request.URL.Query().Get("mosque")
 		daysI, _ := strconv.Atoi(days)
-		if mosque != "" {
-			collection, err := repos.GetDBCollection(1)
-			if err != nil {
-				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(dbConnectionError, "/admin"))
-				return
+		if daysI < 21 {
+			if mosque != "" {
+				collection, err := repos.GetDBCollection(1)
+				if err != nil {
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
+					t.Execute(response, GetError(dbConnectionError, "/admin"))
+					return
+				}
+				collection.UpdateOne(context.TODO(), bson.M{"Name": mosque}, bson.M{"$set": bson.M{"MaxFutureDate": daysI}})
 			}
-			collection.UpdateOne(context.TODO(), bson.M{"Name": mosque}, bson.M{"$set": bson.M{"MaxFutureDate": daysI}})
+		} else {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError("Maksimum 3 hafta olabilir | Maximal 3 Wochen sind erlaubt", "/admin"))
 		}
 	}
 }
