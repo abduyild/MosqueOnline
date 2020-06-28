@@ -163,10 +163,10 @@ func AddMosque(response http.ResponseWriter, request *http.Request) {
 						bson.M{"Name": name},
 						bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
 				}
-				http.Redirect(response, request, "/admin", 200) // redirect back to Adminpage
+				http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 			}
 		} else {
-			http.Redirect(response, request, "/admin", 406) // redirect back to Adminpage
+			http.Redirect(response, request, "/admin", 302) // redirect back to Adminpage
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -269,7 +269,7 @@ func ShowMosque(response http.ResponseWriter, request *http.Request) {
 			mosque = *new(model.Mosque)
 		} else {
 			mosque = *new(model.Mosque)
-			http.Redirect(response, request, "/admin", 406)
+			http.Redirect(response, request, "/admin", 302)
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -315,7 +315,7 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 			// Insert user to the table
 			collection.InsertOne(context.TODO(), newAdmin)
 			// Change redirect target to LoginPage
-			http.Redirect(response, request, "/admin", 200)
+			http.Redirect(response, request, "/admin", 302)
 		} else {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Yönetici mevcut | Verwalter bereits vorhanden", "/admin"))
@@ -328,30 +328,28 @@ func RegisterAdmin(response http.ResponseWriter, request *http.Request) {
 }
 
 func AddBayram(response http.ResponseWriter, request *http.Request) {
-	if adminLoggedin(response, request, "admin") {
-		date := request.URL.Query().Get("date")
-		if date != "" {
-			eids := repos.GetEids()
-			if containString(eids, date) {
-				http.Redirect(response, request, "/admin?bayramFault", 406)
-				return
-			}
-			repos.AddEid(date)
-			collection, err := repos.GetDBCollection(1)
-			if err != nil {
-				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(dbConnectionError, "/admin"))
-				return
-			}
-			cur, _ := collection.Find(context.TODO(), bson.M{})
-			for cur.Next(context.TODO()) {
-				var mosque model.Mosque
-				cur.Decode(&mosque)
-				for i, dateM := range mosque.Date {
-					if date == strings.Split(dateM.Date.String(), " ")[0] {
-						if mosque.Bayram {
-							collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
-						}
+	date := request.URL.Query().Get("date")
+	if date != "" {
+		eids := repos.GetEids()
+		if containString(eids, date) {
+			http.Redirect(response, request, "/admin?bayramFault", 302)
+			return
+		}
+		repos.AddEid(date)
+		collection, err := repos.GetDBCollection(1)
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(dbConnectionError, "/admin"))
+			return
+		}
+		cur, _ := collection.Find(context.TODO(), bson.M{})
+		for cur.Next(context.TODO()) {
+			var mosque model.Mosque
+			cur.Decode(&mosque)
+			for i, dateM := range mosque.Date {
+				if date == strings.Split(dateM.Date.String(), " ")[0] {
+					if mosque.Bayram {
+						collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": true}})
 					}
 				}
 			}
@@ -364,30 +362,28 @@ func AddBayram(response http.ResponseWriter, request *http.Request) {
 }
 
 func RemoveBayram(response http.ResponseWriter, request *http.Request) {
-	if adminLoggedin(response, request, "admin") {
-		date := request.URL.Query().Get("date")
-		if date != "" {
-			eids := repos.GetEids()
-			if !containString(eids, date) {
-				http.Redirect(response, request, "/admin?bayramNF", 406)
-				return
-			}
-			repos.RemoveEid(date)
-			collection, err := repos.GetDBCollection(1)
-			if err != nil {
-				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(dbConnectionError, "/admin"))
-				return
-			}
-			cur, _ := collection.Find(context.TODO(), bson.M{})
-			for cur.Next(context.TODO()) {
-				var mosque model.Mosque
-				cur.Decode(&mosque)
-				for i, dateM := range mosque.Date {
-					if date == strings.Split(dateM.Date.String(), " ")[0] {
-						if mosque.Bayram {
-							collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": false}})
-						}
+	date := request.URL.Query().Get("date")
+	if date != "" {
+		eids := repos.GetEids()
+		if !containString(eids, date) {
+			http.Redirect(response, request, "/admin?bayramNF", 302)
+			return
+		}
+		repos.RemoveEid(date)
+		collection, err := repos.GetDBCollection(1)
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(dbConnectionError, "/admin"))
+			return
+		}
+		cur, _ := collection.Find(context.TODO(), bson.M{})
+		for cur.Next(context.TODO()) {
+			var mosque model.Mosque
+			cur.Decode(&mosque)
+			for i, dateM := range mosque.Date {
+				if date == strings.Split(dateM.Date.String(), " ")[0] {
+					if mosque.Bayram {
+						collection.UpdateOne(context.TODO(), bson.M{"Name": mosque.Name}, bson.M{"$set": bson.M{"Date." + strconv.Itoa(i) + ".Prayer.6.Available": false}})
 					}
 				}
 			}
