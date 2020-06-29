@@ -52,14 +52,13 @@
           <div id="collapseUser" class="collapse show m-2" aria-labelledby="User" data-parent="#login">
             <div class="card-body" style="height: 300px;">
               <form action="/">
-                <select id="mosque" class="selectpicker" data-width="50%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
-                  <option value="" selected="selected" disabled="disabled">Camiinizi secin / Moscheeauswahl</option>
+                <select id="mosque" class="selectpicker" title="Camiinizi secin | Moscheeauswahl" data-width="75%" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off">
                   {{ range .}}
                     <option value="{{.Name}}">{{.Name}}, Ort:
                       {{.City}}</option>
                   {{ end }}
                 </select>
-                <input class="btn btn-outline-dark float-right" id="submit" type="submit" value="Eintragen">
+                <input class="btn btn-outline-dark" id="submit" type="submit" value="Eintragen">
               </form>
             </div>
           </div>
@@ -98,24 +97,53 @@
       </div>
     </div>
   </div>
-  <div class="jumbotron">
-    <h1 class="display-4">Was ist "camii.online"?</h1>
-    <p class="lead">"camii.online" bietet Muslimen die Möglichkeit, sich bequem für Gebete an- und abzumelden.</p>
-    <hr class="my-4">
-    <p>Wir schreiben Datenschutz groß und verschlüsseln Ihre Daten.<br>
-      Ihre Daten sind lediglich für den angemeldeten Tag sichtbar und werden in 14 Tagen gelöscht!
-      <br>
-      Sie sind flexibel und können sich über die gleiche Plattform für weitere Moscheen anmelden.
-      <br>
-      Sie sehen Ihre Anmeldungen bequem jederzeit.
-      <br>
-      Sie müssen nicht vor jedem Moschebesuch schlange stehen, Ihre Handynummer suchen und sich auf einer Liste eintragen, welche nicht Datenschutzgerecht aufbewahrt wird.
-      <br>
-      Bei uns werden Ihre Daten verschlüsselt versendet und mit modernster AES Verschlüsselung verschlüsselt gespeichert. So wird aus "camii.online" "dmzyVDRKba9nWL7jNqcX2Q==".
-      <br>
-    </p>
-    <p class="lead">
-      <a class="btn btn-primary btn-lg" href="/register" role="button">Erstellen Sie Ihr Konto</a>
-    </p>
+
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="jumbotron">
+          <h1 class="display-4">Was ist "camii.online"?</h1>
+          <p class="lead">"camii.online" bietet Muslimen die Möglichkeit, sich bequem für Gebete an- und abzumelden.</p>
+          <hr class="my-4">
+          <p>Wir schreiben Datenschutz groß und verschlüsseln Ihre Daten.<br>
+            Ihre Daten sind lediglich für den angemeldeten Tag sichtbar und werden in 14 Tagen gelöscht!
+            <br>
+            Sie sind flexibel und können sich über die gleiche Plattform für weitere Moscheen anmelden.
+            <br>
+            Sie sehen Ihre Anmeldungen bequem jederzeit.
+            <br>
+            Sie müssen nicht vor jedem Moschebesuch schlange stehen, Ihre Handynummer suchen und sich auf einer Liste eintragen, welche nicht Datenschutzgerecht aufbewahrt wird.
+            <br>
+            Bei uns werden Ihre Daten verschlüsselt versendet und mit modernster AES Verschlüsselung verschlüsselt gespeichert. So wird aus "camii.online" "dmzyVDRKba9nWL7jNqcX2Q==".
+            <br>
+          </p>
+          <p class="lead">
+            <a class="btn btn-primary btn-lg" href="/register" role="button">Erstellen Sie Ihr Konto</a>
+          </p>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="jumbotron">
+          <h1 class="display-4">"camii.online" nedir?</h1>
+          <p class="lead">"camii.online" müslümanlara Namaz vakitlerine online kayit olma imkanini sagliyor.</p>
+          <hr class="my-4">
+          <p>Veri güvenligi bizde en üst rol oynamakta, bunun icin veriler sifreleniyor.<br>
+            Verileriniz sadece kayitli günde gözüküyor ve 14gün sonra otomatik olarak siliniyor!
+            <br>
+            Ayni Sayfadan degisik Camiilere kayit olabilirsiniz.
+            <br>
+            Istediginiz zaman kayitli oldugunuz vakitleri görebilirsiniz.
+            <br>
+            Her vakit namazdan önce sira bekleyip, verilerinizi güvensiz ellere vermenize gerek yok.
+            <br>
+            Verileriniz bizde sifrelenip kayit ediliyor. Böylece "camii.online" "dmzyVDRKba9nWL7jNqcX2Q==" olarak kayit ediliyor.
+            <br>
+          </p>
+          <p class="lead">
+            <a class="btn btn-primary btn-lg" href="/register" role="button">Hesabinizi acin</a>
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 {{end}}

@@ -39,11 +39,16 @@
   <form action="/registerPrayer" method="post">
     {{if .ShowMosqueSelect}}
       <h4>Camiinizi secin | Wählen Sie Ihre Moschee</h4>
-      <select id="mosque" data-width="100%" class="selectpicker" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off" size="3">
-        <option value="" selected="selected" disabled="disabled">Camii / Moschee</option>
+      <select id="mosque" data-width="100%" class="selectpicker" title="Camii | Moschee" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off" size="3">
+        {{$favouriteMosque := .Favourite}}
         {{ range .Mosques}}
-          <option value="{{.Name}}">{{.Name}}, Ort:
-            {{.City}}</option>
+          {{if eq $favouriteMosque .Name}}
+            <option selected="selected" value="{{.Name}}">{{.Name}}, Ort:
+              {{.City}}</option>
+          {{else}}
+            <option value="{{.Name}}">{{.Name}}, Ort:
+              {{.City}}</option>
+          {{end}}
         {{ end }}
       </select>
     {{else}}

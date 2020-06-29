@@ -52,75 +52,6 @@ type ErrorMessage struct {
 
 type chooseCookie struct {
 	N string //Name
-	S bool   //SetPrayer
-	D int    //Date as int from today for time.Now add D
-	P int    //Prayer
-}
-
-func chooseToCookie(choo choose) chooseCookie {
-	var cookie chooseCookie
-	cookie.N = choo.Name
-	cookie.S = choo.SetPrayer
-	for i := 0; i <= choo.MaxFutureDate; i++ {
-		if strings.Split(choo.Date.Date.String(), " ")[0] == strings.Split(time.Now().AddDate(0, 0, i).String(), " ")[0] {
-			cookie.D = i
-			break
-		}
-	}
-	switch choo.PrayerName {
-	case "Sabah":
-		cookie.P = 1
-	case "Ögle":
-		cookie.P = 2
-	case "Ikindi":
-		cookie.P = 3
-	case "Aksam":
-		cookie.P = 4
-	case "Yatsi":
-		cookie.P = 5
-	case "Cuma":
-		cookie.P = 6
-	case "Bayram":
-		cookie.P = 7
-	}
-	return cookie
-}
-
-func cookieToChoose(cookie chooseCookie) choose {
-	var choo choose
-	choo.Name = cookie.N
-	collection, _ := repos.GetDBCollection(1)
-	var mosque model.Mosque
-	collection.FindOne(context.TODO(), bson.M{"Name": cookie.N}).Decode(&mosque)
-	choo.City = mosque.City
-	choo.Street = mosque.Street
-	choo.PLZ = mosque.PLZ
-	choo.SetPrayer = cookie.S
-	choo.MaxFutureDate = mosque.MaxFutureDate
-	for _, dates := range mosque.Date {
-		if strings.Split(dates.Date.String(), " ")[0] == strings.Split(time.Now().AddDate(0, 0, cookie.D).String(), " ")[0] {
-			choo.Date = dates
-			break
-		}
-	}
-	choo.DateString = choo.Date.Date.Format(time.RFC3339)
-	switch cookie.P {
-	case 1:
-		choo.PrayerName = "Sabah"
-	case 2:
-		choo.PrayerName = "Ögle"
-	case 3:
-		choo.PrayerName = "Ikindi"
-	case 4:
-		choo.PrayerName = "Aksam"
-	case 5:
-		choo.PrayerName = "Yatsi"
-	case 6:
-		choo.PrayerName = "Cuma"
-	case 7:
-		choo.PrayerName = "Bayram"
-	}
-	return choo
 }
 
 // Struct for easy handling the html template generation on the index page
@@ -132,7 +63,7 @@ type TempPrayer struct {
 
 var emptyChoose = choose{"", "", "", 0, false, *new([]model.Mosque), *new(model.Date), "", *new([]TempPrayer), "", 0}
 
-var emptyCookie = chooseCookie{"", false, 0, 0}
+var emptyCookie = chooseCookie{""}
 
 var isAdmin bool
 var mosquesList []model.Mosque
@@ -226,6 +157,7 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 	request.ParseForm()
 	mosque := request.URL.Query().Get("mosque")
 	if mosque != "" {
+		SetChoo(chooseCookie{mosque}, response)
 		collection, _ := repos.GetDBCollection(1)
 		var mosqueM model.Mosque
 		collection.FindOne(context.TODO(), bson.M{"Name": mosque}).Decode(&mosqueM)
@@ -355,7 +287,6 @@ func decryptUser(encryptedUser model.User) model.User {
 func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		encryptedUser, err := GetUserAsUser(response, request)
-		SetChoo(emptyChoose, response)
 		if err != nil {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/"))
@@ -417,6 +348,7 @@ func RegisterPrayer(response http.ResponseWriter, request *http.Request) {
 			DateSelected     bool
 			PrayerSelected   bool
 			MaxFutureDate    int
+			Favourite        string
 			Mosques          []model.Mosque
 			Mosque           model.Mosque
 			Prayer           []TempPrayer
@@ -426,6 +358,7 @@ func RegisterPrayer(response http.ResponseWriter, request *http.Request) {
 			PrayerID         int
 		}
 		var reg register
+		reg.Favourite = GetChoo(request).N
 		mosque := request.PostFormValue("mosque")
 		date := request.PostFormValue("date")
 		prayer := request.PostFormValue("prayer")
@@ -730,8 +663,8 @@ func LogoutHandler(response http.ResponseWriter, request *http.Request) {
 	http.Redirect(response, request, "/", 302)
 }
 
-func SetChoo(choosenMosque choose, response http.ResponseWriter) {
-	choose, err := json.Marshal(chooseToCookie(choosenMosque))
+func SetChoo(choosenMosque chooseCookie, response http.ResponseWriter) {
+	choose, err := json.Marshal(choosenMosque)
 	if err != nil {
 		panic(err)
 	}
@@ -743,14 +676,14 @@ func SetChoo(choosenMosque choose, response http.ResponseWriter) {
 	http.SetCookie(response, cookie)
 }
 
-func GetChoo(request *http.Request) choose {
+func GetChoo(request *http.Request) chooseCookie {
 	var choosenOne chooseCookie
 	cookie, err := request.Cookie("choosenMosque")
 	if err != nil {
-		panic(err)
+		return choosenOne
 	}
 	json.Unmarshal([]byte(repos.Decode(cookie.Value)), &choosenOne)
-	return cookieToChoose(choosenOne)
+	return choosenOne
 }
 
 // Function for setting the Cookie
