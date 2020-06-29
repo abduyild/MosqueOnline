@@ -684,9 +684,30 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 		encP := repos.Encrypt(phone)
-		collection.UpdateOne(context.TODO(),
-			bson.M{"Name": name},
-			bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": encP}}})
+
+		mosque := getMosque(name)
+		dateIndex, err := strconv.Atoi(date)
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError("Bir hata olustu, birdaha deneyin | Ein Fehler ist aufgetreten, versuchen Sie es erneut", "/index"))
+			return
+		}
+		dateL := len(mosque.Date)
+		dateP := len(mosque.Date[0].Prayer)
+		if dateIndex < dateL && prayerN-1 < dateP {
+			users := mosque.Date[dateIndex].Prayer[prayerN-1].Users
+			for _, user := range users {
+				if user.Phone == encP && !user.Attended {
+					collection.UpdateOne(context.TODO(),
+						bson.M{"Name": name},
+						bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": encP}}})
+				}
+			}
+		} else {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError("Bir hata olustu, birdaha deneyin | Ein Fehler ist aufgetreten, versuchen Sie es erneut", "/index"))
+			return
+		}
 		user, err := GetUserAsUser(response, request)
 		if err != nil {
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
