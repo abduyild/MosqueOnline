@@ -23,10 +23,7 @@ func main() {
 
 	router.HandleFunc("/", common.LoginHandler)
 	router.HandleFunc("/index", common.IndexPageHandler)
-	router.HandleFunc("/chooseMosque", common.Choose)
-	router.HandleFunc("/chooseDate", common.ChooseDate)
-	router.HandleFunc("/choosePrayer", common.ChoosePrayer)
-	router.HandleFunc("/submit", common.SubmitPrayer)
+	router.HandleFunc("/registerPrayer", common.RegisterPrayer)
 	router.HandleFunc("/deleteUser", common.DeleteUser)
 	router.HandleFunc("/signOut", common.SignOutPrayer)
 

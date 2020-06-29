@@ -409,62 +409,51 @@ func stringToTime(date string) time.Time {
 	return regToday
 }
 
-func Choose(response http.ResponseWriter, request *http.Request) {
+func RegisterPrayer(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
-		mosque := request.URL.Query().Get("mosque")
-		var choo = emptyChoose
-		if mosque == "" {
-			mosquesList = getMosques(response, request, false)
-			choo.Mosques = mosquesList
-			t, _ := template.ParseFiles("templates/choose.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-			t.Execute(response, choo)
-			choo.Mosques = *new([]model.Mosque)
-			SetChoo(choo, response)
-		} else {
-			choo.Name = mosque
-			if len(mosquesList) > 0 && choo.Name != "" {
-				for _, mosq := range mosquesList {
-					if mosq.Name == mosque {
-						choo.MaxFutureDate = mosq.MaxFutureDate
-						choo.Street = mosq.Street
-						choo.PLZ = mosq.PLZ
-						choo.City = mosq.City
-						t, _ := template.ParseFiles("templates/chooseDate.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-						SetChoo(choo, response)
-						t.Execute(response, getMosque(mosque))
-						return
-					}
-				}
-			} else {
-				SetChoo(emptyChoose, response)
-				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError("Camii secilmedi | Keine Moschee asugewählt", "/index"))
-			}
+		type register struct {
+			ShowMosqueSelect bool
+			MosqueSelected   bool
+			DateSelected     bool
+			PrayerSelected   bool
+			MaxFutureDate    int
+			Mosques          []model.Mosque
+			Mosque           model.Mosque
+			Prayer           []TempPrayer
+			Date             string // Date formatted to 01-12-31
+			DateString       string // Date formatted to 31.12.01
+			PrayerName       string
+			PrayerID         int
 		}
-	} else {
-		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
-	}
-}
-
-func Choosen(response http.ResponseWriter, request *http.Request) {
-	mosque := request.URL.Query().Get("mosque")
-	t, _ := template.ParseFiles("templates/chooseDate.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-	t.Execute(response, getMosque(mosque))
-}
-
-func ChooseDate(response http.ResponseWriter, request *http.Request) {
-	if loggedin(response, request) {
+		var reg register
+		mosque := request.PostFormValue("mosque")
 		date := request.PostFormValue("date")
-		choosenMosque := getMosque(request.PostFormValue("mosque"))
-		var choo = GetChoo(request)
-		if choo.Name != "" {
+		prayer := request.PostFormValue("prayer")
+		confirm := request.PostFormValue("confirm")
+		if len(request.PostForm) == 0 { // start
+			reg.Mosques = getMosques(response, request, false)
+			reg.ShowMosqueSelect = true
+			t, _ := template.ParseFiles("templates/registerPrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+			t.Execute(response, reg)
+		} else if mosque != "" && date == "" && prayer == "" { // mosque selected
+			reg.Mosque = getMosque(mosque)
+			if reg.Mosque.Name != "" {
+				reg.MosqueSelected = true
+				reg.MaxFutureDate = reg.Mosque.MaxFutureDate
+				t, _ := template.ParseFiles("templates/registerPrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+				t.Execute(response, reg)
+			}
+		} else if mosque != "" && date != "" && prayer == "" {
+			reg.Mosque = getMosque(mosque)
 			index := 0
-			for i, dates := range choosenMosque.Date {
-				if date == strings.Split(dates.Date.String(), " ")[0] {
-					index = i
-					choo.Date.Date = dates.Date
-					break
+			if reg.Mosque.Name != "" {
+				for i, dates := range reg.Mosque.Date {
+					if date == strings.Split(dates.Date.String(), " ")[0] {
+						index = i
+						reg.Date = date
+						reg.DateString = strconv.Itoa(dates.Date.Day()) + "." + strconv.Itoa(int(dates.Date.Month())) + "." + strconv.Itoa(dates.Date.Year())
+						break
+					}
 				}
 			}
 			cap := 0
@@ -475,7 +464,9 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 				return
 			}
 			male := user.Sex == "Men"
-			for _, prayer := range choosenMosque.Date[index].Prayer {
+			var prayers []TempPrayer
+			pray := *new(TempPrayer)
+			for _, prayer := range reg.Mosque.Date[index].Prayer {
 				if prayer.Available {
 					if male {
 						cap = prayer.CapacityMen
@@ -483,180 +474,136 @@ func ChooseDate(response http.ResponseWriter, request *http.Request) {
 						cap = prayer.CapacityWomen
 					}
 					if cap != 0 {
-						pray := *new(TempPrayer)
 						pray.Name = prayer.Name
 						pray.Capacity = cap
 						pray.Available = true
-						choo.Prayer = append(choo.Prayer, pray)
+						prayers = append(prayers, pray)
 					}
 				}
 			}
-			t, _ := template.ParseFiles("templates/choosePrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-			SetChoo(choo, response)
-			t.Execute(response, choo)
-		} else {
-			t, _ := template.ParseFiles("templates/errorpage.gohtml")
-			t.Execute(response, GetError("Camii secilmedi | Keine Moschee asugewählt", "/index"))
-		}
-	} else {
-		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
-	}
-}
-
-func ChoosePrayer(response http.ResponseWriter, request *http.Request) {
-	if loggedin(response, request) {
-		prayer, _ := strconv.Atoi(request.URL.Query().Get("prayer"))
-		var choo = GetChoo(request)
-		if choo.Name != "" {
-			choo.SetPrayer = prayer > 0 && prayer < 8
-			if choo.SetPrayer {
-				if strings.Split(choo.Date.Date.String(), "T")[0] != "0001-01-01" {
-					switch prayer {
-					case 1:
-						choo.PrayerName = "Sabah"
-					case 2:
-						choo.PrayerName = "Ögle"
-					case 3:
-						choo.PrayerName = "Ikindi"
-					case 4:
-						choo.PrayerName = "Aksam"
-					case 5:
-						choo.PrayerName = "Yatsi"
-					case 6:
-						choo.PrayerName = "Cuma"
-					case 7:
-						choo.PrayerName = "Bayram"
-					}
-					date := choo.Date.Date
-					choo.DateString = strconv.Itoa(date.Day()) + "." + strconv.Itoa(int(date.Month())) + "." + strconv.Itoa(date.Year())
-					t, _ := template.ParseFiles("templates/confirm.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-					SetChoo(choo, response)
-					t.Execute(response, choo)
-				} else {
-					t, _ := template.ParseFiles("templates/errorpage.gohtml")
-					t.Execute(response, GetError("Tarih secilmedi | Kein Datum ausgewählt", "/index"))
-				}
-			} else {
+			reg.Prayer = prayers
+			reg.DateSelected = true
+			t, _ := template.ParseFiles("templates/registerPrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+			t.Execute(response, reg)
+		} else if mosque != "" && date != "" && prayer != "" && confirm == "" {
+			prayerI, err := strconv.Atoi(prayer)
+			if err != nil {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError("Gecerli Tarih secilmedi | Kein gültiges Gebet asugewählt", "/index"))
+				t.Execute(response, GetError("Yanlis sayi boyutu | Falsches Zahlenformat", "/index"))
 			}
-		} else {
-			t, _ := template.ParseFiles("templates/errorpage.gohtml")
-			t.Execute(response, GetError("Camii secilmedi | Keine Moschee asugewählt", "/index"))
-		}
-	} else {
-		t, _ := template.ParseFiles("templates/errorpage.gohtml")
-		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
-	}
-}
-
-func SubmitPrayer(response http.ResponseWriter, request *http.Request) {
-	if loggedin(response, request) {
-		if request.URL.Query().Get("confirm") == "yes" {
+			reg.Mosque = getMosque(mosque)
+			if reg.Mosque.Name != "" {
+				setPrayer := prayerI > 0 && prayerI < 8
+				if setPrayer {
+					switch prayerI {
+					case 1:
+						reg.PrayerName = "Sabah"
+					case 2:
+						reg.PrayerName = "Ögle"
+					case 3:
+						reg.PrayerName = "Ikindi"
+					case 4:
+						reg.PrayerName = "Aksam"
+					case 5:
+						reg.PrayerName = "Yatsi"
+					case 6:
+						reg.PrayerName = "Cuma"
+					case 7:
+						reg.PrayerName = "Bayram"
+					}
+					reg.PrayerID = prayerI
+					reg.Date = date
+					reg.DateString = request.PostFormValue("dateString")
+					reg.PrayerSelected = true
+				}
+				t, _ := template.ParseFiles("templates/registerPrayer.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+				t.Execute(response, reg)
+			}
+		} else if mosque != "" && date != "" && prayer != "" && confirm == "yes" {
+			prayerN := request.PostFormValue("prayerName")
+			prayerI, err := strconv.Atoi(prayer)
+			if err != nil {
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
+				t.Execute(response, GetError("Yanlis sayi boyutu | Falsches Zahlenformat", "/index"))
+			}
 			collection, err := repos.GetDBCollection(0)
 			if err != nil {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError(dbConnectionError, "/index"))
 				return
 			}
-			var choo = GetChoo(request)
-			if choo.Name != "" {
-				choosenMosque := getMosque(choo.Name)
-				if choosenMosque.Name != "" {
-					prayer := 0
-					switch choo.PrayerName {
-					case "Sabah":
-						prayer = 1
-					case "Ögle":
-						prayer = 2
-					case "Ikindi":
-						prayer = 3
-					case "Aksam":
-						prayer = 4
-					case "Yatsi":
-						prayer = 5
-					case "Cuma":
-						prayer = 6
-					case "Bayram":
-						prayer = 7
+			reg.Mosque = getMosque(mosque)
+			if reg.Mosque.Name != "" {
+				choosenMosque := reg.Mosque
+				user, err := GetUserAsUser(response, request)
+				if err != nil {
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
+					t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/"))
+					return
+				}
+				registered := model.RegisteredPrayer{}
+				var mosque = getMosque(choosenMosque.Name)
+				index := 0
+				for i, dates := range choosenMosque.Date {
+					if date == strings.Split(dates.Date.String(), " ")[0] {
+						registered.Date = strconv.Itoa(dates.Date.Day()) + "." + strconv.Itoa(int(dates.Date.Month())) + "." + strconv.Itoa(dates.Date.Year())
+						index = i
+						break
 					}
-					user, err := GetUserAsUser(response, request)
+				}
+				registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + prayer
+				result := collection.FindOne(context.TODO(), bson.D{
+					{"Phone", user.Phone},
+					{"RegisteredPrayers.RpId", registered.RpId}})
+				if result.Err() != nil {
+					registered.PrayerName = prayerN
+					registered.PrayerIndex = prayerI
+					registered.MosqueName = mosque.Name
+					registered.MosqueAddress = strconv.Itoa(mosque.PLZ) + " " + mosque.City + ", " + mosque.Street
+					registered.DateIndex = index
+					collection, err = repos.GetDBCollection(1)
 					if err != nil {
 						t, _ := template.ParseFiles("templates/errorpage.gohtml")
-						t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/"))
+						t.Execute(response, GetError(dbConnectionError, "/index"))
 						return
 					}
-					registered := model.RegisteredPrayer{}
-					var mosque = getMosque(choosenMosque.Name)
-					index := 0
-					for i, dates := range choosenMosque.Date {
-						if choo.Date.Date == dates.Date {
-							registered.Date = strconv.Itoa(dates.Date.Day()) + "." + strconv.Itoa(int(dates.Date.Month())) + "." + strconv.Itoa(dates.Date.Year())
-							index = i
-							break
-						}
+					collection.UpdateOne(context.TODO(),
+						bson.M{"Name": mosque.Name},
+						bson.D{{"$inc", bson.D{
+							{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Capacity" + user.Sex, -1},
+						},
+						}})
+					tempUser := user
+					tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
+					collection.UpdateOne(context.TODO(),
+						bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Users": tempUser}})
+					user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
+					collection, err = repos.GetDBCollection(0)
+					if err != nil {
+						t, _ := template.ParseFiles("templates/errorpage.gohtml")
+						t.Execute(response, GetError(dbConnectionError, "/index"))
+						return
 					}
-					result := collection.FindOne(context.TODO(), bson.D{
-						{"Phone", user.Phone},
-						{"RegisteredPrayers.RpId", registered.RpId}})
-					if result.Err() != nil {
-						registered.PrayerName = choo.PrayerName
-						registered.PrayerIndex = prayer
-						registered.MosqueName = mosque.Name
-						registered.MosqueAddress = strconv.Itoa(mosque.PLZ) + " " + mosque.City + ", " + mosque.Street
-						registered.DateIndex = index
-						registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + strconv.Itoa(prayer)
-						collection, err = repos.GetDBCollection(1)
-						if err != nil {
-							t, _ := template.ParseFiles("templates/errorpage.gohtml")
-							t.Execute(response, GetError(dbConnectionError, "/index"))
-							return
-						}
-						collection.UpdateOne(context.TODO(),
-							bson.M{"Name": mosque.Name},
-							bson.D{{"$inc", bson.D{
-								{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Capacity" + user.Sex, -1},
-							},
-							}})
-						tempUser := user
-						tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
-						collection.UpdateOne(context.TODO(),
-							bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayer-1) + ".Users": tempUser}})
-						user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
-						collection, err = repos.GetDBCollection(0)
-						if err != nil {
-							t, _ := template.ParseFiles("templates/errorpage.gohtml")
-							t.Execute(response, GetError(dbConnectionError, "/index"))
-							return
-						}
-						phone, err := GetPhoneFromCookie(request)
-						if err != nil {
-							t, _ := template.ParseFiles("templates/errorpage.gohtml")
-							t.Execute(response, GetError(err.Error(), "/"))
-							return
-						}
-						encP := repos.Encrypt(phone)
-						collection.UpdateOne(context.TODO(),
-							bson.M{"Phone": encP}, bson.M{
-								"$push": bson.M{"RegisteredPrayers": registered}})
-						SetChoo(emptyChoose, response)
-						http.Redirect(response, request, "/index?success", 302)
-					} else {
-						t, _ := template.ParseFiles("templates/templates/")
-						t.Execute(response, GetError("Bu namaz icin gecerli bir kayidiniz bulunmakta! Sie besitzen bereits eine gültige Anmeldung für dieses Gebet", "/index"))
+					phone, err := GetPhoneFromCookie(request)
+					if err != nil {
+						t, _ := template.ParseFiles("templates/errorpage.gohtml")
+						t.Execute(response, GetError(err.Error(), "/"))
+						return
 					}
+					encP := repos.Encrypt(phone)
+					collection.UpdateOne(context.TODO(),
+						bson.M{"Phone": encP}, bson.M{
+							"$push": bson.M{"RegisteredPrayers": registered}})
+					http.Redirect(response, request, "/index?success", 302)
 				} else {
-					t, _ := template.ParseFiles("templates/templates/")
-					t.Execute(response, GetError("Camii bulunamadi! Es konnte keine Moschee gefunden werden", "/index"))
+					http.Redirect(response, request, "/index?existent", 302)
 				}
 			} else {
-				t, _ := template.ParseFiles("templates/templates/")
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError("Camii secilmedi | Keine Moschee asugewählt", "/index"))
 			}
 		} else {
-			SetChoo(emptyChoose, response)
-			http.Redirect(response, request, "/index", 302)
+			response.Write([]byte(`<script>window.location.href = "/index";</script>`))
 		}
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -950,7 +897,6 @@ func adminLoggedin(response http.ResponseWriter, request *http.Request, adminTyp
 // check every method with this
 func loggedin(response http.ResponseWriter, request *http.Request) bool {
 	if _, err := GetPhoneFromCookie(request); err != nil {
-		fmt.Println(err)
 		return false
 	}
 	return true

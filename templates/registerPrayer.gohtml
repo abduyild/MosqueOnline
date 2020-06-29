@@ -1,0 +1,127 @@
+{{template "base" .}}
+{{define "scripts"}}
+  <link rel="stylesheet" href="static/css/bootstrap-select.min.css">
+  <script src="static/js/bootstrap-select.min.js"></script>
+  <script>
+    window.addEventListener("pageshow", function (event) {
+      var today = new Date();
+      var dd = today.getDate();
+      var mm = today.getMonth() + 1; //January is 0!
+      var yyyy = today.getFullYear();
+      if (dd < 10) {
+        dd = '0' + dd
+      }
+      if (mm < 10) {
+        mm = '0' + mm
+      }
+      today = yyyy + '-' + mm + '-' + dd;
+      var d = new Date();
+      d.setDate(d.getDate() + {{.MaxFutureDate}});
+      var y = d.getFullYear();
+      var m = d.getMonth() + 1;
+      var da = d.getDate();
+      if (da < 10) {
+        da = '0' + da
+      }
+      if (m < 10) {
+        m = '0' + m
+      }
+      d = y + '-' + m + '-' + da;
+      document.getElementById("date").setAttribute("min", today);
+      document.getElementById("date").setAttribute("max", d);
+    });
+  </script>
+{{end}}
+{{define "title"}}
+  Gebetsanmeldung
+{{end}}
+{{define "main"}}
+  <form action="/registerPrayer" method="post">
+    {{if .ShowMosqueSelect}}
+      <h4>Camiinizi secin | Wählen Sie Ihre Moschee</h4>
+      <select id="mosque" data-width="100%" class="selectpicker" data-live-search="true" name="mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus" type="select-one" autocomplete="off" size="3">
+        <option value="" selected="selected" disabled="disabled">Camii / Moschee</option>
+        {{ range .Mosques}}
+          <option value="{{.Name}}">{{.Name}}, Ort:
+            {{.City}}</option>
+        {{ end }}
+      </select>
+    {{else}}
+      {{with .Mosque}}
+        <h4>Secdiginiz Camii | Ausgewählte Moschee</h4>
+        <div class="card m-2" style="width: 18rem;">
+          <div class="card-body">
+            <h5 class="card-title">{{.Name}}</h5>
+            <p class="card-text">
+              {{.Street}}
+              <br>
+              {{.PLZ}},
+              {{.City}}
+            </p>
+          </div>
+        </div>
+        <input type="hidden" name="mosque" value="{{.Name}}">
+      {{end}}
+    {{end}}
+    {{if .MosqueSelected}}
+      Tarih | Datum:
+      <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input>
+    {{else}}
+    {{end}}
+    {{if .DateSelected}}
+      <h5>Secdiginiz Tarih | Ausgewähltes Datum:</h5>
+      <p>{{.DateString}}</p><br>
+      <label for="prayer">Vakit secin / Wähle Gebet:</label>
+      <select class="selectpicker" name="prayer" id="prayer" data-live-search="true" placeholder="Vakit / Gebet" type="select-one" autocomplete="off">
+        <option value="" selected="selected" disabled="disabled">Vakit / Gebet:</option>
+        {{range .Prayer}}
+          <option value="{{.Name}}">
+            {{if (eq .Name 1)}}
+              Gebet: Sabah | Fajr
+            {{else if (eq .Name 2)}}
+              Gebet: Ögle | Dhuhr
+            {{else if (eq .Name 3)}}
+              Gebet: Ikindi | Asr
+            {{else if (eq .Name 4)}}
+              Gebet: Aksam | Maghrib
+            {{else if (eq .Name 5)}}
+              Gebet: Yatsi | Ishaa
+            {{else if (eq .Name 6)}}
+              Gebet: Cuma | Freitagsgebet
+            {{else if (eq .Name 7)}}
+              Gebet: Bayram | Eid
+            {{end}}, Platz:
+            {{.Capacity}}
+          </option>
+        {{end}}
+      </select>
+      <input type="hidden" name="date" value="{{.Date}}">
+      <input type="hidden" name="dateString" value="{{.DateString}}">
+    {{ else}}
+    {{end}}
+    {{if .PrayerSelected}}
+      <input type="hidden" name="prayerName" value="{{.PrayerName}}">
+      <input type="hidden" name="date" value="{{.Date}}">
+      <input type="hidden" name="prayer" value="{{.PrayerID}}">
+
+      <h5>Secdiginiz Tarih | Ausgewähltes Datum:</h5>
+      <p>{{.DateString}}</p><br>
+      <h5>Secdiginiz Namaz | Ausgewähltes Gebet</h5>
+      <p>{{.PrayerName}}</p><br>
+      <label for="confirm">Seceneginizi kayit etmek istiyormusunuz? |
+        <br>
+        Möchten Sie Ihre Auswahl bestätigen?</label>
+      <p>
+        <input type="radio" name="confirm" value="yes">
+          Evet | Ja</input>
+      </p>
+      <p>
+        <input type="radio" name="confirm" value="no">
+          Hayir | Nein</input>
+        <br>
+      </p>
+    {{else}}
+    {{end}}
+    <br><br><input class="btn btn-outline-dark" id="submit" type="submit" value="Sec | Auswählen">
+  </form>
+{{end}}

@@ -8,6 +8,11 @@
       } else {
         document.getElementById('ok').style.display = 'none';
       }
+        if (window.location.href.indexOf("?existent") > -1) {
+          document.getElementById('nok').style.display = '';
+        } else {
+          document.getElementById('nok').style.display = 'none';
+        }
     });
   </script>
 {{end}}
@@ -31,9 +36,12 @@
   </div>
   <br>
   <br>
-  <button onclick="window.location.href = '/chooseMosque';" class="btn btn-outline-dark btn-lg btn-block">Namazlara Kayit ol</button><br><br>
+  <button onclick="window.location.href = '/registerPrayer';" class="btn btn-outline-dark btn-lg btn-block">Namazlara Kayit ol</button><br><br>
   <div id="ok" class="alert alert-success" role="alert" style="display: none;">
     Kayidiniz yapildi! | Ihre Anmeldung war erfolgreich!
+  </div>
+  <div id="nok" class="alert alert-danger" role="alert" style="display: none;">
+    Secdiginiz namaz icin gecerli bir kayidiniz bulunmakta! | Sie besitzen bereits eine gültige Anmeldung für das asugewählte Gebet!
   </div>
   <h2>Kayitli Namazlar | Angemeldete Gebete</h2>
 
