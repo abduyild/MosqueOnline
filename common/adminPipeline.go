@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -730,7 +729,6 @@ func ChangeAdmin(response http.ResponseWriter, request *http.Request) {
 func DeleteAdmin(response http.ResponseWriter, request *http.Request) {
 	if adminLoggedin(response, request, "admin") {
 		email := request.URL.Query().Get("email")
-		fmt.Println(email)
 		if email != "" {
 			collection, err := repos.GetDBCollection(2)
 			if err != nil {
@@ -773,7 +771,9 @@ func AddBanner(response http.ResponseWriter, request *http.Request) {
 		//this is path which  we want to store the file
 		f, err := os.OpenFile("banner/"+name+" "+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
-			fmt.Println(err)
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(err.Error(), "/admin"))
+			return
 		}
 		defer f.Close()
 		io.Copy(f, file)
