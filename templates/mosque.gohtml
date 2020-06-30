@@ -2,6 +2,19 @@
 {{define "scripts"}}
   <script>
     $(document).ready(function () {
+      if (window.location.href.indexOf("?format") > -1) {
+        document.getElementById('format').style.display = '';
+      } else {
+        document.getElementById('format').style.display = 'none';
+      }
+      if (window.location.href.indexOf("?success") > -1) {
+        document.getElementById('ok').style.display = '';
+      } else {
+        document.getElementById('ok').style.display = 'none';
+      }
+      if (window.location.search == '?register') {
+        $('#registerUser').addClass('show');
+      }
       $(":checkbox").each(function () {
         $(this).add(this.nextSibling).add(this.nextSibling.nextSibling).wrapAll("<label class='attendant'></label>")
       })
@@ -13,6 +26,7 @@
           $(this).toggle(matches)
         })
       })
+
     });
   </script>
 {{end}}
@@ -20,6 +34,7 @@
   Moscheeverwaltung
 {{end}}
 {{define "main"}}
+  {{$prayers:= .Prayers}}
   {{$name := ""}}
   {{$capm := 0}}
   {{$capw := 0}}
@@ -187,4 +202,124 @@
       </form>
     </div>
   </div>
-{{end}}
+  <div id="format" class="alert alert-danger" role="alert" style="display: none;">
+    Girdiginiz verilerde hata olusdu, yine deneyin! | Es trat ein Feher mit Ihren Eingaben auf, versuchen Sie es erneut!
+  </div>
+  <div id="ok" class="alert alert-success" role="alert" style="display: none;">
+    Kayidiniz yapildi! | Das Konto wurde erfolgreich angelegt!
+  </div>
+
+  <div class="accordion m-2" id="register">
+    <p>
+      <button class="btn btn-info m-3" type="button" data-toggle="collapse" data-target="#registerUser" aria-expanded="false" aria-controls="registerUser">
+        Üye ekle | Registriere Benutzer
+      </button>
+    </p>
+    {{if .Register}}
+      <div class="collapse show mb-3" id="registerUser">
+
+      {{else}}
+        <div class="collapse mb-3" id="registerUser">
+        {{end}}
+        <div class="card card-body">
+          <form method="POST">
+            <div class="row">
+              <div class="col">
+                {{if .Register}}
+                  {{$found := .Found}}
+                  {{with .User}}
+                    {{if $found}}
+                      <h2>Kayit mevcut | Registrierung vorhanden</h2>
+                      <div class="card m-2" style="width: 18rem;">
+                        <div class="card-body">
+                          <h5 class="card-title">{{.FirstName}}
+                            {{.LastName}}</h5>
+                          <p class="card-text">
+                            Email:
+                            {{.Email}}
+                            <br>
+                            Telefon:
+                            {{.Phone}}
+                          </p>
+                        </div>
+                      </div>
+                      <a href="/mosqueIndex" class="btn btn-outline-warning" role="button">Geri git | Zurück</a>
+                    {{else}}
+                      <fieldset class="form-group">
+                        <div class="row">
+                          <legend class="col-form-label col-sm-2 pt-0">Cinsiyetinizi Secin | Wählen Sie Ihr Geschlecht</legend>
+                          <div class="col-sm-10">
+                            <div class="form-check">
+                              <input class="form-check-input" type="radio" name="sex" id="sexm" value="Men" checked="checked">
+                              <label class="form-check-label" for="sexm">
+                                Erkek | Mann
+                              </label>
+                            </div>
+                            <div class="form-check">
+                              <input class="form-check-input" type="radio" name="sex" id="sexw" value="Women">
+                              <label class="form-check-label" for="sexw">
+                                Kadin | Frau
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </fieldset>
+                      <div class="form-group row">
+                        <label for="phone" class="col-sm-2 col-form-label">Isim | Vorname</label>
+                        <div class="col">
+                          <input type="text" class="form-control" name="firstname" id="firstname">
+                        </div>
+                        <label for="phone" class="col-sm-2 col-form-label">Soyisim | Nachname</label>
+                        <div class="col">
+                          <input type="text" class="form-control" name="lastname" id="lastname">
+                        </div>
+                      </div>
+                      <div class="form-group row">
+                        <label for="email" class="col-sm-2 col-form-label">Email</label>
+                        <div class="col-sm-10">
+                          <input type="email" name="email" required="required" class="form-control" id="email">
+                        </div>
+                      </div>
+                      <div class="form-group row">
+                        <label for="phone" class="col-sm-2 col-form-label">Telefon</label>
+                        <div class="col-sm-10">
+                          <input type="number" name="phone" required="required" value="{{.Phone}}" class="form-control" id="phone" readonly="readonly">
+                        </div>
+                      </div>
+                      {{range $prayers}}
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="prayer" value="{{.Name}}" id="prayer{{.Name}}">
+                          <label class="form-check-label" for="prayer{{.Name}}">
+                            {{if (eq .Name  1)}}
+                              Gebet: Sabah | Fajr
+                            {{else if (eq .Name  2)}}
+                              Gebet: Ögle | Dhuhr
+                            {{else if (eq .Name  3)}}
+                              Gebet: Ikindi | Asr
+                            {{else if (eq .Name  4)}}
+                              Gebet: Aksam | Maghrib
+                            {{else if (eq .Name  5)}}
+                              Gebet: Yatsi | Ishaa
+                            {{else if (eq .Name  6)}}
+                              Gebet: Cuma | Freitagsgebet
+                            {{else if (eq .Name  7)}}
+                              Gebet: Bayram | Eid{{end}}
+                          </label>
+                        </div>
+                      {{end}}
+                      <button type="submit" class="btn btn-outline-dark">Kayit et | Registriere</button>
+                      <a href="/mosqueIndex" class="btn btn-outline-warning" role="button">Iptal et | Abbrechen</a>
+                    {{end}}
+                  {{end}}
+                {{else}}
+
+                  <input type="number" id="phone" name="phone" min='0' placeholder="Telefon: 0123456789"><br><br>
+                  <button type="submit" class="btn btn-outline-dark">Kayit et | Registriere</button>
+                {{end}}
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  {{end}}

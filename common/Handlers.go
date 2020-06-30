@@ -107,16 +107,6 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 		result := collection.FindOne(context.TODO(), bson.D{{"Phone", repos.Encrypt(phone)}})
 		// If not found (throws exception/error) then we can proceed
 		if result.Err() != nil {
-			// Generate the hashed password with 14 as salt
-
-			//use hash if you want
-			//hash, err := bcrypt.GenerateFromPassword([]byte(phone), 14)
-
-			// If there was an error generating the hash dont proceed
-
-			// define a User model with typed first and last name, email and phone
-
-			//usr := model.User{firstName, email, string(hash)}
 			encF := repos.Encrypt(firstName)
 			if encF == "" {
 				http.Redirect(response, request, "/register?format", 302)
@@ -340,23 +330,24 @@ func stringToTime(date string) time.Time {
 	return regToday
 }
 
+type register struct {
+	ShowMosqueSelect bool
+	MosqueSelected   bool
+	DateSelected     bool
+	PrayerSelected   bool
+	MaxFutureDate    int
+	Favourite        string
+	Mosques          []model.Mosque
+	Mosque           model.Mosque
+	Prayer           []TempPrayer
+	Date             string // Date formatted to 01-12-31
+	DateString       string // Date formatted to 31.12.01
+	PrayerName       string
+	PrayerID         int
+}
+
 func RegisterPrayer(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
-		type register struct {
-			ShowMosqueSelect bool
-			MosqueSelected   bool
-			DateSelected     bool
-			PrayerSelected   bool
-			MaxFutureDate    int
-			Favourite        string
-			Mosques          []model.Mosque
-			Mosque           model.Mosque
-			Prayer           []TempPrayer
-			Date             string // Date formatted to 01-12-31
-			DateString       string // Date formatted to 31.12.01
-			PrayerName       string
-			PrayerID         int
-		}
 		var reg register
 		reg.Favourite = GetChoo(request).N
 		mosque := request.PostFormValue("mosque")
@@ -458,6 +449,7 @@ func RegisterPrayer(response http.ResponseWriter, request *http.Request) {
 			if err != nil {
 				t, _ := template.ParseFiles("templates/errorpage.gohtml")
 				t.Execute(response, GetError("Yanlis sayi boyutu | Falsches Zahlenformat", "/index"))
+				return
 			}
 			collection, err := repos.GetDBCollection(0)
 			if err != nil {

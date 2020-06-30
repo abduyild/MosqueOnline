@@ -4,6 +4,7 @@ import (
 	"context"
 	"html/template"
 	"net/http"
+	"pi-software/helpers"
 	"pi-software/model"
 	"pi-software/repos"
 	"strconv"
@@ -19,6 +20,10 @@ type MosquePipeline struct {
 	EditPrayers  bool // add/delete prayer, f.ex. add cuma prayer
 	EditCapacity bool // edit capacity for mosque, for women and men
 	GetDate      bool // get users registered for a choosen date
+	Found        bool
+	Register     bool
+	User         model.User
+	Prayers      []model.Prayer
 }
 
 type prayerBool struct {
@@ -33,8 +38,6 @@ type tempMosque struct {
 	Name string
 	Date Date
 }
-
-//var mosquePipe MosquePipeline
 
 func decryptPrayer(prayer model.Prayer) model.Prayer {
 	dP := prayer
@@ -64,11 +67,15 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 		date := time.Now()
 		today := strconv.Itoa(date.Day()) + "." + strconv.Itoa(int(date.Month())) + "." + strconv.Itoa(date.Year())
 		var prayers []model.Prayer
+		var prayersA []model.Prayer
 		for _, date := range mosque.Date {
 			if today == strconv.Itoa(date.Date.Day())+"."+strconv.Itoa(int(date.Date.Month()))+"."+strconv.Itoa(date.Date.Year()) {
 				for _, prayer := range date.Prayer {
-					if len(prayer.Users) > 0 {
-						prayers = append(prayers, decryptPrayer(prayer))
+					if prayer.Available {
+						if len(prayer.Users) > 0 {
+							prayers = append(prayers, decryptPrayer(prayer))
+						}
+						prayersA = append(prayersA, decryptPrayer(prayer))
 					}
 				}
 				break
@@ -77,7 +84,162 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 		var tmpDate Date
 		tmpDate.Date = today
 		tmpDate.Prayer = prayers
-		mosquePipe := MosquePipeline{mosque, tmpDate, false, false, false}
+		var user model.User
+		registered := false
+		found := false
+		if phone := request.PostFormValue("phone"); phone != "" {
+			registered = true
+			_, err := strconv.Atoi(phone)
+			if err != nil {
+				http.Redirect(response, request, "/mosqueIndex?format", 302)
+				return
+			}
+			user.Phone = phone
+			if len(request.PostForm) > 1 {
+				collection, err := repos.GetDBCollection(0)
+				if err != nil {
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
+					t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+					return
+				}
+				firstName := request.FormValue("firstname")
+				lastName := request.FormValue("lastname")
+				email := request.FormValue("email")
+				sex := request.FormValue("sex")
+				_firstName, _lastName, _email, _phone := false, false, false, false
+				_firstName = !helpers.IsEmpty(firstName)
+				_lastName = !helpers.IsEmpty(lastName)
+				_email = !helpers.IsEmpty(email)
+				_phone = !helpers.IsEmpty(phone)
+				if _firstName && _lastName && _email && _phone {
+					result := collection.FindOne(context.TODO(), bson.D{{"Phone", repos.Encrypt(phone)}})
+					if result.Err() != nil {
+						encF := repos.Encrypt(firstName)
+						if encF == "" {
+							http.Redirect(response, request, "/mosqueIndex?format", 302)
+							return
+						}
+						encL := repos.Encrypt(lastName)
+						if encL == "" {
+							http.Redirect(response, request, "/mosqueIndex?format", 302)
+							return
+						}
+						encE := repos.Encrypt(email)
+						if encE == "" {
+							http.Redirect(response, request, "/mosqueIndex?format", 302)
+							return
+						}
+						encP := repos.Encrypt(phone)
+						if encP == "" {
+							http.Redirect(response, request, "/mosqueIndex?format", 302)
+							return
+						}
+						usr := model.User{sex, encF, encL, encE, encP, false, []model.RegisteredPrayer{}}
+						collection.InsertOne(context.TODO(), usr)
+
+						//test autoattent start
+						var reg register
+						reg.Mosque = getMosque(name)
+						if reg.Mosque.Name != "" {
+							choosenMosque := reg.Mosque
+							if err != nil {
+								t, _ := template.ParseFiles("templates/errorpage.gohtml")
+								t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/"))
+								return
+							}
+							registered := model.RegisteredPrayer{}
+							var mosque = getMosque(choosenMosque.Name)
+							index := 0
+							for i, dates := range choosenMosque.Date {
+								if strings.Split(date.String(), " ")[0] == strings.Split(dates.Date.String(), " ")[0] {
+									registered.Date = strconv.Itoa(dates.Date.Day()) + "." + strconv.Itoa(int(dates.Date.Month())) + "." + strconv.Itoa(dates.Date.Year())
+									index = i
+									break
+								}
+							}
+							prayer := request.PostFormValue("prayer")
+							prayerI, err := strconv.Atoi(prayer)
+							if err != nil {
+								t, _ := template.ParseFiles("templates/errorpage.gohtml")
+								t.Execute(response, GetError("Yanlis sayi boyutu | Falsches Zahlenformat", "/mosqueIndex"))
+								return
+							}
+							registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + prayer
+							result := collection.FindOne(context.TODO(), bson.D{
+								{"Phone", usr.Phone},
+								{"RegisteredPrayers.RpId", registered.RpId}})
+							if result.Err() != nil {
+								registered.PrayerName = prayer
+								registered.MosqueName = mosque.Name
+								registered.MosqueAddress = strconv.Itoa(mosque.PLZ) + " " + mosque.City + ", " + mosque.Street
+								registered.DateIndex = index
+								collection, err = repos.GetDBCollection(1)
+								if err != nil {
+									t, _ := template.ParseFiles("templates/errorpage.gohtml")
+									t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+									return
+								}
+								collection.UpdateOne(context.TODO(),
+									bson.M{"Name": mosque.Name},
+									bson.D{{"$inc", bson.D{
+										{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Capacity" + usr.Sex, -1},
+									},
+									}})
+								tempUser := usr
+								tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
+								collection.UpdateOne(context.TODO(),
+									bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Users": tempUser}})
+								usr.RegisteredPrayers = append(usr.RegisteredPrayers, registered)
+								collection, err = repos.GetDBCollection(0)
+								if err != nil {
+									t, _ := template.ParseFiles("templates/errorpage.gohtml")
+									t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+									return
+								}
+								if err != nil {
+									t, _ := template.ParseFiles("templates/errorpage.gohtml")
+									t.Execute(response, GetError(err.Error(), "/"))
+									return
+								}
+								collection.UpdateOne(context.TODO(),
+									bson.M{"Phone": usr.Phone}, bson.M{
+										"$push": bson.M{"RegisteredPrayers": registered}})
+								http.Redirect(response, request, "/mosqueIndex?success", 302)
+							}
+						} else {
+							t, _ := template.ParseFiles("templates/errorpage.gohtml")
+							t.Execute(response, GetError("Camii secilmedi | Keine Moschee asugewählt", "/mosqueIndex"))
+						}
+						//test autoattent end
+
+						http.Redirect(response, request, "/mosqueIndex?success", 302)
+					} else {
+						http.Redirect(response, request, "/mosqueIndex", 302)
+					}
+				}
+			} else {
+				collection, err := repos.GetDBCollection(0)
+				if err != nil {
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
+					t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+					return
+				}
+				encP := repos.Encrypt(phone)
+				if encP == "" {
+					http.Redirect(response, request, "/mosqueIndex?format", 302)
+					return
+				}
+				result := collection.FindOne(context.TODO(), bson.D{{"Phone", encP}})
+				if result.Err() != nil {
+					found = false
+				} else {
+					found = true
+					collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
+					user = decryptUser(user)
+				}
+			}
+		}
+		mosquePipe := MosquePipeline{mosque, tmpDate, false, false, false, found, registered, user, prayersA}
 		t, _ := template.ParseFiles("templates/mosque.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
 		t.Execute(response, mosquePipe)
 	} else {

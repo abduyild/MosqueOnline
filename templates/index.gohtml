@@ -8,11 +8,11 @@
       } else {
         document.getElementById('ok').style.display = 'none';
       }
-        if (window.location.href.indexOf("?existent") > -1) {
-          document.getElementById('nok').style.display = '';
-        } else {
-          document.getElementById('nok').style.display = 'none';
-        }
+      if (window.location.href.indexOf("?existent") > -1) {
+        document.getElementById('nok').style.display = '';
+      } else {
+        document.getElementById('nok').style.display = 'none';
+      }
     });
   </script>
 {{end}}
@@ -46,31 +46,36 @@
   <h2>Kayitli Namazlar | Angemeldete Gebete</h2>
 
   {{$phone := .Phone}}
-  {{range .RegisteredPrayers}}
-    <div class="card">
-      <div class="card-body">
-        <h5 class="card-title">{{.MosqueName}},
-          {{.Date}}</h5>
-        <h6 class="card-subtitle mb-2 text-muted">{{.MosqueAddress}}</h6>
-        <p>Secilen Namaz | Ausgewähltes Gebet:
-          {{.PrayerName}}</p>
-        <form method="post" id="deleteForm" onsubmit="return confirm('Silmeyi onayliyormusunuz? | Bestätigen Sie die Abmeldung?');" action="/signOut?name={{.MosqueName}}&date={{.DateIndex}}&prayer={{.PrayerIndex}}&phone={{$phone}}">
-          <input type="submit" class="btn btn-outline-danger" value="Sil | Abmelden"></input>
-          <br>
-        </form>
-      </div>
-    </div>
-  {{end}}
+  {{if not .RegisteredPrayers}}
 
-  <script>
-    function check() {
-      var message = "Silmeyi onayliyormusunuz? \nBestätigen Sie die Löschung?";
-      var ok = window.confirm(message);
-      if (ok) {
-        window.location.href = '/deleteMosque?=' + value;
-      } else {
-        window.location.reload();
+  <h4>Kayitli Namazlar bulunmamakta | Es existieren keine Anmeldungen für Gebete</h4>
+  {{else}}
+    {{range .RegisteredPrayers}}
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">{{.MosqueName}},
+            {{.Date}}</h5>
+          <h6 class="card-subtitle mb-2 text-muted">{{.MosqueAddress}}</h6>
+          <p>Secilen Namaz | Ausgewähltes Gebet:
+            {{.PrayerName}}</p>
+          <form method="post" id="deleteForm" onsubmit="return confirm('Silmeyi onayliyormusunuz? | Bestätigen Sie die Abmeldung?');" action="/signOut?name={{.MosqueName}}&date={{.DateIndex}}&prayer={{.PrayerIndex}}&phone={{$phone}}">
+            <input type="submit" class="btn btn-outline-danger" value="Sil | Abmelden"></input>
+            <br>
+          </form>
+        </div>
+      </div>
+    {{end}}
+
+    <script>
+      function check() {
+        var message = "Silmeyi onayliyormusunuz? \nBestätigen Sie die Löschung?";
+        var ok = window.confirm(message);
+        if (ok) {
+          window.location.href = '/deleteMosque?=' + value;
+        } else {
+          window.location.reload();
+        }
       }
-    }
-  </script>
+    </script>
+  {{end}}
 {{end}}
