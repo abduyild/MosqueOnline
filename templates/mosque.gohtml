@@ -208,7 +208,8 @@
   <div id="ok" class="alert alert-success" role="alert" style="display: none;">
     Kayidiniz yapildi! | Das Konto wurde erfolgreich angelegt!
   </div>
-
+  <h4>Kayitsiz gelen var ise, burda kayit et | Sofern jemand unangemelddet kommt, so hier registriereren</h4>
+  <p>Numarasini yaz, eger kayidi var ise, burada kayidi bilgilerinin görebilirsiniz. Eger yok ise kayit edebilirsiniz. <br> Geben Sie die Nummer ein, falls eine Registrierung vorhanden ist, so werden die Anmeldedaten gezeigt. Wenn nicht registriert, so kann ein neues Konto angelegt werden.</p>
   <div class="accordion m-2" id="register">
     <p>
       <button class="btn btn-info m-3" type="button" data-toggle="collapse" data-target="#registerUser" aria-expanded="false" aria-controls="registerUser">
@@ -286,29 +287,36 @@
                           <input type="number" name="phone" required="required" value="{{.Phone}}" class="form-control" id="phone" readonly="readonly">
                         </div>
                       </div>
-                      {{range $prayers}}
-                        <div class="form-check">
-                          <input class="form-check-input" type="radio" name="prayer" value="{{.Name}}" id="prayer{{.Name}}">
-                          <label class="form-check-label" for="prayer{{.Name}}">
-                            {{if (eq .Name  1)}}
-                              Gebet: Sabah | Fajr
-                            {{else if (eq .Name  2)}}
-                              Gebet: Ögle | Dhuhr
-                            {{else if (eq .Name  3)}}
-                              Gebet: Ikindi | Asr
-                            {{else if (eq .Name  4)}}
-                              Gebet: Aksam | Maghrib
-                            {{else if (eq .Name  5)}}
-                              Gebet: Yatsi | Ishaa
-                            {{else if (eq .Name  6)}}
-                              Gebet: Cuma | Freitagsgebet
-                            {{else if (eq .Name  7)}}
-                              Gebet: Bayram | Eid{{end}}
-                          </label>
+
+                      <div class="row">
+                        <legend class="col-form-label col-sm-2 pt-0">Geldigi Vakit | Besuchtes Gebet</legend>
+                        <div class="col-sm-10">
+                          {{range $prayers}}
+                            <div class="form-check">
+                              <input class="form-check-input" type="radio" name="prayer" value="{{.Name}}" id="prayer{{.Name}}" required="required">
+                              <label class="form-check-label" for="prayer{{.Name}}">
+                                {{if (eq .Name  1)}}
+                                  Gebet: Sabah | Fajr
+                                {{else if (eq .Name  2)}}
+                                  Gebet: Ögle | Dhuhr
+                                {{else if (eq .Name  3)}}
+                                  Gebet: Ikindi | Asr
+                                {{else if (eq .Name  4)}}
+                                  Gebet: Aksam | Maghrib
+                                {{else if (eq .Name  5)}}
+                                  Gebet: Yatsi | Ishaa
+                                {{else if (eq .Name  6)}}
+                                  Gebet: Cuma | Freitagsgebet
+                                {{else if (eq .Name  7)}}
+                                  Gebet: Bayram | Eid{{end}}
+                              </label>
+                            </div>
+                          {{end}}
                         </div>
-                      {{end}}
+                      </div>
                       <button type="submit" class="btn btn-outline-dark">Kayit et | Registriere</button>
                       <a href="/mosqueIndex" class="btn btn-outline-warning" role="button">Iptal et | Abbrechen</a>
+
                     {{end}}
                   {{end}}
                 {{else}}
