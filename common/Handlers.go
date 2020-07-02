@@ -311,7 +311,7 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 				return stringToTime(regP[i].Date).Before(stringToTime(regP[j].Date))
 			})
 			tUser.RegisteredPrayers = regP
-			t, _ := template.ParseFiles("templates/index.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+			t, err := template.ParseFiles("templates/index.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
 			t.Execute(response, tUser)
 		}
 	} else {
@@ -566,8 +566,8 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		}
 		dateL := len(mosque.Date)
 		dateP := len(mosque.Date[0].Prayer)
-		if dateIndex < dateL && prayerN-1 < dateP {
-			users := mosque.Date[dateIndex].Prayer[prayerN-1].Users
+		if dateIndex < dateL && prayerN < dateP+1 {
+			users := mosque.Date[dateIndex].Prayer[prayerN].Users
 			for _, user := range users {
 				if user.Phone == encP && !user.Attended {
 					collection.UpdateOne(context.TODO(),
