@@ -135,7 +135,6 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 							return
 						}
 						usr := model.User{sex, encF, encL, encE, encP, false, []model.RegisteredPrayer{}}
-						collection.InsertOne(context.TODO(), usr)
 
 						//test autoattent start
 						var reg register
@@ -169,10 +168,26 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 								{"Phone", usr.Phone},
 								{"RegisteredPrayers.RpId", registered.RpId}})
 							if result.Err() != nil {
-								registered.PrayerName = prayer
 								registered.MosqueName = mosque.Name
 								registered.MosqueAddress = strconv.Itoa(mosque.PLZ) + " " + mosque.City + ", " + mosque.Street
 								registered.DateIndex = index
+								switch prayerI {
+								case 1:
+									registered.PrayerName = "Sabah"
+								case 2:
+									registered.PrayerName = "Ögle"
+								case 3:
+									registered.PrayerName = "Ikindi"
+								case 4:
+									registered.PrayerName = "Aksam"
+								case 5:
+									registered.PrayerName = "Yatsi"
+								case 6:
+									registered.PrayerName = "Cuma"
+								case 7:
+									registered.PrayerName = "Bayram"
+								}
+								registered.PrayerIndex = prayerI
 								collection, err = repos.GetDBCollection(1)
 								if err != nil {
 									t, _ := template.ParseFiles("templates/errorpage.gohtml")
@@ -189,6 +204,11 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 								tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
 								collection.UpdateOne(context.TODO(),
 									bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Users": tempUser}})
+
+								collection.UpdateOne(context.TODO(),
+									bson.M{"Name": mosque.Name, "Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Users.Phone": encP},
+									bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Users.$.Attended": true}})
+
 								usr.RegisteredPrayers = append(usr.RegisteredPrayers, registered)
 								collection, err = repos.GetDBCollection(0)
 								if err != nil {
@@ -201,9 +221,12 @@ func MosqueHandler(response http.ResponseWriter, request *http.Request) {
 									t.Execute(response, GetError(err.Error(), "/"))
 									return
 								}
-								collection.UpdateOne(context.TODO(),
-									bson.M{"Phone": usr.Phone}, bson.M{
-										"$push": bson.M{"RegisteredPrayers": registered}})
+								usr.RegisteredPrayers = []model.RegisteredPrayer{}
+								usr.RegisteredPrayers = append(usr.RegisteredPrayers, registered)
+								collection.InsertOne(context.TODO(), usr) // test if this works
+								/*collection.UpdateOne(context.TODO(),
+								bson.M{"Phone": usr.Phone}, bson.M{
+									"$push": bson.M{"RegisteredPrayers": registered}})*/
 								http.Redirect(response, request, "/mosqueIndex?success", 302)
 							}
 						} else {

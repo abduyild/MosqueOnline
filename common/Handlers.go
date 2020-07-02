@@ -566,13 +566,14 @@ func SignOutPrayer(response http.ResponseWriter, request *http.Request) {
 		}
 		dateL := len(mosque.Date)
 		dateP := len(mosque.Date[0].Prayer)
-		if dateIndex < dateL && prayerN < dateP+1 {
-			users := mosque.Date[dateIndex].Prayer[prayerN].Users
+		if dateIndex > 0 && prayerN > 0 && dateIndex < dateL && prayerN-1 < dateP {
+			users := mosque.Date[dateIndex].Prayer[prayerN-1].Users
 			for _, user := range users {
 				if user.Phone == encP && !user.Attended {
 					collection.UpdateOne(context.TODO(),
 						bson.M{"Name": name},
 						bson.M{"$pull": bson.M{"Date" + "." + date + ".Prayer." + prayer1 + ".Users": bson.M{"Phone": encP}}})
+					break
 				}
 			}
 		} else {
