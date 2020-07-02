@@ -32,17 +32,6 @@
         Telefon:
         {{.Phone}}</p>
       <button onclick="check()" class="btn btn-warning">Hesabi kapat | Lösche Konto</button><br><br>
-      <script>
-        function check() {
-          var message = "Silmeyi onayliyormusunuz? \nBestätigen Sie die Löschung?";
-          var ok = window.confirm(message);
-          if (ok) {
-            window.location.href = '/deleteMosque?=' + value;
-          } else {
-            window.location.reload();
-          }
-        }
-      </script>
     </div>
   </div>
   <br>
@@ -91,4 +80,16 @@
       </div>
     {{end}}
   {{end}}
+
+  <script>
+    function check() {
+      var message = "Silmeyi onayliyormusunuz? \nBestätigen Sie die Löschung?";
+      var ok = window.confirm(message);
+      if (ok) {
+        window.location.href = '/deleteUser';
+      } else {
+        window.location.reload();
+      }
+    }
+  </script>
 {{end}}
