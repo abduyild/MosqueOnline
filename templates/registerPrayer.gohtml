@@ -1,36 +1,9 @@
 {{template "base" .}}
 {{define "scripts"}}
-  <link rel="stylesheet" href="static/css/bootstrap-select.min.css">
+  <script src="static/js/jquery-3.5.1.slim.min.js"></script>
+  <script src="static/js/bootstrap.bundle.min.js"></script>
   <script src="static/js/bootstrap-select.min.js"></script>
-  <script>
-    window.addEventListener("pageshow", function (event) {
-      var today = new Date();
-      var dd = today.getDate();
-      var mm = today.getMonth() + 1; //January is 0!
-      var yyyy = today.getFullYear();
-      if (dd < 10) {
-        dd = '0' + dd
-      }
-      if (mm < 10) {
-        mm = '0' + mm
-      }
-      today = yyyy + '-' + mm + '-' + dd;
-      var d = new Date();
-      d.setDate(d.getDate() + {{.MaxFutureDate}});
-      var y = d.getFullYear();
-      var m = d.getMonth() + 1;
-      var da = d.getDate();
-      if (da < 10) {
-        da = '0' + da
-      }
-      if (m < 10) {
-        m = '0' + m
-      }
-      d = y + '-' + m + '-' + da;
-      document.getElementById("date").setAttribute("min", today);
-      document.getElementById("date").setAttribute("max", d);
-    });
-  </script>
+  <link rel="stylesheet" href="static/css/bootstrap-select.min.css">
 {{end}}
 {{define "title"}}
   Gebetsanmeldung
@@ -69,6 +42,35 @@
       {{end}}
     {{end}}
     {{if .MosqueSelected}}
+      <script>
+        window.addEventListener("pageshow", function (event) {
+          var today = new Date();
+          var dd = today.getDate();
+          var mm = today.getMonth() + 1; //January is 0!
+          var yyyy = today.getFullYear();
+          if (dd < 10) {
+            dd = '0' + dd
+          }
+          if (mm < 10) {
+            mm = '0' + mm
+          }
+          today = yyyy + '-' + mm + '-' + dd;
+          var d = new Date();
+          d.setDate(d.getDate() + {{.MaxFutureDate}});
+          var y = d.getFullYear();
+          var m = d.getMonth() + 1;
+          var da = d.getDate();
+          if (da < 10) {
+            da = '0' + da
+          }
+          if (m < 10) {
+            m = '0' + m
+          }
+          d = y + '-' + m + '-' + da;
+          document.getElementById("date").setAttribute("min", today);
+          document.getElementById("date").setAttribute("max", d);
+        });
+      </script>
       Tarih | Datum:
       <input type="date" id="date" name="date" min='2020-01-01' max='2020-08-01'></input>
     {{else}}

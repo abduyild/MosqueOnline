@@ -183,12 +183,12 @@ func LoginHandler(response http.ResponseWriter, request *http.Request) {
 				http.Redirect(response, request, "/?wrong", 302)
 				return
 			}
-			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone)), 14)
+			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone+"!")), 14)
 			if err != nil {
 				http.Redirect(response, request, "/?wrong", 302)
 				return
 			}
-			cookie := R(email+"?"+phone+"&"+string(userCredentials)) + "!"
+			cookie := R(email + "?" + phone + "!" + "&" + string(userCredentials))
 			SetCookie(cookie, response)
 			redirectTarget = "/index"
 		}
@@ -278,42 +278,42 @@ func IndexPageHandler(response http.ResponseWriter, request *http.Request) {
 	if loggedin(response, request) {
 		encryptedUser, err := GetUserAsUser(response, request)
 		if err != nil {
+			fmt.Println("oh")
 			t, _ := template.ParseFiles("templates/errorpage.gohtml")
 			t.Execute(response, GetError("Cerez hatasi | Cookiefehler", "/"))
 			return
-		} else {
-			user := decryptUser(encryptedUser)
-			var tUser model.User // for only adding the actual prayers, not past ones
-			tUser = user
-			var regP []model.RegisteredPrayer
-			tUser.RegisteredPrayers = regP
-			var mosque model.Mosque
-			collection, err := repos.GetDBCollection(1)
+		}
+		user := decryptUser(encryptedUser)
+		var tUser model.User // for only adding the actual prayers, not past ones
+		tUser = user
+		var regP []model.RegisteredPrayer
+		tUser.RegisteredPrayers = regP
+		var mosque model.Mosque
+		collection, err := repos.GetDBCollection(1)
 
-			if err != nil {
-				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(dbConnectionError, "/index"))
-				return
-			}
+		if err != nil {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError(dbConnectionError, "/index"))
+			return
+		}
 
-			for _, reg := range user.RegisteredPrayers {
-				collection.FindOne(context.TODO(), bson.M{"Name": reg.MosqueName}).Decode(&mosque)
-				if mosque.Active { // only show registrations if mosque is active
-					if reg.Date != "" { // delöte this later
-						timeNow := time.Now()
-						if stringToTime(reg.Date).After(timeNow) {
-							regP = append(regP, reg)
-						}
+		for _, reg := range user.RegisteredPrayers {
+			collection.FindOne(context.TODO(), bson.M{"Name": reg.MosqueName}).Decode(&mosque)
+			if mosque.Active { // only show registrations if mosque is active
+				if reg.Date != "" {
+					timeNow := time.Now()
+					if stringToTime(reg.Date).After(timeNow) {
+						regP = append(regP, reg)
 					}
 				}
 			}
-			sort.Slice(regP, func(i int, j int) bool {
-				return stringToTime(regP[i].Date).Before(stringToTime(regP[j].Date))
-			})
-			tUser.RegisteredPrayers = regP
-			t, err := template.ParseFiles("templates/index.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
-			t.Execute(response, tUser)
 		}
+		sort.Slice(regP, func(i int, j int) bool {
+			return stringToTime(regP[i].Date).Before(stringToTime(regP[j].Date))
+		})
+		tUser.RegisteredPrayers = regP
+		t, err := template.ParseFiles("templates/index.gohtml", "templates/base_loggedin.tmpl", "templates/footer.tmpl")
+		t.Execute(response, tUser)
 	} else {
 		t, _ := template.ParseFiles("templates/errorpage.gohtml")
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
@@ -727,7 +727,7 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 	if !strings.Contains(cookie.Value, "?") {
 		return "", errors.New("Cerez hatasi | Cookiefehler")
 	}
-	cookieValue := strings.Split(R(cookie.Value), "!")[0]
+	cookieValue := cookie.Value
 	cookieVal := strings.Split(cookieValue, "&")[0]
 	values := strings.Split(cookieVal, "?")
 	cookieHash := strings.Split(cookieValue, "&")[1]
@@ -735,7 +735,8 @@ func GetPhoneFromCookie(request *http.Request) (string, error) {
 	if err != nil {
 		return "", errors.New("Cerez hatasi | Cookiefehler")
 	}
-	phone = values[1]
+	val := strings.Split(values[1], "!")[0]
+	phone = val
 	return phone, nil
 }
 
