@@ -144,58 +144,63 @@ func RegisterHandler(response http.ResponseWriter, request *http.Request) {
 
 // Handler for Login Page used with POST by submitting Loginform
 func LoginHandler(response http.ResponseWriter, request *http.Request) {
-	request.ParseForm()
-	mosque := request.URL.Query().Get("mosque")
-	if mosque != "" {
-		SetChoo(chooseCookie{mosque}, response)
-		collection, _ := repos.GetDBCollection(1)
-		var mosqueM model.Mosque
-		collection.FindOne(context.TODO(), bson.M{"Name": mosque}).Decode(&mosqueM)
-		ads := mosqueM.Ads
-		t, _ := template.ParseFiles("templates/userlogin.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
-		t.Execute(response, ads)
-	} else if len(request.PostForm) > 0 {
-		if request.FormValue("type") == "admin" {
-			adminLogin(response, request)
-			return
-		}
-		email := request.FormValue("email")
-		phone := request.FormValue("phone")
-		redirectTarget := "/"
-		if len(email) != 0 && len(phone) != 0 {
-			collection, err := repos.GetDBCollection(0)
-			if err != nil {
-				t, _ := template.ParseFiles("templates/errorpage.gohtml")
-				t.Execute(response, GetError(dbConnectionError, "/"))
-				return
-			}
-			var user model.User
-
-			encP := repos.Encrypt(phone)
-
-			err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
-			if err != nil {
-				http.Redirect(response, request, "/?wrong", 302)
-				return
-			}
-			decE := repos.Decrypt(user.Email)
-			if email != decE {
-				http.Redirect(response, request, "/?wrong", 302)
-				return
-			}
-			userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone+"!")), 14)
-			if err != nil {
-				http.Redirect(response, request, "/?wrong", 302)
-				return
-			}
-			cookie := R(email + "?" + phone + "!" + "&" + string(userCredentials))
-			SetCookie(cookie, response)
-			redirectTarget = "/index"
-		}
-		http.Redirect(response, request, redirectTarget, 302)
+	if loggedin(response, request) {
+		response.Write([]byte(`<script>window.location.href = "/index";</script>`))
+		return
 	} else {
-		t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
-		t.Execute(response, getMosques(response, request, false))
+		request.ParseForm()
+		mosque := request.URL.Query().Get("mosque")
+		if mosque != "" {
+			SetChoo(chooseCookie{mosque}, response)
+			collection, _ := repos.GetDBCollection(1)
+			var mosqueM model.Mosque
+			collection.FindOne(context.TODO(), bson.M{"Name": mosque}).Decode(&mosqueM)
+			ads := mosqueM.Ads
+			t, _ := template.ParseFiles("templates/userlogin.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
+			t.Execute(response, ads)
+		} else if len(request.PostForm) > 0 {
+			if request.FormValue("type") == "admin" {
+				adminLogin(response, request)
+				return
+			}
+			email := request.FormValue("email")
+			phone := request.FormValue("phone")
+			redirectTarget := "/"
+			if len(email) != 0 && len(phone) != 0 {
+				collection, err := repos.GetDBCollection(0)
+				if err != nil {
+					t, _ := template.ParseFiles("templates/errorpage.gohtml")
+					t.Execute(response, GetError(dbConnectionError, "/"))
+					return
+				}
+				var user model.User
+
+				encP := repos.Encrypt(phone)
+
+				err = collection.FindOne(context.TODO(), bson.D{{"Phone", encP}}).Decode(&user)
+				if err != nil {
+					http.Redirect(response, request, "/?wrong", 302)
+					return
+				}
+				decE := repos.Decrypt(user.Email)
+				if email != decE {
+					http.Redirect(response, request, "/?wrong", 302)
+					return
+				}
+				userCredentials, err := bcrypt.GenerateFromPassword([]byte(R(email+phone+"!")), 14)
+				if err != nil {
+					http.Redirect(response, request, "/?wrong", 302)
+					return
+				}
+				cookie := R(email + "?" + phone + "!" + "&" + string(userCredentials))
+				SetCookie(cookie, response)
+				redirectTarget = "/index"
+			}
+			http.Redirect(response, request, redirectTarget, 302)
+		} else {
+			t, _ := template.ParseFiles("templates/login.gohtml", "templates/base.tmpl", "templates/footer.tmpl")
+			t.Execute(response, getMosques(response, request, false))
+		}
 	}
 }
 

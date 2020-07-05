@@ -323,9 +323,13 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 				t.Execute(response, GetError(err.Error(), "/"))
 				return
 			}
+			today := strings.Split(time.Now().String(), " ")[0]
 			mosque := getMosque(mosqueName)
 			if mosque.Name != "" {
 				for _, date := range mosque.Date {
+					if today == strings.Split(date.Date.String(), " ")[0] {
+						break
+					}
 					for _, prayer := range date.Prayer {
 						if len(prayer.Users) > 0 {
 							nprayer := prayer
