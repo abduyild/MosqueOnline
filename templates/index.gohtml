@@ -1,22 +1,6 @@
 {{template "base" .}}
 
 {{define "scripts"}}
-  <script src="static/js/jquery-3.5.1.slim.min.js"></script>
-  <script src="static/js/bootstrap.bundle.min.js"></script>
-  <script>
-    $(document).ready(function () {
-      if (window.location.href.indexOf("?success") > -1) {
-        document.getElementById('ok').style.display = '';
-      } else {
-        document.getElementById('ok').style.display = 'none';
-      }
-      if (window.location.href.indexOf("?existent") > -1) {
-        document.getElementById('nok').style.display = '';
-      } else {
-        document.getElementById('nok').style.display = 'none';
-      }
-    });
-  </script>
 {{end}}
 
 {{define "title"}}
@@ -24,6 +8,22 @@
 {{end}}
 
 {{define "main"}}
+    <script src="static/js/jquery-3.5.1.slim.min.js"></script>
+      <script src="static/js/bootstrap.bundle.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        if (window.location.href.indexOf("?success") > -1) {
+          document.getElementById('ok').style.display = '';
+        } else {
+          document.getElementById('ok').style.display = 'none';
+        }
+        if (window.location.href.indexOf("?existent") > -1) {
+          document.getElementById('nok').style.display = '';
+        } else {
+          document.getElementById('nok').style.display = 'none';
+        }
+      });
+    </script>
   <div class="card" style="width: 18rem;">
     <div class="card-body">
       <h5 class="card-title">{{.FirstName}}

@@ -1,7 +1,6 @@
 {{template "base" .}}
 {{define "scripts"}}
   <script src="static/js/selectize.min.js"></script>
-  <link rel="stylesheet" href="static/css/selectize.default.css">
   <script>
     $(document).ready(function () {
       $('.submit').attr('disabled', true);
@@ -44,6 +43,7 @@
 {{end}}
 
 {{define "main"}}
+  <link rel="stylesheet" href="static/css/selectize.default.css">
   {{- if .DeleteMosque -}}
 
     <select id="delete-mosque" placeholder="Camiinizi secin / Wählen Sie Ihre Moschee aus">

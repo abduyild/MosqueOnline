@@ -1,14 +1,14 @@
 {{template "base" .}}
 {{define "scripts"}}
-  <script src="static/js/jquery-3.5.1.slim.min.js"></script>
-  <script src="static/js/bootstrap.bundle.min.js"></script>
-  <script src="static/js/bootstrap-select.min.js"></script>
-  <link rel="stylesheet" href="static/css/bootstrap-select.min.css">
 {{end}}
 {{define "title"}}
   Gebetsanmeldung
 {{end}}
 {{define "main"}}
+  <script src="static/js/jquery-3.5.1.slim.min.js"></script>
+  <script src="static/js/bootstrap.bundle.min.js"></script>
+  <script src="static/js/bootstrap-select.min.js"></script>
+  <link rel="stylesheet" href="static/css/bootstrap-select.min.css">
   <form action="/registerPrayer" method="post">
     {{if .ShowMosqueSelect}}
       <h4>Camiinizi secin | Wählen Sie Ihre Moschee</h4>
