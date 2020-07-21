@@ -12,6 +12,16 @@
       } else {
         document.getElementById('ok').style.display = 'none';
       }
+      if (window.location.href.indexOf("?loginok") > -1) {
+        document.getElementById('loginok').style.display = '';
+      } else {
+        document.getElementById('loginok').style.display = 'none';
+      }
+      if (window.location.href.indexOf("?loginNok") > -1) {
+        document.getElementById('loginNok').style.display = '';
+      } else {
+        document.getElementById('loginNok').style.display = 'none';
+      }
       if (window.location.search == '?register') {
         $('#registerUser').addClass('show');
       }
@@ -38,6 +48,7 @@
   {{$name := ""}}
   {{$capm := 0}}
   {{$capw := 0}}
+  {{$date := ""}}
   {{with .Mosque}}
     {{$name = .Name}}
     {{$capm = .MaxCapM}}
@@ -60,7 +71,7 @@
     </div>
   {{end}}
   {{with .Date}}
-    {{$date := .Date}}
+    {{$date = .Date}}
     <h3>Datum:
       {{$date}}</h3>
     <div class="accordion m-2" id="getAttendants">
@@ -205,11 +216,19 @@
   <div id="format" class="alert alert-danger" role="alert" style="display: none;">
     Girdiginiz verilerde hata olusdu, yine deneyin! | Es trat ein Feher mit Ihren Eingaben auf, versuchen Sie es erneut!
   </div>
+  <div id="loginNok" class="alert alert-danger" role="alert" style="display: none;">
+    Kayit henüz mevcut! | Die Anmeldung existiert bereits!
+  </div>
   <div id="ok" class="alert alert-success" role="alert" style="display: none;">
     Kayidiniz yapildi! | Das Konto wurde erfolgreich angelegt!
   </div>
+  <div id="loginok" class="alert alert-success" role="alert" style="display: none;">
+    Kayidiniz yapildi! | Das Konto wurde erfolgreich angemeldet!
+  </div>
   <h4>Kayitsiz gelen var ise, burda kayit et | Sofern jemand unangemelddet kommt, so hier registriereren</h4>
-  <p>Numarasini yaz, eger kayidi var ise, burada kayidi bilgilerinin görebilirsiniz. Eger yok ise kayit edebilirsiniz. <br> Geben Sie die Nummer ein, falls eine Registrierung vorhanden ist, so werden die Anmeldedaten gezeigt. Wenn nicht registriert, so kann ein neues Konto angelegt werden.</p>
+  <p>Numarasini yaz, eger kayidi var ise, burada kayidi bilgilerinin görebilirsiniz. Eger yok ise kayit edebilirsiniz.
+    <br>
+    Geben Sie die Nummer ein, falls eine Registrierung vorhanden ist, so werden die Anmeldedaten gezeigt. Wenn nicht registriert, so kann ein neues Konto angelegt werden.</p>
   <div class="accordion m-2" id="register">
     <p>
       <button class="btn btn-info m-3" type="button" data-toggle="collapse" data-target="#registerUser" aria-expanded="false" aria-controls="registerUser">
@@ -223,29 +242,61 @@
         <div class="collapse mb-3" id="registerUser">
         {{end}}
         <div class="card card-body">
-          <form method="POST">
-            <div class="row">
-              <div class="col">
-                {{if .Register}}
-                  {{$found := .Found}}
-                  {{with .User}}
-                    {{if $found}}
-                      <h2>Kayit mevcut | Registrierung vorhanden</h2>
-                      <div class="card m-2" style="width: 18rem;">
-                        <div class="card-body">
-                          <h5 class="card-title">{{.FirstName}}
-                            {{.LastName}}</h5>
-                          <p class="card-text">
-                            Email:
-                            {{.Email}}
-                            <br>
-                            Telefon:
-                            {{.Phone}}
-                          </p>
-                        </div>
+          <div class="row">
+            <div class="col">
+              {{if .Register}}
+                {{$found := .Found}}
+                {{with .User}}
+                  {{if $found}}
+                    <h2>Kayit mevcut | Registrierung vorhanden</h2>
+                    <div class="card m-2" style="width: 18rem;">
+                      <div class="card-body">
+                        <h5 class="card-title">{{.FirstName}}
+                          {{.LastName}}</h5>
+                        <p class="card-text">
+                          Email:
+                          {{.Email}}
+                          <br>
+                          Telefon:
+                          {{.Phone}}
+                        </p>
                       </div>
-                      <a href="/mosqueIndex" class="btn btn-outline-warning" role="button">Geri git | Zurück</a>
-                    {{else}}
+                    </div>
+                    <div class="row">
+                      <legend class="col-form-label col-sm-2 pt-0">Geldigi Vakit | Besuchtes Gebet</legend>
+                      <form action="/addAttendant" method="POST">
+                        <div class="col">
+                          {{range $prayers}}
+                            <div class="form-check">
+                              <input class="form-check-input" type="radio" name="prayer" value="{{.Name}}" id="prayer{{.Name}}" required="required">
+                              <label class="form-check-label" for="prayer{{.Name}}">
+                                {{if (eq .Name  1)}}
+                                  Gebet: Sabah | Fajr
+                                {{else if (eq .Name  2)}}
+                                  Gebet: Ögle | Dhuhr
+                                {{else if (eq .Name  3)}}
+                                  Gebet: Ikindi | Asr
+                                {{else if (eq .Name  4)}}
+                                  Gebet: Aksam | Maghrib
+                                {{else if (eq .Name  5)}}
+                                  Gebet: Yatsi | Ishaa
+                                {{else if (eq .Name  6)}}
+                                  Gebet: Cuma | Freitagsgebet
+                                {{else if (eq .Name  7)}}
+                                  Gebet: Bayram | Eid{{end}}
+                              </label>
+                            </div>
+                          {{end}}
+                        </div>
+                        <input type="hidden" name="phone" value="{{.Phone}}">
+                        <input type="hidden" name="mosque" value="{{$name}}">
+                        <input type="hidden" name="date" value="{{$date}}">
+                        <button type="submit" class="btn btn-outline-dark">Kayit et | Melde an</button>
+                      </form>
+                    </div>
+                    <a href="/mosqueIndex" class="btn btn-outline-warning" role="button">Geri git | Zurück</a>
+                  {{else}}
+                    <form method="POST">
                       <fieldset class="form-group">
                         <div class="row">
                           <legend class="col-form-label col-sm-2 pt-0">Cinsiyetinizi Secin | Wählen Sie Ihr Geschlecht</legend>
@@ -315,18 +366,19 @@
                         </div>
                       </div>
                       <button type="submit" class="btn btn-outline-dark">Kayit et | Registriere</button>
-                      <a href="/mosqueIndex" class="btn btn-outline-warning" role="button">Iptal et | Abbrechen</a>
+                    </form>
+                    <a href="/mosqueIndex" class="btn btn-outline-warning" role="button">Iptal et | Abbrechen</a>
 
-                    {{end}}
                   {{end}}
-                {{else}}
-
+                {{end}}
+              {{else}}
+                <form method="post">
                   <input type="number" id="phone" name="phone" min='0' placeholder="Telefon: 0123456789"><br><br>
                   <button type="submit" class="btn btn-outline-dark">Kayit et | Registriere</button>
-                {{end}}
-              </div>
+                </form>
+              {{end}}
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>

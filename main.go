@@ -48,6 +48,7 @@ func main() {
 
 	router.HandleFunc("/mosqueIndex", common.MosqueHandler)
 	router.HandleFunc("/getRegistrations", common.GetRegistrations)
+	router.HandleFunc("/addAttendant", common.SubmitAttendant)
 	router.HandleFunc("/confirmVisitors", common.ConfirmVisitors)
 
 	router.HandleFunc("/logout", common.LogoutHandler)

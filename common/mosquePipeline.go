@@ -443,3 +443,107 @@ func ConfirmVisitors(response http.ResponseWriter, request *http.Request) {
 		t.Execute(response, GetError("Kayidiniz gecerli degil | Anmeldung nicht gültig", "/"))
 	}
 }
+
+func SubmitAttendant(response http.ResponseWriter, request *http.Request) {
+	var reg register
+	mosqueName := request.PostFormValue("mosque")
+	date := request.PostFormValue("date")
+	prayer := request.PostFormValue("prayer")
+	phone := request.PostFormValue("phone")
+	prayerI, err := strconv.Atoi(prayer)
+	if err != nil {
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
+		t.Execute(response, GetError("Yanlis sayi boyutu | Falsches Zahlenformat", "/mosqueIndex"))
+		return
+	}
+	collection, err := repos.GetDBCollection(0)
+	if err != nil {
+		t, _ := template.ParseFiles("templates/errorpage.gohtml")
+		t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+		return
+	}
+	mosque := getMosque(mosqueName)
+	reg.Mosque = mosque
+	if reg.Mosque.Name != "" {
+		choosenMosque := reg.Mosque
+		encryptedPhone := repos.Encrypt(phone)
+		var user model.User
+		collection.FindOne(context.TODO(), bson.M{"Phone": encryptedPhone}).Decode(&user)
+		if user.Phone == "" {
+			t, _ := template.ParseFiles("templates/errorpage.gohtml")
+			t.Execute(response, GetError("Verilen numara ile Kayit bulunamadi | Mit angegebener Telefonnummer konnte keine Anmeldung gefunden werden", "/mosqueIndex"))
+			return
+		}
+		registered := model.RegisteredPrayer{}
+		var mosque = getMosque(choosenMosque.Name)
+		index := 0
+		for i, dates := range choosenMosque.Date {
+			if strings.Split(time.Now().String(), " ")[0] == strings.Split(dates.Date.String(), " ")[0] {
+				registered.Date = strconv.Itoa(dates.Date.Day()) + "." + strconv.Itoa(int(dates.Date.Month())) + "." + strconv.Itoa(dates.Date.Year())
+				index = i
+				break
+			}
+		}
+		registered.RpId = mosque.Name + ":" + strconv.Itoa(index) + ":" + prayer
+		result := collection.FindOne(context.TODO(), bson.D{
+			{"Phone", user.Phone},
+			{"RegisteredPrayers.RpId", registered.RpId}})
+		if result.Err() != nil {
+			switch prayerI {
+			case 1:
+				registered.PrayerName = "Sabah"
+			case 2:
+				registered.PrayerName = "Ögle"
+			case 3:
+				registered.PrayerName = "Ikindi"
+			case 4:
+				registered.PrayerName = "Aksam"
+			case 5:
+				registered.PrayerName = "Yatsi"
+			case 6:
+				registered.PrayerName = "Cuma"
+			case 7:
+				registered.PrayerName = "Bayram"
+			}
+			registered.Date = date
+			registered.PrayerIndex = prayerI
+			registered.MosqueName = mosque.Name
+			registered.MosqueAddress = strconv.Itoa(mosque.PLZ) + " " + mosque.City + ", " + mosque.Street
+			registered.DateIndex = index
+			collection, err = repos.GetDBCollection(1)
+			if err != nil {
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
+				t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+				return
+			}
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Name": mosque.Name},
+				bson.D{{"$inc", bson.D{
+					{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Capacity" + user.Sex, -1},
+				},
+				}})
+			tempUser := user
+			tempUser.RegisteredPrayers = []model.RegisteredPrayer{}
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Name": mosque.Name}, bson.M{"$push": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Users": tempUser}})
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Name": mosque.Name, "Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Users.Phone": encryptedPhone},
+				bson.M{"$set": bson.M{"Date." + strconv.Itoa(index) + ".Prayer." + strconv.Itoa(prayerI-1) + ".Users.$.Attended": true}})
+			user.RegisteredPrayers = append(user.RegisteredPrayers, registered)
+			collection, err = repos.GetDBCollection(0)
+			if err != nil {
+				t, _ := template.ParseFiles("templates/errorpage.gohtml")
+				t.Execute(response, GetError(dbConnectionError, "/mosqueIndex"))
+				return
+			}
+			collection.UpdateOne(context.TODO(),
+				bson.M{"Phone": encryptedPhone}, bson.M{
+					"$push": bson.M{"RegisteredPrayers": registered}})
+			http.Redirect(response, request, "/mosqueIndex?loginok", 302)
+		} else {
+			http.Redirect(response, request, "/mosqueIndex?loginNok", 302)
+		}
+	} else {
+		http.Redirect(response, request, "/mosqueIndex?format", 302)
+	}
+}
