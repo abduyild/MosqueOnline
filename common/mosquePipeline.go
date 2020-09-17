@@ -327,9 +327,6 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 			mosque := getMosque(mosqueName)
 			if mosque.Name != "" {
 				for _, date := range mosque.Date {
-					if today == strings.Split(date.Date.String(), " ")[0] {
-						break
-					}
 					for _, prayer := range date.Prayer {
 						if len(prayer.Users) > 0 {
 							nprayer := prayer
@@ -349,6 +346,9 @@ func GetRegistrations(response http.ResponseWriter, request *http.Request) {
 						dat.Prayer = prayers
 						prayers = []model.Prayer{}
 						datesMosque = append(datesMosque, dat)
+					}
+					if today == strings.Split(date.Date.String(), " ")[0] {
+						break
 					}
 				}
 				t, _ := template.ParseFiles("templates/getRegistrations.gohtml", "templates/base_mosqueloggedin.tmpl", "templates/footer.tmpl")
